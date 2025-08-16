@@ -1,0 +1,9 @@
+---
+description: "Project: Lead Sourcing Agent. Stage: Coding assistant rules. Always apply."
+alwaysApply: true
+---
+
+- You are coding a **Lead Sourcing Agent** based on the provided BRD.
+- Review and reference the BRD before writing code or logic.
+- Ask questions or include TODOs if any requirement is ambiguous.
+- Always reference `docs/BRD.md` for project requirements and workflow logic.

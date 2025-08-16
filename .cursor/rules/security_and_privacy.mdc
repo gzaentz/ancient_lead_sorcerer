@@ -1,0 +1,9 @@
+---
+description: "Security & Privacy guidelines"
+alwaysApply: false
+---
+
+- API keys must be loaded from `.env`, never hard‑coded.
+- Sanitize all input data and enforce UTF‑8 encoding on all CSV outputs.
+- Do not store unnecessary PII beyond required contact fields.
+- Guard against prompt injection and open‑source safe code patterns.

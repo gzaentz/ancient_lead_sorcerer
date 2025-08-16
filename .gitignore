@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Environment & Secrets
+.env
+.env.*
+venv/
+.venv/
+.envrc
+config/secrets.json
+
+# Cursor
+.cursor/rules/*.backup
+.cursor/rules/.DS_Store
+tasks.md   # Optional if you don't want tasks in repo
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Test & Coverage
+coverage/
+.coverage
+.cache/
+.pytest_cache/
+htmlcov/
+
+# Data outputs
+data/
+results.csv
+failed_leads.csv
+query_history.csv
+disqualified_firms.csv
+exclusion_master_list.csv
+*.csv
+
+# Virtual environments & Dependencies
+env/
+*.egg-info
+Pipfile.lock
+poetry.lock
+
+# Jupyter notebooks checkpoints (if any)
+.ipynb_checkpoints

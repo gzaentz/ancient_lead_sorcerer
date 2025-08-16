@@ -1,0 +1,16 @@
+---
+description: "Coding standards and practices"
+globs:
+  - "src/**/*.py"
+alwaysApply: false
+---
+
+- Use Python 3.11+ with strict type hints and modular functions.
+- Follow functional/declarative style where possible; avoid unnecessary classes.
+- Adhere to PEP8, use `black` and `flake8` formatted code.
+- Favor clarity, maintainability, and single responsibility functions.
+- Document functions with Google‑style docstrings.
+- Always prefer clear, simple, and maintainable code over complex or overly abstract solutions.
+- Write the minimal amount of code needed to meet the requirements, but never skip essential functionality or error handling.
+- Avoid over-engineering (e.g., unnecessary classes, patterns, or wrappers).
+- Use descriptive variable names and small, focused functions instead of clever one-liners.
