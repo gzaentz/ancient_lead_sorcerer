@@ -8,12 +8,13 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    0.3 Create `data/`, `data/evidence/`, `data/crawl_artifacts/`, `data/exports/` dirs (§29-33, 42-46).
    0.4 Create `data/domain_history.jsonl` for Domain tool's cross-run deduplication (§239).
    0.5 Install & pin third-party libs: `httpx>=0.27`, `openrouter`, `firecrawl`, `proxycurl`, `mailgun`, `snovio`, `phonenumbers`, `portalocker`, `publicsuffix2` (§48-49).
-   0.6 Inject env-var loader & .env template for all required keys (§75-76).
+   0.6 Inject env-var loader & .env template for all required keys (§78-79).
    0.7 Add nightly GitHub Actions job placeholder for GC (§34-39).
    0.8 Create `schemas/unified_lead_record.json` with canonical JSON schema (§100-156).
    0.9 Create `icp_config.json` template with all required fields (§387-407).
-   0.10 Add `.env` template with all required environment variables (§75-76).
+   0.10 Add `.env` template with all required environment variables (§78-79).
    0.11 Create `config/costs.yaml` with default pricing for all providers (§387-407).
+   0.12 Convert schemas/unified_lead_record.json to JSON Schema (draft 2020-12) format
 
 1. Common / Cross-Cutting
    1.1 Data & File Conventions
@@ -24,7 +25,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    1.1.5 Implement masking helpers: email, phone, LinkedIn (§483-485) (unit tests validate "j*\*\*@d.com", "+XXXXXXXX7890").
    1.1.6 Central `append_status(history, new_status, notes)` utility (§91-99).
    1.1.7 `recompute_total_cost(record)` to sum stage costs (§72, 371-375, 385).
-   1.1.8 Single-line JSON logger w/PII masking (§75, 481).
+   1.1.8 Single-line JSON logger w/PII masking (§78, 481).
    1.1.9 `resolve_data_dir(payload)` with precedence (§26-27, 437).
    1.1.10 Evidence writer & pointer updater (§29-33, 248, 281).
    1.1.11 Enforce evidence array truncation: company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5 (§155).
@@ -81,59 +82,59 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    - SMTP timeouts → SMTP_TIMEOUT, retryable=true
    - Zero SERP results → NO_RESULTS, retryable=false, indicates successful query with no matching data
 
-   1.3.5 Implement `wrap_unknown_errors` decorator for uncaught exceptions (§63-67).
-   1.3.6 Implement provider presence validation at startup (§409, §76).
-   1.3.7 Implement audit trail logging for each tool step (§91-99).
-   1.3.8 Implement template placeholder validation for all tools (§226, §229).
-   1.3.9 Implement `icp_config.refresh_policy.failure_revisit_days` logic for all tools (§5-6, 240-242, 286-312, 353, 470).
-   1.3.10 Implement `icp_config.refresh_policy.domain_ttl_days` override for domain history TTL (§239).
-   1.3.11 Implement `icp_config.search.max_pages` override for SERP pagination (§239-244).
-   1.3.12 Implement `icp_config.default_country` fallback for phone parsing (§21-24).
-   1.3.13 Implement `icp_config.role_priority` configuration loading (§309-311).
-   1.3.14 Add metrics.health.unknown_error_count to orchestrator (§63-67).
+     1.3.5 Implement `wrap_unknown_errors` decorator for uncaught exceptions (§63-67).
+     1.3.6 Implement provider presence validation at startup (§409, §78).
+     1.3.7 Implement audit trail logging for each tool step (§91-99).
+     1.3.8 Implement template placeholder validation for all tools (§226, §229).
+     1.3.9 Implement `icp_config.refresh_policy.failure_revisit_days` logic for all tools (§5-6, 240-242, 286-312, 353, 470).
+     1.3.10 Implement `icp_config.refresh_policy.domain_ttl_days` override for domain history TTL (§239).
+     1.3.11 Implement `icp_config.search.max_pages` override for SERP pagination (§239-244).
+     1.3.12 Implement `icp_config.default_country` fallback for phone parsing (§21-24).
+     1.3.13 Implement `icp_config.role_priority` configuration loading (§309-311).
+     1.3.14 Add metrics.health.unknown_error_count to orchestrator (§63-67).
 
-   1.4 Schema Validation & Versioning
-   1.4.1 Load canonical schema once; compute sha256 checksum (§100-156, 153-154).
-   1.4.2 Implement `validate_envelope(io_data)` for all tools (§69-74, 443-447).
-   1.4.3 Inject `INTERNAL_VERSION` per tool & stamp provenance.tool_versions.{tool}.{version|schema_version} (§48, 262, 306, 349, 476).
-   1.4.4 Implement schema checksum computation: sha256 of unified_lead_record.json (§153-154).
-   1.4.5 Implement string length validation (≤2KB per string) (§155).
-   1.4.6 Implement array truncation validation: company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5 (§155).
-   1.4.7 Implement schema checksum validation at startup (§153-154).
-   1.4.8 Implement schema checksum drift detection during processing (§153-154).
-   1.4.9 Implement icp_config.testing flags validation (§416-420).
-   1.4.10 Implement schema validation against unified_lead_record.json.
-   1.4.11 Implement state machine transition validation.
-   1.4.12 Implement field ownership matrix validation.
-   1.4.13 Implement cost model per BRD §387-407.
+     1.4 Schema Validation & Versioning
+     1.4.1 Load canonical schema once; compute sha256 checksum (§100-156, 153-154).
+     1.4.2 Implement `validate_envelope(io_data)` for all tools (§69-74, 443-447).
+     1.4.3 Inject `INTERNAL_VERSION` per tool & stamp provenance.tool_versions.{tool}.{version|schema_version} (§48, 262, 306, 349, 476).
+     1.4.4 Implement schema checksum computation: sha256 of unified_lead_record.json (§153-154).
+     1.4.5 Implement string length validation (≤2KB per string) (§155).
+     1.4.6 Implement array truncation validation: company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5 (§155).
+     1.4.7 Implement schema checksum validation at startup (§153-154).
+     1.4.8 Implement schema checksum drift detection during processing (§153-154).
+     1.4.9 Implement icp_config.testing flags validation (§416-420).
+     1.4.10 Implement schema validation against unified_lead_record.json.
+     1.4.11 Implement state machine transition validation.
+     1.4.12 Implement field ownership matrix validation.
+     1.4.13 Implement cost model per BRD §387-407.
 
-   1.5 Refresh / Revisit Policy
-   1.5.1 `compute_next_revisit(existing, delta_days)` implementing max-rule (§5-6, 240-242, 286-312, 353, 470).
+     1.5 Refresh / Revisit Policy
+     1.5.1 `compute_next_revisit(existing, delta_days)` implementing max-rule (§5-6, 240-242, 286-312, 353, 470).
 
-   1.6 Artifact Retention & GC
-   1.6.1 GC script: keep 3 versions, delete >365 d, skip referenced (§34-39).
-   1.6.2 Sink rotation: >10 MB or >30 d for append-only logs (§42-46).
+     1.6 Artifact Retention & GC
+     1.6.1 GC script: keep 3 versions, delete >365 d, skip referenced (§34-39).
+     1.6.2 Sink rotation: >10 MB or >30 d for append-only logs (§42-46).
 
-   1.7 Metrics
-   1.7.1 Metrics struct builder per tool (§362-376).
-   1.7.2 Implement `load_costs_config(path="config/costs.yaml")` helper to cache YAML once and return per-provider unit prices (§387-407).
-   1.7.3 Implement high-resolution timer for metrics.duration_ms in every tool run() entry (§362-370).
+     1.7 Metrics
+     1.7.1 Metrics struct builder per tool (§362-376).
+     1.7.2 Implement `load_costs_config(path="config/costs.yaml")` helper to cache YAML once and return per-provider unit prices (§387-407).
+     1.7.3 Implement high-resolution timer for metrics.duration_ms in every tool run() entry (§362-370).
 
-   1.8 Secret Redaction
-   1.8.1 Extend JSON logger to strip/replace any value whose key contains "key", "token", "secret".
-   1.8.2 Extend JSON logger to redact large provider payloads (>2 KB or containing "headers/body") before serialization.
+     1.8 Secret Redaction
+     1.8.1 Extend JSON logger to strip/replace any value whose key contains "key", "token", "secret".
+     1.8.2 Extend JSON logger to redact large provider payloads (>2 KB or containing "headers/body") before serialization.
 
-   1.9 Error Object Helper
-   1.9.1 `build_error(code, exc, tool, lead_id=None, context=None)` with PII & secret masking, message truncation.
+     1.9 Error Object Helper
+     1.9.1 `build_error(code, exc, tool, lead_id=None, context=None)` with PII & secret masking, message truncation.
 
-   1.10 Float Rounding
-   1.10.1 Implement `round4(f)` utility for cost_usd & metrics before emit (§386).
+     1.10 Float Rounding
+     1.10.1 Implement `round4(f)` utility for cost_usd & metrics before emit (§386).
 
-   1.11 Progressive SERP Pagination
-   1.11.1 Implement progressive SERP pagination logic for Domain tool (§239-244).
+     1.11 Progressive SERP Pagination
+     1.11.1 Implement progressive SERP pagination logic for Domain tool (§239-244).
 
-   1.12 Content Hash Deduplication
-   1.12.1 Implement content hash deduplication for Crawl tool (§283-285).
+     1.12 Content Hash Deduplication
+     1.12.1 Implement content hash deduplication for Crawl tool (§283-285).
 
 2. Tool: Domain (`tools/domain.py`)
    2.1 CLI: read stdin JSON, write stdout JSON, log to stderr (§71).
@@ -273,7 +274,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    5.15 Handle CSV flattening with dot-notation for objects and array joining with "|" (§430-435).
    5.16 Export only best contact using columns: `contact.full_name`, `contact.role`, `contact.email`, `contact.phone`, `contact.linkedin` (§430-435).
    5.17 Implement metrics.health.unknown_error_count tracking (§63-67).
-   5.18 Implement provider configuration validation at startup (§409, §76).
+   5.18 Implement provider configuration validation at startup (§409, §78).
    5.19 Implement audit trail logging for orchestration steps (§91-99).
    5.20 Copy-on-write compaction for rotated sinks (§46).
    5.21 Implement icp_config.role_priority configuration loading (§309-311).
@@ -294,7 +295,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    6.1.2 Caching TTL & cache_hit_rate accuracy (§244-246, 284-286).
    6.1.3 Concurrency guard blocks excess tasks (§41).
    6.1.4 Deterministic IDs & best contact (§457).
-   6.1.5 Provider missing checks: verify PROVIDER_ERROR on startup when required providers absent (§409, §76).
+   6.1.5 Provider missing checks: verify PROVIDER_ERROR on startup when required providers absent (§409, §78).
    6.1.6 Evidence array truncation: validate company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5 (§155).
    6.1.7 Template placeholder validation: test SCHEMA_VALIDATION on unsatisfied ${placeholders} (§226, §229).
    6.1.8 Phone parse failure: verify PARSE_ERROR emission on unparseable numbers (§21-24).
@@ -315,7 +316,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    6.1.23 Test testing flags (process_rejected, process_low_crawl) (§416-420).
    6.1.24 Test data directory precedence resolution (§26-27, 437).
    6.1.25 Test template placeholder validation for all tools (§226, §229).
-   6.1.26 Test provider presence validation at startup (§409, §76).
+   6.1.26 Test provider presence validation at startup (§409, §78).
    6.1.27 Test audit trail logging for all tool steps (§91-99).
    6.1.28 Test failure_revisit_days logic for all tools (§5-6, 240-242, 286-312, 353, 470).
    6.1.29 Test icp_config.refresh_policy.domain_ttl_days override (§239).
@@ -408,7 +409,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
    8.9 Verify error mapping implementation (§54-62).
    8.10 Verify schema checksum implementation (§153-154).
    8.11 Verify template placeholder validation implementation (§226, §229).
-   8.12 Verify provider presence validation implementation (§409, §76).
+   8.12 Verify provider presence validation implementation (§409, §78).
    8.13 Verify failure_revisit_days logic implementation (§5-6, 240-242, 286-312, 353, 470).
    8.14 Verify icp_config.refresh_policy.domain_ttl_days override implementation (§239).
    8.15 Verify icp_config.search.max_pages override implementation (§239-244).

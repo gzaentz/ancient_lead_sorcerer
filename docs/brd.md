@@ -110,7 +110,7 @@ All tools load the canonical schema from schemas/unified_lead_record.json and va
 "hq_location": null,
 "locations": [],
 "size_hint": null,
-"socials": { "linkedin": null, "github": null, "x": null, "telegram": null, "instagram": null },
+"socials": { "linkedin": null, "github": null, "twitter": null, "telegram": null, "instagram": null },
 "careers_url": null,
 "blog_url": null,
 "tech_stack": [],
