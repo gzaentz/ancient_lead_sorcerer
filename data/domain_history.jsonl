@@ -1,0 +1,3 @@
+# Domain history file for cross-run deduplication
+# Format: one JSON object per line with domain and metadata
+# This file is managed by the Domain tool and should not be edited manually

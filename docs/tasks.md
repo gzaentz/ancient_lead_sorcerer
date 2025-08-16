@@ -3,18 +3,18 @@ Lead-Sorcerer Task List
 Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the BRD for detailed specifications.
 
 0. Repo & Infra Setup
-   0.1 Scaffold poetry-based Python repo, CI & pre-commit hooks (§allowed imports).
-   0.2 Add `config/costs.yaml` default pricing (§387-407).
-   0.3 Create `data/`, `data/evidence/`, `data/crawl_artifacts/`, `data/exports/` dirs (§29-33, 42-46).
-   0.4 Create `data/domain_history.jsonl` for Domain tool's cross-run deduplication (§239).
-   0.5 Install & pin third-party libs: `httpx>=0.27`, `openrouter`, `firecrawl`, `proxycurl`, `mailgun`, `snovio`, `phonenumbers`, `portalocker`, `publicsuffix2` (§48-49).
-   0.6 Inject env-var loader & .env template for all required keys (§78-79).
-   0.7 Add nightly GitHub Actions job placeholder for GC (§34-39).
-   0.8 Create `schemas/unified_lead_record.json` with canonical JSON schema (§100-156).
-   0.9 Create `icp_config.json` template with all required fields (§387-407).
-   0.10 Add `.env` template with all required environment variables (§78-79).
-   0.11 Create `config/costs.yaml` with default pricing for all providers (§387-407).
-   0.12 Convert schemas/unified_lead_record.json to JSON Schema (draft 2020-12) format
+   ✅ 0.1 Scaffold poetry-based Python repo, CI & pre-commit hooks (§allowed imports).
+   ✅ 0.2 Add `config/costs.yaml` default pricing (§387-407).
+   ✅ 0.3 Create `data/`, `data/evidence/`, `data/crawl_artifacts/`, `data/exports/` dirs (§29-33, 42-46).
+   ✅ 0.4 Create `data/domain_history.jsonl` for Domain tool's cross-run deduplication (§239).
+   ✅ 0.5 Install & pin third-party libs: `httpx>=0.27`, `openrouter`, `firecrawl`, `proxycurl`, `mailgun`, `phonenumbers`, `portalocker`, `publicsuffix2` (§48-49). Note: Snov.io package not available on PyPI - custom client will be implemented using httpx.
+   ✅ 0.6 Inject env-var loader & .env template for all required keys (§78-79).
+   ✅ 0.7 Add nightly GitHub Actions job placeholder for GC (§34-39).
+   ✅ 0.8 Create `schemas/unified_lead_record.json` with canonical JSON schema (§100-156).
+   ✅ 0.9 Create `icp_config.json` template with all required fields (§387-407).
+   ✅ 0.10 Add `.env` template with all required environment variables (§78-79).
+   ✅ 0.11 Create `config/costs.yaml` with default pricing for all providers (§387-407).
+   ✅ 0.12 Convert schemas/unified_lead_record.json to JSON Schema (draft 2020-12) format
 
 1. Common / Cross-Cutting
    1.1 Data & File Conventions

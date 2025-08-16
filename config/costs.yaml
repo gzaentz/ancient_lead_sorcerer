@@ -1,0 +1,26 @@
+# Provider cost configuration for Lead Sorcerer
+# All costs are in USD per unit
+
+proxycurl:
+  unit: 'lookup'
+  usd_per_unit: 0.0100
+
+mailgun:
+  unit: 'smtp_validation'
+  usd_per_unit: 0.0020
+
+snovio:
+  unit: 'email_enrich'
+  usd_per_unit: 0.0150
+
+openrouter:
+  unit: '1k_tokens'
+  usd_per_unit: 0.0020
+
+gse:
+  unit: 'request'
+  usd_per_unit: 0.0005
+
+firecrawl:
+  unit: 'extract'
+  usd_per_unit: 0.0010
