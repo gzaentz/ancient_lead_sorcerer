@@ -1,0 +1,49 @@
+PHASE_NUM = 0
+
+# Cursor Build Prompt – Phase <PHASE_NUM>
+
+## Goal
+
+Implement **Phase <PHASE_NUM>** exactly as defined in `docs/tasks.md`.
+
+## Inputs
+
+1. `docs/brd.md` (Business Requirements Document with all specifications)
+2. `docs/tasks.md` (Phase <PHASE_NUM> section with specific tasks)
+
+## Critical: BRD Reference Checking
+
+• **ALWAYS** check the BRD.md line references (e.g., §75-76) for each task before implementing
+• Each task with a reference number (like §239, §387-407) contains specific requirements in the BRD
+• **NEVER** implement a task without first reading the referenced BRD section
+• The BRD contains the authoritative specifications - tasks.md is just the implementation checklist
+
+## Hard Rules (mirror BRD constraints)
+
+• Single-file isolation (no shared utils, no cross-imports between tools)
+• Only allowed third-party libraries: `httpx>=0.27`, `openrouter`, `firecrawl`, `proxycurl`, `mailgun`, `snovio`, `phonenumbers`, `portalocker`, `publicsuffix2`
+• All timestamps → ISO-8601 UTC (Z suffix)
+• Deterministic UUIDs per BRD spec (uuid5 with NAMESPACE_DNS/NAMESPACE_URL)
+• Follow refresh-policy logic and error-handling rules verbatim
+• Respect concurrency limits (max_concurrent_requests)
+• Use portalocker for file writes only during write phase
+
+## Work Guidelines
+
+1. **FIRST**: For each task, read the BRD.md section referenced in the task (e.g., §239)
+2. **THEN**: Write code directly into the repo paths listed in `docs/tasks.md`
+3. When you finish a task, tick its checkbox in `docs/tasks.md`
+4. Preserve existing file headers, docstrings, and licenses
+5. If _anything_ is ambiguous, **stop and ask** before coding
+6. Implement unit tests for all new functionality (90% coverage target)
+
+## Deliverables
+
+• Updated source files for Phase <PHASE_NUM>
+• Updated `docs/tasks.md` with completed checkboxes
+• Unit tests for new functionality
+• Single commit with descriptive message
+
+## Completion Signal
+
+Consider Phase <PHASE_NUM> complete—and stop—once **all** checkboxes in `docs/tasks.md` under Phase <PHASE_NUM> are checked and committed.
