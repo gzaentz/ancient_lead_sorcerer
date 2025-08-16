@@ -2,8 +2,9 @@
     "extends": [
       "./.cursor/index.mdc",
       "./.cursor/rules/coding_principles.mdc",
+      "./.cursor/rules/clean.mdc",
       "./.cursor/rules/orchestration_workflow.mdc",
-      "./.cursor/rules/error_and_validation.mdc",
+      "./.cursor/rules/testing_and_quality_assurance.mdc",
       "./.cursor/rules/security_and_privacy.mdc"
     ],
     "settings": {
@@ -13,4 +14,3 @@
       "tests": true
     }
   }
-  

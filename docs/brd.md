@@ -39,37 +39,37 @@ If a number lacks a country code, parse in this order:
 Individual tools **never** delete files; GC is orchestration-layer only.
 All three tools MUST honor icp_config.concurrency.max_concurrent_requests (default 3) for any outbound HTTP/SDK calls they initiate.
 Implementation note: wrap **all** outbound network calls in an `asyncio.Semaphore(max*concurrent_requests)`(or a thread-safe equivalent for sync code) so the cap is enforced batch-wide. Unit tests should assert that >N parallel tasks block until permits free.
-Orchestrator rotates only append-only sinks (>10 MB or >30 days):
-data/domain_all.jsonl, data/domain_pass.jsonl, and dated exports under data/exports/**
-Do NOT rotate per-domain artifacts referenced by provenance.evidence_paths.*:
-data/crawl_artifacts/{eTLD+1}.json, data/evidence/**
-If compaction is required, use copy-on-write to a new path and update the pointer atomically in the same run.
-No cross-imports between tools. No shared utility modules.
-Allowed imports: standard library + approved third-party libs (httpx ≥ 0.27 for HTTP; async supported), OpenAI SDK, OpenRouter client, Firecrawl SDK, Google Programmable Search (GSE), Proxycurl, Mailgun, Snov.io, phonenumbers, portalocker. Each tool declares an internal version string (e.g., 1.0.0) and sets provenance.tool_versions.{tool} on every run. Bump the version when logic, prompts, or schema usage changes.
-Domain must call Google Programmable Search (GSE); Crawl must call Firecrawl. Enrich must call Proxycurl, Mailgun, and Snov.io.
-Prompts may be duplicated per-file; the schema is not duplicated and must be loaded from schemas/unified_lead_record.json. Each tool validates inputs/outputs at runtime; on mismatch, fail fast for that item, add a structured errors[] entry, and still return the standard envelope. errors[] objects use {code, message, tool, lead_id?, item?, retryable, context?}. code is from a fixed enum: SCHEMA_VALIDATION, HTTP_429, HTTP_TIMEOUT, SMTP_TIMEOUT, DNS_FAILURE, PROVIDER_ERROR, EXTRACT_ERROR, BUDGET_EXCEEDED, PARSE_ERROR, UNKNOWN. errors[] MUST mask PII (emails "j***@domain.com", phones "+1******7890", LinkedIn paths masked). Full PII is forbidden in errors[] and logs. Backoff: 1s → 2s → 4s → 8s → 16s (max 5 attempts), within a 45s wall-clock cap per item.
-Connect/read timeouts (3 s / 10 s) apply per attempt.
-The exponential back-off ladder governs the delay **between** attempts.
-Both safeguards run under the 45 s wall-clock cap per item.
-Error mapping (authoritative):
-Exhausted retries on 429 → code=HTTP_429, retryable=true.
-Exhausted retries on 5xx → code=PROVIDER_ERROR, retryable=true, include http_status.
-Per-attempt timeout OR 45s wall-clock hit with no success → code=HTTP_TIMEOUT, retryable=true.
-Non-429 4xx → code=PROVIDER_ERROR, retryable=false, include http_status.
-DNS resolution failure → code=DNS_FAILURE, retryable=false.
-SMTP validation timeout → code=SMTP_TIMEOUT, retryable=true.
-EXTRACT_ERROR = Firecrawl returned 2xx but parse failed.
-PARSE_ERROR   = Data failed client-side parsing/normalisation (e.g., phone number). retryable=false.
-Uncaught Exceptions
-Any unhandled exception MUST surface as:
-&nbsp;&nbsp;&nbsp;code = UNKNOWN
-&nbsp;&nbsp;&nbsp;retryable = false
-&nbsp;&nbsp;&nbsp;message  = "<ExceptionClass>: <truncated_message>"
-The orchestrator MUST count these and expose`metrics.health.unknown_error_count`.
+   Orchestrator rotates only append-only sinks (>10 MB or >30 days):
+   data/domain_all.jsonl, data/domain_pass.jsonl, and dated exports under data/exports/\*\*
+   Do NOT rotate per-domain artifacts referenced by provenance.evidence_paths.*:
+   data/crawl_artifacts/{eTLD+1}.json, data/evidence/**
+   If compaction is required, use copy-on-write to a new path and update the pointer atomically in the same run.
+   No cross-imports between tools. No shared utility modules.
+   Allowed imports: standard library + approved third-party libs (httpx ≥ 0.27 for HTTP; async supported), OpenAI SDK, OpenRouter client, Firecrawl SDK, Google Programmable Search (GSE), Proxycurl, Mailgun, Snov.io, phonenumbers, portalocker. Each tool declares an internal version string (e.g., 1.0.0) and sets provenance.tool_versions.{tool} on every run. Bump the version when logic, prompts, or schema usage changes.
+   Domain must call Google Programmable Search (GSE); Crawl must call Firecrawl. Enrich must call Proxycurl, Mailgun, and Snov.io.
+   Prompts may be duplicated per-file; the schema is not duplicated and must be loaded from schemas/unified_lead_record.json. Each tool validates inputs/outputs at runtime; on mismatch, fail fast for that item, add a structured errors[] entry, and still return the standard envelope. errors[] objects use {code, message, tool, lead_id?, item?, retryable, context?}. code is from a fixed enum: SCHEMA_VALIDATION, HTTP_429, HTTP_TIMEOUT, SMTP_TIMEOUT, DNS_FAILURE, PROVIDER_ERROR, EXTRACT_ERROR, BUDGET_EXCEEDED, PARSE_ERROR, UNKNOWN. errors[] MUST mask PII (emails "j\***@domain.com", phones "+1**\*\***7890", LinkedIn paths masked). Full PII is forbidden in errors[] and logs. Backoff: 1s → 2s → 4s → 8s → 16s (max 5 attempts), within a 45s wall-clock cap per item.
+   Connect/read timeouts (3 s / 10 s) apply per attempt.
+   The exponential back-off ladder governs the delay **between** attempts.
+   Both safeguards run under the 45 s wall-clock cap per item.
+   Error mapping (authoritative):
+   Exhausted retries on 429 → code=HTTP_429, retryable=true.
+   Exhausted retries on 5xx → code=PROVIDER_ERROR, retryable=true, include http_status.
+   Per-attempt timeout OR 45s wall-clock hit with no success → code=HTTP_TIMEOUT, retryable=true.
+   Non-429 4xx → code=PROVIDER_ERROR, retryable=false, include http_status.
+   DNS resolution failure → code=DNS_FAILURE, retryable=false.
+   SMTP validation timeout → code=SMTP_TIMEOUT, retryable=true.
+   EXTRACT_ERROR = Firecrawl returned 2xx but parse failed.
+   PARSE_ERROR = Data failed client-side parsing/normalisation (e.g., phone number). retryable=false.
+   Uncaught Exceptions
+   Any unhandled exception MUST surface as:
+   &nbsp;&nbsp;&nbsp;code = UNKNOWN
+   &nbsp;&nbsp;&nbsp;retryable = false
+   &nbsp;&nbsp;&nbsp;message = "<ExceptionClass>: <truncated_message>"
+   The orchestrator MUST count these and expose`metrics.health.unknown_error_count`.
    Interfaces each tool must expose: Inputs/outputs must conform to the canonical schema; no alternative formats or interfaces (strict contract for run() and main() only). On schema validation failure, include lead_id if available in errors[].
    run(input: dict) -> dict (pure, deterministic given inputs and cache state). Each tool always receives a generic payload: dict; expected keys for that stage are documented below (e.g., Domain expects {icp_config}, Crawl expects {lead_records, icp_config}, etc.).
    main() CLI: reads JSON from stdin, writes JSON-only to stdout; all logs go to stderr. Use non-zero exit only for fatal startup/CLI errors. Tool logic errors go into errors[] while still returning the envelope.
-   Outputs are append-only, canonical JSON (see schemas below). Tools may update only: status, provenance.*\_at, provenance.next*revisit_at (max-rule), cost.* cumulative totals, and fields owned by that tool. All other fields are append-only. When a tool updates any record.cost.{domain_usd|crawl_usd|enrich_usd}, it MUST recompute cost.total_usd = sum(domain_usd, crawl_usd, enrich_usd).
+   Outputs are append-only, canonical JSON (see schemas below). Tools may update only: status, provenance.*\_at, provenance.next*revisit_at (max-rule), cost.\* cumulative totals, and fields owned by that tool. All other fields are append-only. When a tool updates any record.cost.{domain_usd|crawl_usd|enrich_usd}, it MUST recompute cost.total_usd = sum(domain_usd, crawl_usd, enrich_usd).
    All tools must always return { "data": { "lead_records": [...] }, "errors": [...], "metrics": {...} }. On any error, return partial results and append an error object including lead_id where applicable; do not crash.
    Orchestrator (separate file, not a tool): imports or shells to each tool, connects data flow Domain → Crawl → Enrich, handles batch sizing and persistence. Orchestrator is the only place tools “meet”.
    Load secrets from env/secret manager; never print secrets. Redact PII in logs (mask emails/phones). All logs → stderr. Logs are single-line JSON objects {ts, level, tool, msg} with PII masked.
@@ -110,7 +110,7 @@ All tools load the canonical schema from schemas/unified_lead_record.json and va
 "hq_location": null,
 "locations": [],
 "size_hint": null,
-"socials": { "linkedin": null, "github": null, "x": null, "telegram": null ,"instagram": null },
+"socials": { "linkedin": null, "github": null, "x": null, "telegram": null, "instagram": null },
 "careers_url": null,
 "blog_url": null,
 "tech_stack": [],
@@ -121,7 +121,7 @@ All tools load the canonical schema from schemas/unified_lead_record.json and va
 { "contact_id": "uuid", "full_name": null, "role": null, "department": null,
 "seniority": null, "role_priority": null,
 "email": null, "email_confidence": null,
-"email_status": "unknown|valid|risky|invalid|catch_all", "email_source": "provider|csv",
+"email_status": ["unknown", "valid", "risky", "invalid", "catch_all"], "email_source": ["provider", "csv"],
 "phone": null, "linkedin": null, "other_links": [], "evidence_urls": [] }
 ],
 "icp": { "pre_score": null, "pre_reason": null,
@@ -145,7 +145,7 @@ All tools load the canonical schema from schemas/unified_lead_record.json and va
 "evidence_paths": { "domain": null, "crawl": null, "enrich": null }
 },
 "best_contact_id": null,
-"status": "new|scored|crawled|enrich_ready|enriched|crawl_failed|enrich_partial",
+"status": ["new", "scored", "crawled", "enrich_ready", "enriched", "crawl_failed", "enrich_partial"],
 "status_history": [ { "status": "string", "ts": "iso8601", "notes": "string|null" } ],
 "audit": [ { "step": "Domain|Crawl|Enrich", "notes": "string", "ts": "iso8601" } ],
 "cost": { "domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0 }

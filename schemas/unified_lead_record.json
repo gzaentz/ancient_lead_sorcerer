@@ -1,0 +1,51 @@
+{
+  "lead_id": "uuid",
+  "domain": "example.com",
+  "company": {
+  "name": null,
+  "description": null,
+  "industry": null,
+  "naics_keywords": [],
+  "hq_location": null,
+  "locations": [],
+  "size_hint": null,
+  "socials": { "linkedin": null, "github": null, "x": null, "telegram": null, "instagram": null },
+  "careers_url": null,
+  "blog_url": null,
+  "tech_stack": [],
+  "evidence_urls": [],
+  "ids": { "linkedin": null, "crunchbase": null }
+  },
+  "contacts": [
+  { "contact_id": "uuid", "full_name": null, "role": null, "department": null,
+  "seniority": null, "role_priority": null,
+  "email": null, "email_confidence": null,
+  "email_status": ["unknown", "valid", "risky", "invalid", "catch_all"], "email_source": ["provider", "csv"],
+  "phone": null, "linkedin": null, "other_links": [], "evidence_urls": [] }
+  ],
+  "icp": { "pre_score": null, "pre_reason": null,
+  "pre_pass": null, "pre_flags": [],
+  "scoring_meta": { "method": null, "model": null, "prompt_fingerprint": null, "temperature": null },
+  "crawl_score": null, "crawl_reason": null,
+  "threshold": 0.7, "filtering_strict": true },
+  "provenance": {
+  "queries": [],
+  "discovery_evidence": [],
+  "scored_at": null,
+  "crawled_at": null,
+  "enriched_at": null,
+  "next_revisit_at": null,
+  "tool_versions": {
+  "domain": { "version": null, "schema_version": null },
+  "crawl": { "version": null, "schema_version": null },
+  "enrich": { "version": null, "schema_version": null }
+  },
+  "cache": { "domain_cache_hit": null },
+  "evidence_paths": { "domain": null, "crawl": null, "enrich": null }
+  },
+  "best_contact_id": null,
+  "status": ["new", "scored", "crawled", "enrich_ready", "enriched", "crawl_failed", "enrich_partial"],
+  "status_history": [ { "status": "string", "ts": "iso8601", "notes": "string|null" } ],
+  "audit": [ { "step": "Domain|Crawl|Enrich", "notes": "string", "ts": "iso8601" } ],
+  "cost": { "domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0 }
+}
