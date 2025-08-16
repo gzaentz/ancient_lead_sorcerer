@@ -1,14 +1,13 @@
 ---
-description: "Orchestration and workflow logic rules"
+description: 'Orchestration and workflow logic rules'
 globs:
-  - "src/orchestrator.py"
-  - "src/enrichment.py"
-  - "src/validation.py"
+  - 'src/orchestrator.py'
+  - 'src/domain.py'
+  - 'src/crawl.py'
+  - 'src/enrich.py'
 alwaysApply: false
 ---
 
-- The orchestrator must implement the BRD workflow sequence: Domain Discovery → Firecrawl → ICP validation → Enrichment → Verification → CSV output.
-- Use GPT‑4o or o4‑mini for reasoning prompts and fallback logic.
+- The orchestrator must implement the BRD workflow sequence: Domain → Crawl → Enrich → CSV output.
 - Retry API failures up to 3 times with exponential backoff.
-- If enrichment fails, fallback to alternate provider or log for manual review.
 - Ensure no hallucinated data: all claims must be sourced from actual tool outputs.

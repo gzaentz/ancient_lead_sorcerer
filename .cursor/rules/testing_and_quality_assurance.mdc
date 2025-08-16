@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+- **Unit Testing**:
+
+  - All new code must be accompanied by unit tests to verify functionality.
+  - Tests should cover edge cases and typical use cases.
+  - Use a testing framework like `pytest` for consistency and ease of use.
+
+- **Integration Testing**:
+
+  - Define and implement integration tests for the orchestrator and interactions between tools.
+  - Ensure that integration tests cover the full workflow: Domain → Crawl → Enrich.
+
+- **Code Coverage**:
+
+  - Maintain a minimum code coverage of 90% to ensure sufficient test coverage.
+  - Use tools like `coverage.py` to measure and report on code coverage.
+
+- **Continuous Integration**:
+
+  - Integrate testing into the CI pipeline to automatically run tests on each commit.
+  - Ensure that the CI pipeline includes linting, type-checking, and testing stages.
+
+- **Test Data Management**:
+
+  - Use mock data and fixtures for testing to avoid using real data.
+  - Ensure that test data is representative of real-world scenarios.
+
+- **Error Handling**:
+  - Tests should verify that error handling works as expected, including retries and fallbacks.
+  - Ensure that tests cover all error codes and scenarios outlined in the error handling rules.

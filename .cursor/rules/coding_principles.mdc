@@ -1,7 +1,7 @@
 ---
-description: "Coding standards and practices"
+description: 'Coding standards and practices'
 globs:
-  - "src/**/*.py"
+  - 'src/**/*.py'
 alwaysApply: false
 ---
 
