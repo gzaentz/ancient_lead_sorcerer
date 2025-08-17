@@ -584,9 +584,16 @@ async def main():
             print(json.dumps(result, indent=2))
             return 0
         else:
-            print(json.dumps(result, indent=2), file=sys.stderr)
-            return 1
-
+import argparse
+import asyncio
+import json
+import logging
+import os
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
     except Exception as e:
         print(json.dumps({"error": str(e), "success": False}, indent=2), file=sys.stderr)
         return 1

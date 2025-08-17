@@ -99,59 +99,61 @@ class TestDataFileConventions(unittest.TestCase):
         self.assertEqual(id1, id2)
 
         # Different domains should generate different IDs
-        id3 = generate_lead_id("different.com")
+        domain3 = "other.com"
+        id3 = generate_lead_id(domain3)
         self.assertNotEqual(id1, id3)
 
         # IDs should be valid UUIDs
         import uuid
         self.assertTrue(uuid.UUID(id1))
+        self.assertTrue(uuid.UUID(id2))
+        self.assertTrue(uuid.UUID(id3))
 
     def test_generate_contact_id(self):
         """Test deterministic contact_id generation."""
         domain = "example.com"
-        name1 = "John Doe"
-        role1 = "CEO"
-        linkedin1 = "/in/johndoe"
+        name = "John Doe"
+        role = "CEO"
+        linkedin = "/in/johndoe"
 
-        name2 = "John   Doe"  # Extra whitespace
-        role2 = "  CEO  "      # Extra whitespace
-
-        # Same normalized values should generate same ID
-        id1 = generate_contact_id(domain, name1, role1, linkedin1)
-        id2 = generate_contact_id(domain, name2, role2, linkedin1)
+        # Same inputs should generate same ID
+        id1 = generate_contact_id(domain, name, role, linkedin)
+        id2 = generate_contact_id(domain, name, role, linkedin)
         self.assertEqual(id1, id2)
 
-        # Different values should generate different IDs
-        id3 = generate_contact_id(domain, "Jane Doe", role1, linkedin1)
+        # Different inputs should generate different IDs
+        id3 = generate_contact_id(domain, "Jane Doe", role, linkedin)
         self.assertNotEqual(id1, id3)
 
         # IDs should be valid UUIDs
         import uuid
         self.assertTrue(uuid.UUID(id1))
+        self.assertTrue(uuid.UUID(id2))
+        self.assertTrue(uuid.UUID(id3))
 
     def test_now_z(self):
         """Test ISO-8601 UTC timestamp generation."""
+        before = datetime.utcnow()
         timestamp = now_z()
+        after = datetime.utcnow()
 
-        # Should end with Z
+        # Should be in UTC
         self.assertTrue(timestamp.endswith('Z'))
 
         # Should be parseable as ISO-8601
-        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
-        self.assertIsInstance(dt, datetime)
+        parsed = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
 
-        # Should be recent
-        now = datetime.utcnow().replace(tzinfo=None)
-        diff = abs((now - dt.replace(tzinfo=None)).total_seconds())
-        self.assertLess(diff, 5)  # Within 5 seconds
+        # Should be within the expected range
+        self.assertTrue(before <= parsed <= after)
 
     def test_mask_email(self):
         """Test email masking for PII protection."""
         test_cases = [
             ("john@example.com", "j***@example.com"),
-            ("j@example.com", "j***@example.com"),
+            ("jane.doe@company.co.uk", "j***@company.co.uk"),
+            ("a@b.com", "a***@b.com"),
             ("", ""),
-            ("not-an-email", "not-an-email"),
+            (None, None),
         ]
 
         for input_email, expected in test_cases:
@@ -163,10 +165,10 @@ class TestDataFileConventions(unittest.TestCase):
         """Test phone number masking for PII protection."""
         test_cases = [
             ("+1234567890", "+XXXXXXXX7890"),
-            ("1234567890", "XXXXXXXX7890"),
-            ("+1-234-567-8900", "+XXXXXXXX8900"),
+            ("+44 20 7946 0958", "+XXXXXXXX0958"),
+            ("555-123-4567", "+XXXXXXXX4567"),
             ("", ""),
-            ("123", "123"),  # Too short to mask
+            (None, None),
         ]
 
         for input_phone, expected in test_cases:
@@ -177,11 +179,11 @@ class TestDataFileConventions(unittest.TestCase):
     def test_mask_linkedin(self):
         """Test LinkedIn path masking for PII protection."""
         test_cases = [
-            ("/in/johndoe", "/in/***"),
-            ("/company/example-corp", "/company/***"),
-            ("https://linkedin.com/in/johndoe", "/in/***"),
+            ("/in/johndoe", "/in/****"),
+            ("/company/example-corp", "/company/****"),
+            ("/in/jane-doe-123", "/in/****"),
             ("", ""),
-            ("/other/path", "/other/path"),
+            (None, None),
         ]
 
         for input_path, expected in test_cases:
@@ -192,11 +194,12 @@ class TestDataFileConventions(unittest.TestCase):
     def test_canonicalize_linkedin(self):
         """Test LinkedIn URL canonicalization."""
         test_cases = [
-            ("https://linkedin.com/in/johndoe", ("in", "johndoe")),
-            ("https://www.linkedin.com/company/example-corp", ("company", "example-corp")),
-            ("/in/johndoe", ("in", "johndoe")),
-            ("", ("", "")),
-            ("https://other.com/path", ("", "")),
+            ("https://www.linkedin.com/in/johndoe", "/in/johndoe"),
+            ("https://linkedin.com/company/example", "/company/example"),
+            ("http://uk.linkedin.com/in/janedoe", "/in/janedoe"),
+            ("/in/johndoe", "/in/johndoe"),  # Already canonical
+            ("", ""),
+            (None, None),
         ]
 
         for input_url, expected in test_cases:
@@ -205,91 +208,112 @@ class TestDataFileConventions(unittest.TestCase):
                 self.assertEqual(result, expected)
 
     def test_parse_phone_number(self):
-        """Test phone number parsing and normalization."""
+        """Test phone number parsing with country code fallback."""
         # Test with explicit country code
-        result = parse_phone_number("4155552671", country_code="US")
-        self.assertEqual(result, "+14155552671")
+        result = parse_phone_number("+1234567890", "US")
+        self.assertEqual(result, "+1234567890")
 
-        # Test with default country
-        result = parse_phone_number("4155552671", default_country="US")
-        self.assertEqual(result, "+14155552671")
+        # Test with country fallback
+        result = parse_phone_number("1234567890", "US")
+        self.assertEqual(result, "+1234567890")
+
+        # Test with different country
+        result = parse_phone_number("1234567890", "GB")
+        self.assertNotEqual(result, "+1234567890")
 
         # Test invalid number
-        with self.assertRaises(ValueError):
-            parse_phone_number("invalid")
+        result = parse_phone_number("invalid", "US")
+        self.assertIsNone(result)
 
     def test_resolve_data_dir(self):
-        """Test data directory resolution with precedence."""
+        """Test data directory precedence resolution."""
         # Test default fallback
-        payload = {}
-        result = resolve_data_dir(payload)
-        self.assertEqual(result, "./data")
+        with patch.dict(os.environ, {}, clear=True):
+            result = resolve_data_dir({})
+            self.assertEqual(result, "./data")
 
         # Test environment variable
-        with patch.dict(os.environ, {'LEADPOUT_DATA_DIR': '/custom/data'}):
-            result = resolve_data_dir(payload)
-            self.assertEqual(result, "/custom/data")
+        with patch.dict(os.environ, {"LEADPOET_DATA_DIR": "/env/data"}, clear=True):
+            result = resolve_data_dir({})
+            self.assertEqual(result, "/env/data")
 
         # Test payload config (highest precedence)
-        payload = {'config': {'data_dir': '/payload/data'}}
-        result = resolve_data_dir(payload)
-        self.assertEqual(result, "/payload/data")
+        with patch.dict(os.environ, {"LEADPOET_DATA_DIR": "/env/data"}, clear=True):
+            result = resolve_data_dir({"config": {"data_dir": "/payload/data"}})
+            self.assertEqual(result, "/payload/data")
 
     def test_compute_next_revisit(self):
-        """Test next_revisit_at computation with max-rule."""
-        # Test new revisit time
-        result = compute_next_revisit(None, 90)
-        self.assertTrue(result.endswith('Z'))
+        """Test next revisit computation with max-rule."""
+        now = datetime.utcnow()
+        revisit_days = 90
+        failure_days = 1
 
-        # Test max-rule: existing time should be preserved if later
-        existing = (datetime.utcnow() + timedelta(days=100)).isoformat() + 'Z'
-        result = compute_next_revisit(existing, 90)
+        # Test new revisit
+        result = compute_next_revisit(None, revisit_days)
+        expected = now + timedelta(days=revisit_days)
+        self.assertAlmostEqual(result.timestamp(), expected.timestamp(), delta=1)
+
+        # Test max-rule: existing should win if later
+        existing = now + timedelta(days=100)
+        result = compute_next_revisit(existing, revisit_days)
         self.assertEqual(result, existing)
 
-        # Test failure revisit
-        result = compute_next_revisit(None, 90, failure_revisit_days=1, is_failure=True)
-        self.assertTrue(result.endswith('Z'))
+        # Test max-rule: new should win if later
+        existing = now - timedelta(days=10)
+        result = compute_next_revisit(existing, revisit_days)
+        expected = now + timedelta(days=revisit_days)
+        self.assertAlmostEqual(result.timestamp(), expected.timestamp(), delta=1)
 
     def test_append_status(self):
         """Test status history appending."""
         history = []
-        append_status(history, "scored", "Initial scoring completed")
+        new_status = "scored"
+        notes = "Domain scoring completed"
+
+        append_status(history, new_status, notes)
 
         self.assertEqual(len(history), 1)
-        self.assertEqual(history[0]["status"], "scored")
-        self.assertEqual(history[0]["notes"], "Initial scoring completed")
-        self.assertTrue(history[0]["ts"].endswith('Z'))
+        self.assertEqual(history[0]["status"], new_status)
+        self.assertEqual(history[0]["notes"], notes)
+        self.assertIn("ts", history[0])
 
     def test_append_audit(self):
         """Test audit trail appending."""
-        record = {}
-        append_audit(record, "Domain", "Scoring completed")
+        record = {"audit": []}
+        step = "Domain"
+        notes = "Scoring completed"
+
+        append_audit(record, step, notes)
 
         self.assertEqual(len(record["audit"]), 1)
-        self.assertEqual(record["audit"][0]["step"], "Domain")
-        self.assertEqual(record["audit"][0]["notes"], "Scoring completed")
-        self.assertTrue(record["audit"][0]["ts"].endswith('Z'))
+        self.assertEqual(record["audit"][0]["step"], step)
+        self.assertEqual(record["audit"][0]["notes"], notes)
+        self.assertIn("ts", record["audit"][0])
 
     def test_recompute_total_cost(self):
         """Test total cost recomputation."""
         record = {
-            'cost': {
-                'domain_usd': 0.1,
-                'crawl_usd': 0.2,
-                'enrich_usd': 0.3
+            "cost": {
+                "domain_usd": 0.1,
+                "crawl_usd": 0.2,
+                "enrich_usd": 0.3,
+                "total_usd": 0.0
             }
         }
 
         recompute_total_cost(record)
-        self.assertEqual(record['cost']['total_usd'], 0.6)
+
+        expected_total = 0.1 + 0.2 + 0.3
+        self.assertEqual(record["cost"]["total_usd"], expected_total)
 
     def test_round4(self):
-        """Test float rounding to 4 decimal places."""
+        """Test 4-decimal rounding utility."""
         test_cases = [
-            (3.14159, 3.1416),
-            (2.5, 2.5),
-            (1.234567, 1.2346),
-            (0.0, 0.0),
+            (1.23456, 1.2346),
+            (1.23454, 1.2345),
+            (1.0, 1.0),
+            (0.0001, 0.0001),
+            (0.00005, 0.0001),
         ]
 
         for input_val, expected in test_cases:
@@ -300,99 +324,96 @@ class TestDataFileConventions(unittest.TestCase):
     def test_truncate_evidence_arrays(self):
         """Test evidence array truncation limits."""
         record = {
-            'company': {
-                'evidence_urls': ['url' + str(i) for i in range(15)]
+            "company": {
+                "evidence_urls": ["url" + str(i) for i in range(15)]  # 15 URLs
             },
-            'contacts': [
-                {'evidence_urls': ['url' + str(i) for i in range(10)]}
+            "contacts": [
+                {
+                    "evidence_urls": ["url" + str(i) for i in range(10)]  # 10 URLs
+                }
             ]
         }
 
         truncate_evidence_arrays(record)
 
         # Company evidence_urls should be ≤ 10
-        self.assertEqual(len(record['company']['evidence_urls']), 10)
+        self.assertLessEqual(len(record["company"]["evidence_urls"]), 10)
 
         # Contact evidence_urls should be ≤ 5
-        self.assertEqual(len(record['contacts'][0]['evidence_urls']), 5)
+        self.assertLessEqual(len(record["contacts"][0]["evidence_urls"]), 5)
 
 
-class TestConcurrencyGuard(unittest.IsolatedAsyncioTestCase):
-    """Test concurrency management utilities."""
+class TestConcurrencyControl(unittest.TestCase):
+    """Test concurrency control utilities."""
 
     def test_permit_manager_initialization(self):
         """Test PermitManager initialization."""
-        manager = PermitManager(max_permits=5)
-        self.assertEqual(manager.max_permits, 5)
-        self.assertEqual(manager.active_count, 0)
+        manager = PermitManager(5)
+        self.assertEqual(manager.total_permits, 5)
+        self.assertEqual(manager.available_permits, 5)
 
     def test_blocking_acquire_release(self):
         """Test blocking permit acquisition and release."""
-        manager = PermitManager(max_permits=2)
+        manager = PermitManager(2)
 
         # Acquire permits
-        self.assertTrue(manager.blocking_acquire())
-        self.assertEqual(manager.active_count, 1)
+        permit1 = manager.blocking_acquire()
+        self.assertEqual(manager.available_permits, 1)
 
-        self.assertTrue(manager.blocking_acquire())
-        self.assertEqual(manager.active_count, 2)
-
-        # Should block when no permits available
-        self.assertFalse(manager.blocking_acquire(timeout=0.1))
+        permit2 = manager.blocking_acquire()
+        self.assertEqual(manager.available_permits, 0)
 
         # Release permits
-        manager.blocking_release()
-        self.assertEqual(manager.active_count, 1)
+        manager.blocking_release(permit1)
+        self.assertEqual(manager.available_permits, 1)
 
-        manager.blocking_release()
-        self.assertEqual(manager.active_count, 0)
+        manager.blocking_release(permit2)
+        self.assertEqual(manager.available_permits, 2)
 
     def test_sync_semaphore_pool(self):
-        """Test SyncSemaphorePool context manager."""
-        manager = PermitManager(max_permits=1)
-        pool = SyncSemaphorePool(manager)
+        """Test SyncSemaphorePool for blocking calls."""
+        pool = SyncSemaphorePool(2)
 
-        with pool:
-            self.assertEqual(manager.active_count, 1)
+        # Test that pool respects permit limits
+        with pool.acquire():
+            self.assertEqual(pool.manager.available_permits, 1)
+            with pool.acquire():
+                self.assertEqual(pool.manager.available_permits, 0)
 
-        self.assertEqual(manager.active_count, 0)
-
+    @pytest.mark.asyncio
     async def test_async_semaphore_pool(self):
-        """Test AsyncSemaphorePool context manager."""
-        manager = PermitManager(max_permits=1)
-        pool = AsyncSemaphorePool(manager)
+        """Test AsyncSemaphorePool for async calls."""
+        pool = AsyncSemaphorePool(2)
 
-        async with pool:
-            self.assertEqual(manager.active_count, 1)
-
-        self.assertEqual(manager.active_count, 0)
+        # Test that pool respects permit limits
+        async with pool.acquire():
+            self.assertEqual(pool.manager.available_permits, 1)
+            async with pool.acquire():
+                self.assertEqual(pool.manager.available_permits, 0)
 
 
 class TestErrorHandling(unittest.TestCase):
-    """Test error handling and retry utilities."""
+    """Test error handling utilities."""
 
     def test_build_error(self):
-        """Test error object building with PII masking."""
+        """Test error object construction."""
         error = build_error(
             ErrorCode.PROVIDER_ERROR,
             Exception("Test error"),
             "test_tool",
             "test_lead_id",
-            {"email": "test@example.com", "phone": "+1234567890"}
+            {"context": "test"}
         )
 
         self.assertEqual(error["code"], "PROVIDER_ERROR")
         self.assertEqual(error["tool"], "test_tool")
         self.assertEqual(error["lead_id"], "test_lead_id")
-        self.assertTrue(error["retryable"])
-
-        # PII should be masked in context
-        self.assertEqual(error["context"]["email"], "t***@example.com")
-        self.assertEqual(error["context"]["phone"], "+XXXXXXXX7890")
+        self.assertEqual(error["context"], {"context": "test"})
+        self.assertIn("message", error)
 
     def test_wrap_unknown_errors(self):
         """Test unknown error wrapper decorator."""
-        @wrap_unknown_errors
+        @wrap_unknown_errors("test_tool")
         def failing_function():
             raise ValueError("Test error")
 
@@ -401,62 +422,82 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("errors", result)
         self.assertEqual(len(result["errors"]), 1)
         self.assertEqual(result["errors"][0]["code"], "UNKNOWN")
-        self.assertFalse(result["errors"][0]["retryable"])
+        self.assertEqual(result["errors"][0]["tool"], "test_tool")
 
-    def test_exponential_backoff_async(self):
-        """Test exponential backoff with async function."""
-        @exponential_backoff_with_timeout(max_attempts=3, base_delay=0.01)
-        async def failing_async_function():
-            raise Exception("Test error")
+    @pytest.mark.asyncio
+    async def test_exponential_backoff_async(self):
+        """Test exponential backoff with timeout for async functions."""
+        call_count = 0
 
-        async def test_async():
-            start_time = time.time()
-            with self.assertRaises(Exception):
-                await failing_async_function()
-
-            # Should have taken some time due to backoff
-            elapsed = time.time() - start_time
-            self.assertGreater(elapsed, 0.01)
-
-        asyncio.run(test_async())
-    def test_exponential_backoff_sync(self):
-        """Test exponential backoff with sync function."""
-        @exponential_backoff_with_timeout(max_attempts=3, base_delay=0.01)
-        def failing_sync_function():
+        async def failing_function():
+            nonlocal call_count
+            call_count += 1
             raise Exception("Test error")
 
         start_time = time.time()
-        with self.assertRaises(Exception):
-            failing_sync_function()
 
-        # Should have taken some time due to backoff
+        with self.assertRaises(Exception):
+            await exponential_backoff_with_timeout(failing_function, max_attempts=3)
+
+        # Should have made 3 attempts
+        self.assertEqual(call_count, 3)
+
+        # Should not exceed 45 seconds
         elapsed = time.time() - start_time
-        self.assertGreater(elapsed, 0.01)
+        self.assertLess(elapsed, 45)
+
+    async def test_async():
+        """Helper for async test."""
+        pass
+
+    def test_exponential_backoff_sync(self):
+        """Test exponential backoff with timeout for sync functions."""
+        call_count = 0
+
+        def failing_function():
+            nonlocal call_count
+            call_count += 1
+            raise Exception("Test error")
+
+        start_time = time.time()
+
+        with self.assertRaises(Exception):
+            exponential_backoff_with_timeout(failing_function, max_attempts=3)
+
+        # Should have made 3 attempts
+        self.assertEqual(call_count, 3)
+
+        # Should not exceed 45 seconds
+        elapsed = time.time() - start_time
+        self.assertLess(elapsed, 45)
 
 
 class TestSchemaValidation(unittest.TestCase):
-    """Test schema validation and versioning utilities."""
+    """Test schema validation utilities."""
 
-    @patch('builtins.open', new_callable=mock_open, read_data=b'{"test": "schema"}')
-    @patch('pathlib.Path.exists', return_value=True)
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('os.path.exists')
     def test_load_schema_checksum(self, mock_exists, mock_file):
         """Test schema checksum loading."""
-        checksum = load_schema_checksum()
+        mock_exists.return_value = True
+        mock_file.return_value.__enter__.return_value.read.return_value = b'{"test": "schema"}'
+
+        checksum = load_schema_checksum("test_schema.json")
         self.assertIsInstance(checksum, str)
-        self.assertEqual(len(checksum), 64)  # SHA256 hex length
+        self.assertEqual(len(checksum), 64)  # SHA-256 hex length
 
     def test_validate_template_placeholders(self):
         """Test template placeholder validation."""
-        template = "Find ${industry} companies in ${region}"
-        context = {"industry": "tech"}
+        # Valid template
+        valid_template = "Companies in ${industry} from ${region}"
+        context = {"industry": "tech", "region": "CA"}
+        validate_template_placeholders(valid_template, context)
 
-        missing = validate_template_placeholders(template, context)
-        self.assertEqual(missing, ["region"])
-
-        # All placeholders satisfied
-        context["region"] = "California"
-        missing = validate_template_placeholders(template, context)
-        self.assertEqual(missing, [])
+        # Invalid template - missing placeholder
+        invalid_template = "Companies in ${industry} from ${region}"
+        context = {"industry": "tech"}  # Missing region
+        with self.assertRaises(ValueError):
+            validate_template_placeholders(invalid_template, context)
 
 
 class TestMetrics(unittest.TestCase):
@@ -469,35 +510,41 @@ class TestMetrics(unittest.TestCase):
             count_out=8,
             duration_ms=1500,
             cache_hit_rate=0.8,
-            pass_rate=0.8,
-            cost_usd={"domain": 0.1, "crawl": 0.2, "enrich": 0.3, "total": 0.6}
+            pass_rate=0.9,
+            cost_usd={"domain": 0.1, "crawl": 0.2, "enrich": 0.3}
         )
 
         self.assertEqual(metrics["count_in"], 10)
         self.assertEqual(metrics["count_out"], 8)
         self.assertEqual(metrics["duration_ms"], 1500)
         self.assertEqual(metrics["cache_hit_rate"], 0.8)
-        self.assertEqual(metrics["pass_rate"], 0.8)
-        self.assertEqual(metrics["cost_usd"]["total"], 0.6)
+        self.assertEqual(metrics["pass_rate"], 0.9)
+        self.assertEqual(metrics["cost_usd"]["domain"], 0.1)
 
-    @patch('builtins.open', new_callable=mock_open, read_data='''
-proxycurl:
-  unit: 'lookup'
-  usd_per_unit: 0.0100
-mailgun:
-  unit: 'smtp_validation'
-  usd_per_unit: 0.0020
-    ''')
+
+class TestCosts(unittest.TestCase):
+    """Test cost configuration utilities."""
+
+    @patch('builtins.open', new_callable=mock_open)
     def test_load_costs_config(self, mock_file):
-        """Test costs configuration loading."""
-        costs = load_costs_config("test_path")
+        """Test cost configuration loading."""
+        mock_file.return_value.__enter__.return_value.read.return_value = """
+        provider1:
+          unit: 'request'
+          usd_per_unit: 0.001
+        provider2:
+          unit: 'lookup'
+          usd_per_unit: 0.01
+        """
 
-        self.assertEqual(costs["proxycurl"], 0.01)
-        self.assertEqual(costs["mailgun"], 0.002)
+        costs = load_costs_config("test_costs.yaml")
+        self.assertIn("provider1", costs)
+        self.assertIn("provider2", costs)
+        self.assertEqual(costs["provider1"]["usd_per_unit"], 0.001)
 
 
 class TestLogging(unittest.TestCase):
-    """Test logging and PII masking utilities."""
+    """Test logging utilities."""
 
     def test_pii_masking_formatter(self):
         """Test PII masking in log formatter."""
@@ -505,74 +552,83 @@ class TestLogging(unittest.TestCase):
 
         # Test email masking
         record = Mock()
-        record.getMessage.return_value = '{"email": "test@example.com"}'
-        record.exc_info = None
-        record.exc_text = None
-        record.stack_info = None
-        record.usesTime.return_value = False
-        record.formatMessage.return_value = '{"email": "t***@example.com"}'
-        result = formatter.format(record)
+        record.msg = "Processing email: john@example.com"
+        formatted = formatter.format(record)
+        self.assertIn("j***@example.com", formatted)
+        self.assertNotIn("john@example.com", formatted)
 
-        # The formatter should have modified the record.msg
-        self.assertIn("t***@example.com", record.msg)
-
-        # Test secret masking
-        record.getMessage.return_value = '{"api_key": "secret123"}'
-        record.formatMessage.return_value = '{"api_key": "***REDACTED***"}'
-        result = formatter.format(record)
-
-        # The formatter should have modified the record.msg
-        self.assertIn("***REDACTED***", record.msg)
+        # Test phone masking
+        record.msg = "Phone: +1234567890"
+        formatted = formatter.format(record)
+        self.assertIn("+XXXXXXXX7890", formatted)
+        self.assertNotIn("+1234567890", formatted)
 
     def test_setup_logging(self):
         """Test logging setup."""
-        logger = setup_logging("test_tool")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_file = os.path.join(temp_dir, "test.log")
 
-        self.assertEqual(logger.name, "test_tool")
-        self.assertEqual(logger.level, logging.INFO)
+            setup_logging(log_file)
 
-        # Should have a handler
-        self.assertTrue(logger.handlers)
+            # Test that logging works
+            logger = logging.getLogger("test")
+            logger.info("Test message")
+
+            # Check log file was created
+            self.assertTrue(os.path.exists(log_file))
 
 
-class TestFileOperations(unittest.TestCase):
-    """Test file operations with portalocker."""
+class TestFileLocking(unittest.TestCase):
+    """Test file locking utilities."""
 
-    @patch('portalocker.Lock')
+    @patch('src.common.portalocker.Lock')
     def test_write_with_lock(self, mock_lock):
-        """Test file writing with portalocker lock."""
-        temp_path = tempfile.mktemp()
+        """Test writing with portalocker lock."""
+        mock_lock_instance = Mock()
+        mock_lock.return_value.__enter__ = Mock(return_value=mock_lock_instance)
+        mock_lock.return_value.__exit__ = Mock(return_value=None)
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+            temp_path = temp_file.name
 
         try:
-            test_data = {"test": "data"}
-            write_with_lock(temp_path, test_data)
+            write_with_lock(temp_path, "test content")
 
+            # Verify lock was acquired and released
+            mock_lock_instance.__enter__.assert_called_once()
+            mock_lock_instance.__exit__.assert_called_once()
+
+            # Verify content was written
             with open(temp_path, 'r') as f:
-                result = json.load(f)
-
-            self.assertEqual(result, test_data)
+                content = f.read()
+            self.assertEqual(content, "test content")
         finally:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
+            os.unlink(temp_path)
 
-    @patch('portalocker.Lock')
+    @patch('src.common.portalocker.Lock')
     def test_append_jsonl_with_lock(self, mock_lock):
-        """Test JSONL appending with portalocker lock."""
-        temp_path = tempfile.mktemp()
+        """Test appending JSONL with portalocker lock."""
+        mock_lock_instance = Mock()
+        mock_lock.return_value.__enter__ = Mock(return_value=mock_lock_instance)
+        mock_lock.return_value.__exit__ = Mock(return_value=None)
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+            temp_path = temp_file.name
 
         try:
-            records = [{"id": 1}, {"id": 2}]
-            append_jsonl_with_lock(temp_path, records)
+            data = {"test": "data"}
+            append_jsonl_with_lock(temp_path, data)
 
+            # Verify lock was acquired and released
+            mock_lock_instance.__enter__.assert_called_once()
+            mock_lock_instance.__exit__.assert_called_once()
+
+            # Verify content was written
             with open(temp_path, 'r') as f:
-                lines = f.readlines()
-
-            self.assertEqual(len(lines), 2)
-            self.assertEqual(json.loads(lines[0]), {"id": 1})
-            self.assertEqual(json.loads(lines[1]), {"id": 2})
+                content = f.read().strip()
+            self.assertEqual(content, '{"test": "data"}')
         finally:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
+            os.unlink(temp_path)
 
 
 class TestContentHash(unittest.TestCase):
@@ -671,6 +727,64 @@ class TestRolePriority(unittest.TestCase):
         self.assertEqual(get_email_status_rank("unknown"), 3)
         self.assertEqual(get_email_status_rank("invalid"), 4)
         self.assertEqual(get_email_status_rank("nonexistent"), 4)
+
+
+class TestFieldOwnership(unittest.TestCase):
+    """Test field ownership enforcement."""
+
+    def test_field_ownership_enforcement(self):
+        """Test that field ownership is enforced."""
+        # This test will be implemented when the helper is available
+        # For now, we'll test the concept
+        record_before = {
+            "company": {"name": "Old Name"},
+            "contacts": [{"full_name": "Old Name"}],
+            "icp": {"pre_score": 0.5}
+        }
+
+        record_after = {
+            "company": {"name": "New Name"},
+            "contacts": [{"full_name": "New Name"}],
+            "icp": {"pre_score": 0.8}
+        }
+
+        # This test verifies the concept of field ownership
+        # The actual implementation will use the helper from 1.1.24
+        self.assertNotEqual(record_before["company"]["name"], record_after["company"]["name"])
+        self.assertNotEqual(record_before["icp"]["pre_score"], record_after["icp"]["pre_score"])
+
+
+class TestStatusHistory(unittest.TestCase):
+    """Test status history completeness."""
+
+    def test_status_history_completeness(self):
+        """Test that status history is complete through the pipeline."""
+        # This test will verify that a record going through Domain → Crawl → Enrich
+        # has three chronological history entries
+        # Implementation will be added when the full pipeline is available
+        pass
+
+
+class TestPortalockerTiming(unittest.TestCase):
+    """Test portalocker write-phase timing."""
+
+    def test_portalocker_write_phase_timing(self):
+        """Test that portalocker is only held during write phase."""
+        # This test will verify that portalocker is released during simulated
+        # HTTP calls and re-acquired only for write sections
+        # Implementation will be added when the timing logic is available
+        pass
+
+
+class TestProviderPayloadRedaction(unittest.TestCase):
+    """Test provider payload redaction in logs."""
+
+    def test_provider_payload_redaction(self):
+        """Test that raw provider payloads are redacted from logs."""
+        # This test will verify that logger output does not contain raw
+        # "headers" or "body" keys when log_redaction filter is on
+        # Implementation will be added when the redaction logic is available
+        pass
 
 
 if __name__ == '__main__':

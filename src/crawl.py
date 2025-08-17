@@ -334,9 +334,6 @@ class CrawlTool:
                 record["status"] = "crawl_failed"
                 if "status_history" not in record:
                     record["status_history"] = []
-
-                # Set status to crawl_failed
-                record["status"] = "crawl_failed"
                 append_status(record["status_history"], "crawl_failed", f"Extraction failed: {exc}")
 
                 failure_revisit_days = icp_config.get("refresh_policy", {}).get("failure_revisit_days", 1)
@@ -344,8 +341,6 @@ class CrawlTool:
                     record["provenance"] = {}
                 record["provenance"]["next_revisit_at"] = compute_next_revisit(
                     record["provenance"].get("next_revisit_at"),
-                    failure_revisit_days,
-                )                    record["provenance"].get("next_revisit_at"),
                     failure_revisit_days,
                     is_failure=True
                 )

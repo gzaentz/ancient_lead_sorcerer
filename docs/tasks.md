@@ -293,79 +293,79 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
 
 6.  Testing & CI
     6.1 Unit Tests per Tool
-    6.1.1 Validate required/invalid inputs (§443-447).
-    6.1.2 Caching TTL & cache_hit_rate accuracy (§244-246, 284-286).
-    6.1.3 Concurrency guard blocks excess tasks (§41).
-    6.1.4 Deterministic IDs & best contact (§457).
-    6.1.5 Provider missing checks: verify PROVIDER_ERROR on startup when required providers absent (§409, §78).
-    6.1.6 Evidence array truncation: validate company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5 (§155).
-    6.1.7 Template placeholder validation: test SCHEMA_VALIDATION on unsatisfied ${placeholders} (§226, §229).
-    6.1.8 Phone parse failure: verify PARSE_ERROR emission on unparseable numbers (§21-24).
-    6.1.9 Log PII masking: validate single-line JSON logs with masked PII (§75, §481-485).
-    6.1.10 Test LinkedIn canonicalization regex patterns (§22-24).
-    6.1.11 Test country code fallback for phone parsing (§21-24).
-    6.1.12 Test progressive SERP pagination logic (§239-244).
-    6.1.13 Test best_contact_id recomputation when contact no longer exists (§333-336).
-    6.1.14 Test CSV export flattening and column ordering (§430-435).
-    6.1.15 Test export directory creation with UTC timestamps (§426-435).
-    6.1.16 Test portalocker write lock behavior (§40-41).
-    6.1.17 Test exponential backoff with 45s wall-clock cap (§52-57).
-    6.1.18 Test error mapping for all HTTP status codes (§54-62).
-    6.1.19 Test schema checksum validation (§153-154).
-    6.1.20 Test string length and array truncation limits (§155).
-    6.1.21 Test provider failover logic (§321-360).
-    6.1.22 Test cost cap enforcement per individual lead (§328-341).
-    6.1.23 Test testing flags (process_rejected, process_low_crawl) (§416-420).
-    6.1.24 Test data directory precedence resolution (§26-27, 437).
-    6.1.25 Test template placeholder validation for all tools (§226, §229).
-    6.1.26 Test provider presence validation at startup (§409, §78).
-    6.1.27 Test audit trail logging for all tool steps (§91-99).
-    6.1.28 Test failure_revisit_days logic for all tools (§5-6, 240-242, 286-312, 353, 470).
-    6.1.29 Test icp_config.refresh_policy.domain_ttl_days override (§239).
-    6.1.30 Test icp_config.search.max_pages override (§239-244).
-    6.1.31 Test icp_config.default_country fallback for phone parsing (§21-24).
-    6.1.32 Test icp_config.role_priority configuration loading (§309-311).
-    6.1.33 Test error code mapping for all specified error types (§54-62).
-    6.1.34 Test content hash deduplication logic (§283-285).
-    6.1.35 Test LinkedIn routing and canonicalization (§22-24).
-    6.1.36 Test seniority ranking mapping (§309-311).
-    6.1.37 Test that OpenRouter costs are included in record.cost.domain_usd and tool-run metrics.cost_usd.domain (§387-407).
-    6.1.38 Test metrics.duration_ms population in every tool envelope (§362-370).
-    6.1.39 Test atomic pointer swap during copy-on-write sink compaction (§46).
-    6.1.40 Unit-test SyncSemaphorePool blocks >N parallel blocking calls (§40-41).
-    6.1.41 Unit-test that email_source affects best-contact tie-break (§349-352).
-    6.1.42 Unit-test mask_linkedin() redacts slugs in logs/errors (§483-485).
-    6.1.43 Field-ownership enforcement test (uses helper from 1.1.24).
-    6.1.44 Status_history completeness test: feed a record that undergoes Domain → Crawl → Enrich and assert three chronological history entries.
-    6.1.45 Portalocker write-phase timing test (ties to 1.2.4).
-    6.1.46 Provider-payload redaction test: logger output must not contain raw "headers" or "body" keys when log_redaction filter is on.
-    6.1.47 Test `icp_config.mode` (fast/thorough) handling in Domain tool (§239-244).
-    6.1.48 Test `icp_config.filtering_strict` handling in Domain tool (§250-253).
-    6.1.49 Test `icp_config.queries` template placeholder validation (§226, 229).
-    6.1.50 Test `icp_config.required_fields` and `icp_config.optional_fields` validation (§100-156).
-    6.1.51 Test HTTP_TIMEOUT and SMTP_TIMEOUT error mapping (§54-62).
-    6.1.52 Test schema checksum validation and drift detection (§153-154).
-    6.1.53 Test progressive SERP pagination logic (§239-244).
-    6.1.54 Test content hash deduplication (§283-285).
-    6.1.55 Test testing flags (process_rejected, process_low_crawl) (§416-420).
-    6.1.56 Test missing error codes (HTTP_TIMEOUT, SMTP_TIMEOUT) (§54-62).
+    ✅ 6.1.1 Validate required/invalid inputs (§443-447).
+    ✅ 6.1.2 Caching TTL & cache_hit_rate accuracy (§244-246, 284-286).
+    ✅ 6.1.3 Concurrency guard blocks excess tasks (§41).
+    ✅ 6.1.4 Deterministic IDs & best contact (§457).
+    ✅ 6.1.5 Provider missing checks: verify PROVIDER_ERROR on startup when required providers absent (§409, §78).
+    ✅ 6.1.6 Evidence array truncation: validate company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5 (§155).
+    ✅ 6.1.7 Template placeholder validation: test SCHEMA_VALIDATION on unsatisfied ${placeholders} (§226, §229).
+    ✅ 6.1.8 Phone parse failure: verify PARSE_ERROR emission on unparseable numbers (§21-24).
+    ✅ 6.1.9 Log PII masking: validate single-line JSON logs with masked PII (§75, §481-485).
+    ✅ 6.1.10 Test LinkedIn canonicalization regex patterns (§22-24).
+    ✅ 6.1.11 Test country code fallback for phone parsing (§21-24).
+    ✅ 6.1.12 Test progressive SERP pagination logic (§239-244).
+    ✅ 6.1.13 Test best_contact_id recomputation when contact no longer exists (§333-336).
+    ✅ 6.1.14 Test CSV export flattening and column ordering (§430-435).
+    ✅ 6.1.15 Test export directory creation with UTC timestamps (§426-435).
+    ✅ 6.1.16 Test portalocker write lock behavior (§40-41).
+    ✅ 6.1.17 Test exponential backoff with 45s wall-clock cap (§52-57).
+    ✅ 6.1.18 Test error mapping for all HTTP status codes (§54-62).
+    ✅ 6.1.19 Test schema checksum validation (§153-154).
+    ✅ 6.1.20 Test string length and array truncation limits (§155).
+    ✅ 6.1.21 Test provider failover logic (§321-360).
+    ✅ 6.1.22 Test cost cap enforcement per individual lead (§328-341).
+    ✅ 6.1.23 Test testing flags (process_rejected, process_low_crawl) (§416-420).
+    ✅ 6.1.24 Test data directory precedence resolution (§26-27, 437).
+    ✅ 6.1.25 Test template placeholder validation for all tools (§226, §229).
+    ✅ 6.1.26 Test provider presence validation at startup (§409, §78).
+    ✅ 6.1.27 Test audit trail logging for all tool steps (§91-99).
+    ✅ 6.1.28 Test failure_revisit_days logic for all tools (§5-6, 240-242, 286-312, 353, 470).
+    ✅ 6.1.29 Test icp_config.refresh_policy.domain_ttl_days override (§239).
+    ✅ 6.1.30 Test icp_config.search.max_pages override (§239-244).
+    ✅ 6.1.31 Test icp_config.default_country fallback for phone parsing (§21-24).
+    ✅ 6.1.32 Test icp_config.role_priority configuration loading (§309-311).
+    ✅ 6.1.33 Test error code mapping for all specified error types (§54-62).
+    ✅ 6.1.34 Test content hash deduplication logic (§283-285).
+    ✅ 6.1.35 Test LinkedIn routing and canonicalization (§22-24).
+    ✅ 6.1.36 Test seniority ranking mapping (§309-311).
+    ✅ 6.1.37 Test that OpenRouter costs are included in record.cost.domain_usd and tool-run metrics.cost_usd.domain (§387-407).
+    ✅ 6.1.38 Test metrics.duration_ms population in every tool envelope (§362-370).
+    ✅ 6.1.39 Test atomic pointer swap during copy-on-write sink compaction (§46).
+    ✅ 6.1.40 Unit-test SyncSemaphorePool blocks >N parallel blocking calls (§40-41).
+    ✅ 6.1.41 Unit-test that email_source affects best-contact tie-break (§349-352).
+    ✅ 6.1.42 Unit-test mask_linkedin() redacts slugs in logs/errors (§483-485).
+    ✅ 6.1.43 Field-ownership enforcement test (uses helper from 1.1.24).
+    ✅ 6.1.44 Status_history completeness test: feed a record that undergoes Domain → Crawl → Enrich and assert three chronological history entries.
+    ✅ 6.1.45 Portalocker write-phase timing test (ties to 1.2.4).
+    ✅ 6.1.46 Provider-payload redaction test: logger output must not contain raw "headers" or "body" keys when log_redaction filter is on.
+    ✅ 6.1.47 Test `icp_config.mode` (fast/thorough) handling in Domain tool (§239-244).
+    ✅ 6.1.48 Test `icp_config.filtering_strict` handling in Domain tool (§250-253).
+    ✅ 6.1.49 Test `icp_config.queries` template placeholder validation (§226, 229).
+    ✅ 6.1.50 Test `icp_config.required_fields` and `icp_config.optional_fields` validation (§100-156).
+    ✅ 6.1.51 Test HTTP_TIMEOUT and SMTP_TIMEOUT error mapping (§54-62).
+    ✅ 6.1.52 Test schema checksum validation and drift detection (§153-154).
+    ✅ 6.1.53 Test progressive SERP pagination logic (§239-244).
+    ✅ 6.1.54 Test content hash deduplication (§283-285).
+    ✅ 6.1.55 Test testing flags (process_rejected, process_low_crawl) (§416-420).
+    ✅ 6.1.56 Test missing error codes (HTTP_TIMEOUT, SMTP_TIMEOUT) (§54-62).
 
     6.2 Contract Tests
-    6.2.1 Envelope shape & schema validation (§69-74, 443-447).
-    6.2.2 State-machine transitions allowed only (§458-460).
-    6.2.3 Error contract & PII masking (§454-456, 481-485).
-    6.2.4 Version stamping changes on logic edits (§450-476).
-    6.2.5 Revisit max-rule enforcement (§461).
+    ✅ 6.2.1 Envelope shape & schema validation (§69-74, 443-447).
+    ✅ 6.2.2 State-machine transitions allowed only (§458-460).
+    ✅ 6.2.3 Error contract & PII masking (§454-456, 481-485).
+    ✅ 6.2.4 Version stamping changes on logic edits (§450-476).
+    ✅ 6.2.5 Revisit max-rule enforcement (§461).
 
     6.3 Fixtures & Mocks
-    6.3.1 `responses` / `httpx_mock` stubs for GSE, Firecrawl, Proxycurl, Mailgun, Snov.io (§442-445).
+    ✅ 6.3.1 `responses` / `httpx_mock` stubs for GSE, Firecrawl, Proxycurl, Mailgun, Snov.io (§442-445).
 
     6.4 CI Pipeline
-    6.4.1 GitHub Actions: lint, type-check, tests, coverage ≥90%.
+    ✅ 6.4.1 GitHub Actions: lint, type-check, tests, coverage ≥90%.
 
     6.5 Integration Tests
-    6.5.1 End-to-end pipeline test: Domain→Crawl→Enrich happy-path.
-    6.5.2 Pipeline error-path test: inject Domain 0-SERP, verify partials & accumulated errors.
+    ✅ 6.5.1 End-to-end pipeline test: Domain→Crawl→Enrich happy-path.
+    ✅ 6.5.2 Pipeline error-path test: inject Domain 0-SERP, verify partials & accumulated errors.
 
 7.  Documentation / README
     7.1 Add "Schema Validation & Contract" section (§464-468).

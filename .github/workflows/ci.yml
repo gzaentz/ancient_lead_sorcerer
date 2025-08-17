@@ -1,4 +1,4 @@
-name: CI
+name: CI Pipeline
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
         python-version: [3.9, 3.10, 3.11]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -37,20 +37,29 @@ jobs:
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
+        run: |
+          poetry install --no-interaction --no-root
+          poetry run pip install coverage[toml]
 
-      - name: Install dependencies
+      - name: Install dependencies (cached)
         if: steps.cached-poetry-dependencies.outputs.cache-hit == 'true'
-        run: poetry install --no-interaction --no-root
+        run: |
+          poetry install --no-interaction --no-root
+          poetry run pip install coverage[toml]
 
-      - name: Run linting
-        run: poetry run pre-commit run --all-files
+      - name: Lint with flake8
+        run: |
+          poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Run type checking
-        run: poetry run mypy src/
+      - name: Type check with mypy
+        run: |
+          poetry run mypy src/ --ignore-missing-imports --no-strict-optional
 
       - name: Run tests with coverage
-        run: poetry run pytest --cov=src --cov-report=xml --cov-report=html
+        run: |
+          poetry run coverage run --source=src -m pytest tests/ -v --tb=short
+          poetry run coverage report --show-missing --fail-under=90
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -58,20 +67,19 @@ jobs:
           file: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
 
-  nightly-gc:
+  security:
     runs-on: ubuntu-latest
-    schedule:
-      - cron: '0 2 * * *' # Daily at 2 AM UTC
+    needs: test
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: 3.11
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -83,7 +91,71 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
-      - name: Run garbage collection
-        run: poetry run python scripts/garbage_collector.py
+      - name: Security check with bandit
+        run: |
+          poetry run bandit -r src/ -f json -o bandit-report.json || true
+          poetry run bandit -r src/ -f txt
+
+      - name: Dependency vulnerability check
+        run: |
+          poetry run safety check --json --output safety-report.json || true
+          poetry run safety check
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Install pre-commit
+        run: |
+          poetry run pip install pre-commit
+
+      - name: Run pre-commit on all files
+        run: |
+          poetry run pre-commit run --all-files
+
+  nightly-gc:
+    runs-on: ubuntu-latest
+    schedule:
+      - cron: '0 2 * * *' # Run at 2 AM UTC daily
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Run nightly garbage collection
+        run: |
+          poetry run python scripts/gc.py
         env:
           LEADPOET_DATA_DIR: ./data
