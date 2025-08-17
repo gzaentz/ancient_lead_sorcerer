@@ -280,12 +280,12 @@ class DomainHistoryManager:
         records = list(self.history_cache.values())
         if records:
             # Remove existing file if present to ensure clean JSONL format
-            if self.history_file.exists():
-                os.unlink(self.history_file)
-
-            # Write all records in JSONL format
-            append_jsonl_with_lock(str(self.history_file), records)
-
+            import tempfile
+            # Write to a temporary file first for atomic replacement
+            temp_file = self.history_file.with_suffix('.tmp')
+            append_jsonl_with_lock(str(temp_file), records)
+            # Atomically replace the old file
+            temp_file.replace(self.history_file)
 # ============================================================================
 # Search Cache Management
 # ============================================================================
