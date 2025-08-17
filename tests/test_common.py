@@ -317,7 +317,7 @@ class TestDataFileConventions(unittest.TestCase):
         self.assertEqual(len(record['contacts'][0]['evidence_urls']), 5)
 
 
-class TestConcurrencyGuard(unittest.TestCase):
+class TestConcurrencyGuard(unittest.IsolatedAsyncioTestCase):
     """Test concurrency management utilities."""
 
     def test_permit_manager_initialization(self):
@@ -357,7 +357,6 @@ class TestConcurrencyGuard(unittest.TestCase):
 
         self.assertEqual(manager.active_count, 0)
 
-    @pytest.mark.asyncio
     async def test_async_semaphore_pool(self):
         """Test AsyncSemaphorePool context manager."""
         manager = PermitManager(max_permits=1)
@@ -404,21 +403,22 @@ class TestErrorHandling(unittest.TestCase):
         self.assertEqual(result["errors"][0]["code"], "UNKNOWN")
         self.assertFalse(result["errors"][0]["retryable"])
 
-    @pytest.mark.asyncio
-    async def test_exponential_backoff_async(self):
+    def test_exponential_backoff_async(self):
         """Test exponential backoff with async function."""
         @exponential_backoff_with_timeout(max_attempts=3, base_delay=0.01)
         async def failing_async_function():
             raise Exception("Test error")
 
-        start_time = time.time()
-        with self.assertRaises(Exception):
-            await failing_async_function()
+        async def test_async():
+            start_time = time.time()
+            with self.assertRaises(Exception):
+                await failing_async_function()
 
-        # Should have taken some time due to backoff
-        elapsed = time.time() - start_time
-        self.assertGreater(elapsed, 0.01)
+            # Should have taken some time due to backoff
+            elapsed = time.time() - start_time
+            self.assertGreater(elapsed, 0.01)
 
+        asyncio.run(test_async())
     def test_exponential_backoff_sync(self):
         """Test exponential backoff with sync function."""
         @exponential_backoff_with_timeout(max_attempts=3, base_delay=0.01)

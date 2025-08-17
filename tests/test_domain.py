@@ -218,7 +218,7 @@ class TestLLMScorer:
             assert score == 0.85
             assert reason == "Good match for B2B SaaS"
             assert flags == []
-            assert model == "gpt-4o-mini-1.5"
+            assert model == "gpt-4o-mini"
             assert fingerprint is not None
             semaphore_pool.__aenter__.assert_called_once()
             semaphore_pool.__aexit__.assert_called_once()
@@ -706,9 +706,12 @@ class TestCLI:
         })
 
         # Create a mock stdin that returns the JSON string
-        mock_stdin = MagicMock()
-        mock_stdin.read.return_value = input_json
+        # Create a mock stdin that returns the JSON string
+        from io import StringIO
+        mock_stdin = StringIO(input_json)
 
+        with patch('sys.stdin', mock_stdin), \
+             patch('sys.stdout') as mock_stdout, \
         with patch('sys.stdin', mock_stdin), \
              patch('sys.stdout') as mock_stdout, \
              patch('asyncio.run') as mock_run:
@@ -728,9 +731,9 @@ class TestCLI:
         """Test CLI with invalid JSON input."""
         from src.domain import main
 
-        with patch('sys.stdin', "invalid json"), \
+        from io import StringIO
+        with patch('sys.stdin', StringIO("invalid json")), \
              patch('sys.stderr') as mock_stderr:
-
             with pytest.raises(SystemExit):
                 main()
 
@@ -740,9 +743,10 @@ class TestCLI:
     def test_main_exception(self, temp_data_dir):
         """Test CLI with unexpected exception."""
         from src.domain import main
-
-        with patch('sys.stdin', '{"icp_config": {}}'), \
-             patch('sys.stderr') as mock_stderr, \
+        from io import StringIO
+        with patch('sys.stdin', StringIO('{"icp_config": {}}')), \
+              patch('sys.stderr') as mock_stderr, \
+              patch('src.domain.DomainTool') as mock_tool_class:             patch('sys.stderr') as mock_stderr, \
              patch('src.domain.DomainTool') as mock_tool_class:
 
             mock_tool_class.side_effect = Exception("Unexpected error")

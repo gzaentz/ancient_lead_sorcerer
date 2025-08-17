@@ -29,7 +29,7 @@ from .common import (
     load_schema_checksum, mask_email, mask_linkedin, mask_phone,
     normalize_domain, normalize_text, now_z, round4, recompute_total_cost, setup_logging,
     truncate_evidence_arrays, validate_envelope, validate_provider_config,
-    validate_template_placeholders, write_with_lock
+    validate_template_placeholders, write_with_lock, append_jsonl_with_lock
 )
 
 # ============================================================================
@@ -98,9 +98,8 @@ class LLMScorer:
             base_url="https://openrouter.ai/api/v1"
         )
         self.semaphore_pool = semaphore_pool
-        self.primary_model = "gpt-4o-mini-1.5"
+        self.primary_model = "gpt-4o-mini"
         self.fallback_model = "gpt-3.5-turbo"
-
     def _build_scoring_prompt(self, title: str, snippet: str, query: str, icp_text: str) -> str:
         """
         Build scoring prompt for LLM.
@@ -141,7 +140,7 @@ Return only a JSON object with this exact format:
 
 Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, technology_mismatch"""
 
-    async def score_domain(self, title: str, snippet: str, query: str, icp_text: str) -> Tuple[float, str, List[str]]:
+    async def score_domain(self, title: str, snippet: str, query: str, icp_text: str) -> Tuple[float, str, List[str], str, str]:
         """
         Score a domain using LLM.
 
@@ -152,7 +151,7 @@ Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, t
             icp_text: ICP description
 
         Returns:
-            Tuple of (score, reason, flags)
+            Tuple of (score, reason, flags, model_used, prompt_fingerprint)
         """
         async with self.semaphore_pool:
             prompt = self._build_scoring_prompt(title, snippet, query, icp_text)
@@ -190,9 +189,10 @@ Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, t
                 score = max(0.0, min(1.0, score))
 
                 return score, reason, flags, model_used, prompt_fingerprint
-            except (json.JSONDecodeError, ValueError, TypeError):
-                # Fallback scoring on parse failure
-                return 0.5, "LLM response parsing failed", [], model_used, prompt_fingerprint
+            except (json.JSONDecodeError, ValueError, KeyError) as e:
+                # Fallback to default values if parsing fails
+                logging.warning(f"Failed to parse LLM response: {e}")
+                return 0.0, "Failed to parse response", [], model_used, prompt_fingerprint
 
 # ============================================================================
 # Domain History Management
@@ -276,10 +276,15 @@ class DomainHistoryManager:
         """
         self._cleanup_expired_entries(ttl_days)
 
-        # Write updated history
+        # Write updated history in JSONL format
         records = list(self.history_cache.values())
         if records:
-            write_with_lock(str(self.history_file), records)
+            # Remove existing file if present to ensure clean JSONL format
+            if self.history_file.exists():
+                os.unlink(self.history_file)
+
+            # Write all records in JSONL format
+            append_jsonl_with_lock(str(self.history_file), records)
 
 # ============================================================================
 # Search Cache Management
@@ -830,31 +835,6 @@ class DomainTool:
                 "metrics": build_metrics(0, 0, int((time.time() - start_time) * 1000))
             }
 
-    def validate_template_placeholders(self, template: str, context: Dict[str, Any]) -> List[str]:
-        """
-        Validate that all template placeholders are satisfied.
-
-        Args:
-            template: Template string with ${placeholder} syntax
-            context: Context dictionary for substitution
-
-        Returns:
-            List of missing placeholder names
-        """
-        import string
-
-        # Extract all placeholders from template
-        template_obj = string.Template(template)
-        placeholders = re.findall(r'\$\{([^}]+)\}', template)
-
-        # Check which placeholders are missing from context
-        missing = []
-        for placeholder in placeholders:
-            if placeholder not in context:
-                missing.append(placeholder)
-
-        return missing
-
     def truncate_evidence_arrays(self, record: Dict[str, Any]) -> None:
         """
         Enforce evidence array truncation limits.
@@ -920,6 +900,3 @@ def main():
             "metrics": build_metrics(0, 0, 0)
         }), file=sys.stderr)
         sys.exit(1)
-
-if __name__ == "__main__":
-    main()

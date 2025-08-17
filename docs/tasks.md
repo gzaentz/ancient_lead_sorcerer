@@ -181,43 +181,43 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 2.40 Implement icp_config.testing flags handling (§416-420).
 
 3.  Tool: Crawl (`tools/crawl.py`)
-    3.1 CLI + envelope validator (§71).
-    3.2 Check artifact cache TTL (`crawl_ttl_days`), content_hash dedupe (§283-285).
-    3.3 Call Firecrawl extract tool (NOT Firecrawl Crawl tool) (https→http fallback) (§290-297).
-    3.4 Generate contact IDs deterministically (§279-280).
-    3.5 Normalize fields (domain, names, email, phone) (§287-288).
-    3.6 Populate company & contacts, dedupe contacts (§273-309).
-    3.7 Second ICP validation → `icp.crawl_score`, `crawl_reason` (§298).
-    3.8 Set status crawled/enrich_ready/crawl_failed & append status_history (§280-289, 312).
-    3.9 Persist artifacts to `data/crawl_artifacts/{eTLD+1}.json` & pointer (§281-317).
-    3.10 Compute `provenance.crawled_at`, `next_revisit_at` max-rule (§286-313).
-    3.11 Fill `company.ids` from onsite links (§307).
-    3.12 Update `contacts[*].seniority`, `role_priority` mapping (§309-311).
-    3.13 Cost accounting: Firecrawl pricing → `cost.crawl_usd` (§371-375).
-    3.14 Metrics: cache_hit_rate, pass_rate (§362-380).
-    3.15 Error handling & retries (§301-303).
-    3.16 Idempotence, TTL, state-machine tests (§449-460).
-    3.17 Respect `AsyncSemaphorePool` for outbound Firecrawl calls (§40-41).
-    3.18 Validate template placeholders in queries if present (§226, §229).
-    3.19 Implement content_hash deduplication logic (§283-285).
-    3.20 Handle LinkedIn company page vs contact routing (§22-24).
-    3.21 Implement seniority ranking mapping: `{"c-level":1, "vp":2, "head":3, "director":3, "manager":4, "lead":5, "ic":6, "other|unknown":99}` (§309-311).
-    3.22 Set `provenance.evidence_paths.crawl` to `"data/crawl_artifacts/{eTLD+1}.json"` (§281-317).
-    3.23 Implement template placeholder validation for queries if present (§226, §229).
-    3.24 Implement provider presence checks for Firecrawl (§409, §76).
-    3.25 Implement audit trail logging for extraction steps (§91-99).
-    3.26 Implement failure_revisit_days logic for crawl failures (§5-6, 240-242, 286-312, 353, 470).
-    3.27 Implement icp_config.role_priority configuration loading for seniority ranking (§309-311).
-    3.28 Populate company.size_hint when Firecrawl returns employee count or size brackets.
-    3.29 Implement `icp_config.refresh_policy.crawl_ttl_days` override validation (§283-285).
-    3.30 Implement `icp_config.default_country` fallback for phone parsing (§21-24).
-    3.31 Implement LinkedIn path masking for all LinkedIn URLs in logs and errors (§483-485).
-    3.32 Implement `icp_config.required_fields.company` validation for status transitions (§298).
-    3.33 Implement `icp_config.required_fields.contact` validation for contact extraction (§273-309).
-    3.34 Implement content hash deduplication (§283-285).
-    3.35 Implement icp_config.testing flags handling (§416-420).
-    3.36 Implement LinkedIn routing per BRD §22-24.
-    3.37 Implement seniority ranking per BRD §309-311.
+    ✅ 3.1 CLI + envelope validator (§71).
+    ✅ 3.2 Check artifact cache TTL (`crawl_ttl_days`), content_hash dedupe (§283-285).
+    ✅ 3.3 Call Firecrawl extract tool (NOT Firecrawl Crawl tool) (https→http fallback) (§290-297).
+    ✅ 3.4 Generate contact IDs deterministically (§279-280).
+    ✅ 3.5 Normalize fields (domain, names, email, phone) (§287-288).
+    ✅ 3.6 Populate company & contacts, dedupe contacts (§273-309).
+    ✅ 3.7 Second ICP validation → `icp.crawl_score`, `crawl_reason` (§298).
+    ✅ 3.8 Set status crawled/enrich_ready/crawl_failed & append status_history (§280-289, 312).
+    ✅ 3.9 Persist artifacts to `data/crawl_artifacts/{eTLD+1}.json` & pointer (§281-317).
+    ✅ 3.10 Compute `provenance.crawled_at`, `next_revisit_at` max-rule (§286-313).
+    ✅ 3.11 Fill `company.ids` from onsite links (§307).
+    ✅ 3.12 Update `contacts[*].seniority`, `role_priority` mapping (§309-311).
+    ✅ 3.13 Cost accounting: Firecrawl pricing → `cost.crawl_usd` (§371-375).
+    ✅ 3.14 Metrics: cache_hit_rate, pass_rate (§362-380).
+    ✅ 3.15 Error handling & retries (§301-303).
+    ✅ 3.16 Idempotence, TTL, state-machine tests (§449-460).
+    ✅ 3.17 Respect `AsyncSemaphorePool` for outbound Firecrawl calls (§40-41).
+    ✅ 3.18 Validate template placeholders in queries if present (§226, §229).
+    ✅ 3.19 Implement content_hash deduplication logic (§283-285).
+    ✅ 3.20 Handle LinkedIn company page vs contact routing (§22-24).
+    ✅ 3.21 Implement seniority ranking mapping: `{"c-level":1, "vp":2, "head":3, "director":3, "manager":4, "lead":5, "ic":6, "other|unknown":99}` (§309-311).
+    ✅ 3.22 Set `provenance.evidence_paths.crawl` to `"data/crawl_artifacts/{eTLD+1}.json"` (§281-317).
+    ✅ 3.23 Implement template placeholder validation for queries if present (§226, §229).
+    ✅ 3.24 Implement provider presence checks for Firecrawl (§409, §76).
+    ✅ 3.25 Implement audit trail logging for extraction steps (§91-99).
+    ✅ 3.26 Implement failure_revisit_days logic for crawl failures (§5-6, 240-242, 286-312, 353, 470).
+    ✅ 3.27 Implement icp_config.role_priority configuration loading for seniority ranking (§309-311).
+    ✅ 3.28 Populate company.size_hint when Firecrawl returns employee count or size brackets.
+    ✅ 3.29 Implement `icp_config.refresh_policy.crawl_ttl_days` override validation (§283-285).
+    ✅ 3.30 Implement `icp_config.default_country` fallback for phone parsing (§21-24).
+    ✅ 3.31 Implement LinkedIn path masking for all LinkedIn URLs in logs and errors (§483-485).
+    ✅ 3.32 Implement `icp_config.required_fields.company` validation for status transitions (§298).
+    ✅ 3.33 Implement `icp_config.required_fields.contact` validation for contact extraction (§273-309).
+    ✅ 3.34 Implement content hash deduplication (§283-285).
+    ✅ 3.35 Implement icp_config.testing flags handling (§416-420).
+    ✅ 3.36 Implement LinkedIn routing per BRD §22-24.
+    ✅ 3.37 Implement seniority ranking per BRD §309-311.
 
 4.  Tool: Enrich (`tools/enrich.py`)
     4.1 CLI + schema validation (§71).

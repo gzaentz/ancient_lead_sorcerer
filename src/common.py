@@ -1071,14 +1071,16 @@ def write_with_lock(file_path: str, data: Any, mode: str = 'w') -> None:
         data: Data to write
         mode: File write mode
     """
-    with portalocker.Lock(file_path, timeout=10):
-        with open(file_path, mode) as f:
-            if isinstance(data, str):
-                f.write(data)
-            else:
-                json.dump(data, f, indent=2)
-
-
+def write_with_lock(file_path: str, data: Any, mode: str = 'w') -> None:
+    try:
+        with portalocker.Lock(file_path, timeout=10):
+            with open(file_path, mode) as f:
+                if isinstance(data, str):
+                    f.write(data)
+                else:
+                    json.dump(data, f, indent=2)
+    except portalocker.exceptions.LockException as e:
+        raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
 def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> None:
     """
     Append records to JSONL file with portalocker write lock.
@@ -1087,12 +1089,14 @@ def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> Non
         file_path: Path to JSONL file
         records: List of records to append
     """
-    with portalocker.Lock(file_path, timeout=10):
-        with open(file_path, 'a') as f:
-            for record in records:
-                f.write(json.dumps(record) + '\n')
-
-
+    def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> None:
+        try:
+            with portalocker.Lock(file_path, timeout=10):
+                with open(file_path, 'a') as f:
+                    for record in records:
+                        f.write(json.dumps(record) + '\n')
+        except portalocker.exceptions.LockException as e:
+            raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
 # ============================================================================
 # Content Hash Deduplication
 # ============================================================================
@@ -1242,6 +1246,10 @@ def get_seniority_rank(title: str) -> int:
     # Seniority ranking mapping from BRD
     seniority_map = {
         "c-level": 1,
+        "ceo": 1,
+        "cto": 1,
+        "cfo": 1,
+        "coo": 1,
         "vp": 2,
         "head": 3,
         "director": 3,
