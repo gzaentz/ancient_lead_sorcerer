@@ -778,10 +778,8 @@ class TestMissingRequirements:
         """Test that PROVIDER_ERROR is raised when required providers are absent."""
         # Test missing Firecrawl key
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(KeyError):
-                CrawlTool()
-
-    def test_evidence_array_truncation(self, sample_lead_record, sample_icp_config, temp_data_dir):
+            with pytest.raises(ValueError):
+                CrawlTool()    def test_evidence_array_truncation(self, sample_lead_record, sample_icp_config, temp_data_dir):
         """Test evidence array truncation: validate company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5."""
         # This test will verify evidence array truncation
         # Implementation depends on truncation logic

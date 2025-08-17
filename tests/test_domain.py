@@ -1093,21 +1093,22 @@ class TestIntegration:
         assert lead_id1 != different_lead_id
 
 
-class TestMissingRequirements(unittest.TestCase):
+class TestMissingRequirements:
     """Test missing requirements from Task 6."""
 
     def test_provider_missing_checks(self, sample_icp_config, temp_data_dir):
         """Test that PROVIDER_ERROR is raised when required providers are absent."""
         # Test missing GSE API key
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 DomainTool(sample_icp_config, temp_data_dir)
 
         # Test missing OpenRouter key
         with patch.dict(os.environ, {"GSE_API_KEY": "test", "GSE_CX": "test"}, clear=True):
-            with self.assertRaises(KeyError):
+            with pytest.raises(KeyError):
                 DomainTool(sample_icp_config, temp_data_dir)
 
+    @pytest.mark.skip(reason="pending implementation - phone parsing error handling")
     def test_phone_parse_failure(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test that PARSE_ERROR is emitted on unparseable phone numbers."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1116,6 +1117,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on phone parsing logic in the tool
         pass
 
+    @pytest.mark.skip(reason="pending implementation - PII masking in logs")
     def test_log_pii_masking(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test that logs contain masked PII."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1124,6 +1126,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on logging setup
         pass
 
+    @pytest.mark.skip(reason="pending implementation - LinkedIn canonicalization regex")
     def test_linkedin_canonicalization(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test LinkedIn canonicalization regex patterns."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1132,6 +1135,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on LinkedIn handling logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - country code fallback for phone parsing")
     def test_country_code_fallback(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test country code fallback for phone parsing."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1140,6 +1144,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on phone parsing logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - progressive SERP pagination")
     def test_progressive_serp_pagination(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test progressive SERP pagination logic."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1148,6 +1153,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on pagination implementation
         pass
 
+    @pytest.mark.skip(reason="pending implementation - best contact ID recomputation")
     def test_best_contact_id_recomputation(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test best_contact_id recomputation when contact no longer exists."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1156,6 +1162,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on contact handling logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - testing flags handling")
     def test_testing_flags(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test testing flags (process_rejected, process_low_crawl)."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1164,6 +1171,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on testing flags logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - data directory precedence")
     def test_data_dir_precedence(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test data directory precedence resolution."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1172,6 +1180,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on data directory logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - template placeholder validation")
     def test_template_placeholder_validation(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test template placeholder validation for all tools."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1180,6 +1189,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on template validation logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - provider presence validation")
     def test_provider_presence_validation(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test provider presence validation at startup."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1188,6 +1198,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on provider validation logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - audit trail logging")
     def test_audit_trail_logging(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test audit trail logging for all tool steps."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1196,6 +1207,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on audit logging logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - failure revisit days logic")
     def test_failure_revisit_days_logic(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test failure_revisit_days logic for all tools."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1204,6 +1216,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on revisit logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - domain TTL override")
     def test_refresh_policy_domain_ttl_days_override(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.refresh_policy.domain_ttl_days override."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1212,6 +1225,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on TTL logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - max pages override")
     def test_search_max_pages_override(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.search.max_pages override."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1220,6 +1234,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on pagination logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - default country fallback")
     def test_default_country_fallback(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.default_country fallback for phone parsing."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1228,6 +1243,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on phone parsing logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - role priority configuration")
     def test_role_priority_configuration(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.role_priority configuration loading."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1236,6 +1252,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on role priority logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - error code mapping")
     def test_error_code_mapping(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test error code mapping for all specified error types."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1244,6 +1261,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on error handling logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - content hash deduplication")
     def test_content_hash_deduplication(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test content hash deduplication logic."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1252,6 +1270,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on deduplication logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - LinkedIn routing and canonicalization")
     def test_linkedin_routing_canonicalization(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test LinkedIn routing and canonicalization."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1260,6 +1279,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on LinkedIn handling
         pass
 
+    @pytest.mark.skip(reason="pending implementation - seniority ranking mapping")
     def test_seniority_ranking_mapping(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test seniority ranking mapping."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1268,6 +1288,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on seniority logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - OpenRouter costs inclusion")
     def test_openrouter_costs_inclusion(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test that OpenRouter costs are included in record.cost.domain_usd and tool-run metrics.cost_usd.domain."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1276,6 +1297,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on cost tracking logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - duration metrics population")
     def test_metrics_duration_ms_population(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test metrics.duration_ms population in every tool envelope."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1284,6 +1306,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on metrics logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - atomic pointer swap")
     def test_atomic_pointer_swap(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test atomic pointer swap during copy-on-write sink compaction."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1292,6 +1315,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on sink compaction logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - SyncSemaphorePool blocking")
     def test_sync_semaphore_pool_blocks_parallel_calls(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Unit-test SyncSemaphorePool blocks >N parallel blocking calls."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1300,6 +1324,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on concurrency control
         pass
 
+    @pytest.mark.skip(reason="pending implementation - email source tie-breaking")
     def test_email_source_best_contact_tie_break(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Unit-test that email_source affects best-contact tie-break."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1308,6 +1333,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on contact selection logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - LinkedIn masking")
     def test_mask_linkedin_redacts_slugs(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Unit-test mask_linkedin() redacts slugs in logs/errors."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1316,6 +1342,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on masking logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - field ownership enforcement")
     def test_field_ownership_enforcement(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Field-ownership enforcement test (uses helper from 1.1.24)."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1324,6 +1351,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on ownership helper
         pass
 
+    @pytest.mark.skip(reason="pending implementation - status history completeness")
     def test_status_history_completeness(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Status_history completeness test: feed a record that undergoes Domain → Crawl → Enrich and assert three chronological history entries."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1332,6 +1360,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on status tracking logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - portalocker write-phase timing")
     def test_portalocker_write_phase_timing(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Portalocker write-phase timing test (ties to 1.2.4)."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1340,6 +1369,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on file locking logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - provider payload redaction")
     def test_provider_payload_redaction(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Provider-payload redaction test: logger output must not contain raw 'headers' or 'body' keys when log_redaction filter is on."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1348,6 +1378,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on logging redaction logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - mode handling")
     def test_icp_config_mode_handling(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.mode (fast/thorough) handling in Domain tool."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1356,6 +1387,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on mode logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - filtering strict handling")
     def test_icp_config_filtering_strict_handling(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.filtering_strict handling in Domain tool."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1364,6 +1396,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on filtering logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - query template validation")
     def test_icp_config_queries_template_placeholder_validation(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.queries template placeholder validation."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1372,6 +1405,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on template validation logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - fields validation")
     def test_icp_config_required_fields_optional_fields_validation(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test icp_config.required_fields and icp_config.optional_fields validation."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1380,6 +1414,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on validation logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - timeout error mapping")
     def test_http_timeout_smtp_timeout_error_mapping(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test HTTP_TIMEOUT and SMTP_TIMEOUT error mapping."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1388,6 +1423,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on error handling logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - schema checksum validation")
     def test_schema_checksum_validation_drift_detection(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test schema checksum validation and drift detection."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1396,6 +1432,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on schema validation logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - progressive SERP pagination")
     def test_progressive_serp_pagination_logic(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test progressive SERP pagination logic."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1404,6 +1441,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on pagination logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - content hash deduplication")
     def test_content_hash_deduplication_logic(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test content hash deduplication logic."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1412,6 +1450,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on deduplication logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - testing flags handling")
     def test_testing_flags_handling(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test testing flags (process_rejected, process_low_crawl)."""
         tool = DomainTool(sample_icp_config, temp_data_dir)
@@ -1420,6 +1459,7 @@ class TestMissingRequirements(unittest.TestCase):
         # Implementation depends on testing flags logic
         pass
 
+    @pytest.mark.skip(reason="pending implementation - missing error codes")
     def test_missing_error_codes(self, sample_icp_config, temp_data_dir, mock_env_vars, mock_costs_config, mock_schema_checksum):
         """Test missing error codes (HTTP_TIMEOUT, SMTP_TIMEOUT)."""
         tool = DomainTool(sample_icp_config, temp_data_dir)

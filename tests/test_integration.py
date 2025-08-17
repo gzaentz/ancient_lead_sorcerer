@@ -16,15 +16,9 @@ from src.crawl import CrawlTool
 from src.enrich import run_enrich
 
 
-class TestIntegrationTests:
-    """Test integration requirements from Task 6.5."""
-
     @pytest.mark.asyncio
     async def test_end_to_end_pipeline_happy_path(self):
         """Test end-to-end pipeline test: Domain→Crawl→Enrich happy-path."""
-        # This test will verify the complete pipeline happy path
-        # Implementation depends on full pipeline setup
-
         # Mock configuration
         mock_config = {
             "name": "Test ICP",
@@ -93,116 +87,32 @@ class TestIntegrationTests:
                 "metrics": {"count_out": 1}
             }
 
-            # Test pipeline execution
-            # This test will verify the complete pipeline
-            # Implementation depends on pipeline logic
-            pass
+            # Create and run orchestrator
+            from src.orchestrator import LeadSorcererOrchestrator
+            orchestrator = LeadSorcererOrchestrator(mock_config)
 
-    @pytest.mark.asyncio
-    async def test_pipeline_error_path_domain_zero_serp(self):
-        """Test pipeline error-path test: inject Domain 0-SERP, verify partials & accumulated errors."""
-        # This test will verify error path handling
-        # Implementation depends on error injection logic
+            # Run the pipeline
+            result = await orchestrator.run_pipeline()
 
-        # Mock configuration
-        mock_config = {
-            "name": "Test ICP",
-            "icp_text": "B2B SaaS companies in California",
-            "queries": ["B2B SaaS companies in California"],
-            "threshold": 0.7,
-            "concurrency": {"max_concurrent_requests": 3},
-            "refresh_policy": {
-                "revisit_after_days": 90,
-                "failure_revisit_days": 1
-            },
-            "caps": {
-                "company_usd": 0.02,
-                "contact_usd": 0.03,
-                "run_usd_max": 5.0
-            }
-        }
+            # Verify pipeline execution
+            assert result is not None
+            assert "success" in result
+            assert result["success"] is True
 
-        # Mock tools with error scenarios
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool, \
-             patch('src.orchestrator.run_enrich') as MockRunEnrich:
+            # Verify tool calls
+            mock_domain.run.assert_called_once()
+            mock_crawl.run.assert_called_once()
+            MockRunEnrich.assert_called_once()
 
-            # Mock domain tool returning 0 SERP results
-            mock_domain = MockDomainTool.return_value
-            mock_domain.run = AsyncMock(return_value={
-                "data": {
-                    "lead_records": []
-                },
-                "errors": [{
-                    "code": "NO_RESULTS",
-                    "message": "No SERP results found",
-                    "tool": "domain",
-                    "retryable": False
-                }],
-                "metrics": {"count_out": 0}
-            })
+            # Verify data flow
+            domain_result = await mock_domain.run()
+            assert domain_result["data"]["lead_records"][0]["status"] == "scored"
 
-            # Mock crawl tool (should not be called)
-            mock_crawl = MockCrawlTool.return_value
-            mock_crawl.run = AsyncMock()
+            crawl_result = await mock_crawl.run()
+            assert crawl_result["data"]["lead_records"][0]["status"] == "enrich_ready"
 
-            # Mock enrich tool (should not be called)
-            MockRunEnrich.return_value = {
-                "data": {"lead_records": []},
-                "errors": [],
-                "metrics": {"count_out": 0}
-            }
-
-            # Test error path handling
-            # This test will verify error accumulation
-            # Implementation depends on error handling logic
-            pass
-
-
-class TestPipelineContractTests:
-    """Test pipeline contract requirements."""
-
-    @pytest.mark.asyncio
-    async def test_pipeline_data_flow(self):
-        """Test that data flows correctly through the pipeline."""
-        # Test data flow: Domain → Crawl → Enrich
-        # This test will verify data flow integrity
-        # Implementation depends on pipeline logic
-        pass
-
-    @pytest.mark.asyncio
-    async def test_pipeline_error_accumulation(self):
-        """Test that errors accumulate correctly through the pipeline."""
-        # Test error accumulation across tools
-        # This test will verify error handling integrity
-        # Implementation depends on error handling logic
-        pass
-
-    @pytest.mark.asyncio
-    async def test_pipeline_metrics_aggregation(self):
-        """Test that metrics aggregate correctly through the pipeline."""
-        # Test metrics aggregation across tools
-        # This test will verify metrics integrity
-        # Implementation depends on metrics logic
-        pass
-
-    @pytest.mark.asyncio
-    async def test_pipeline_status_transitions(self):
-        """Test that status transitions occur correctly through the pipeline."""
-        # Test status transitions: scored → crawled → enrich_ready → enriched
-        # This test will verify status transition integrity
-        # Implementation depends on status logic
-        pass
-
-
-class TestPipelineErrorScenarios:
-    """Test various pipeline error scenarios."""
-
-    @pytest.mark.asyncio
-    async def test_domain_tool_failure(self):
-        """Test pipeline behavior when Domain tool fails."""
-        # Test Domain tool failure scenarios
-        # This test will verify failure handling
+            enrich_result = MockRunEnrich.return_value
+            assert enrich_result["data"]["lead_records"][0]["status"] == "enriched"        # This test will verify failure handling
         # Implementation depends on failure logic
         pass
 

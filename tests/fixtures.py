@@ -432,9 +432,10 @@ def mock_httpx_client():
         client.post = AsyncMock()
         client.get = AsyncMock()
         client.close = AsyncMock()
+        # Support `async with httpx.AsyncClient() as client:`
+        client.__aenter__ = AsyncMock(return_value=client)
+        client.__aexit__ = AsyncMock(return_value=None)
         yield client
-
-
 @pytest.fixture
 def mock_httpx_response():
     """Mock httpx response."""

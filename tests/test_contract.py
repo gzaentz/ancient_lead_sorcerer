@@ -15,8 +15,8 @@ from src.common import ErrorCode, validate_envelope
 from src.domain import DomainTool
 from src.crawl import CrawlTool
 from src.enrich import run_enrich
-
-
+from src.common import validate_state_transition
+from typing import Dict, List, Any
 class TestContractTests:
     """Test contract requirements from Task 6.2."""
 
@@ -59,6 +59,8 @@ class TestContractTests:
 
     def test_state_machine_transitions_allowed_only(self):
         """Test state-machine transitions allowed only (§458-460)."""
+        from src.common import is_valid_transition
+
         # Test valid transitions
         valid_transitions = [
             ("new", "scored"),
@@ -70,9 +72,8 @@ class TestContractTests:
         ]
 
         for from_status, to_status in valid_transitions:
-            # This test will verify state machine transitions
-            # Implementation depends on state machine logic
-            pass
+            assert is_valid_transition(from_status, to_status), \
+                f"Valid transition {from_status} -> {to_status} was rejected"
 
         # Test invalid transitions
         invalid_transitions = [
@@ -82,11 +83,8 @@ class TestContractTests:
         ]
 
         for from_status, to_status in invalid_transitions:
-            # This test will verify invalid transitions are rejected
-            # Implementation depends on state machine logic
-            pass
-
-    def test_error_contract_pii_masking(self):
+            assert not is_valid_transition(from_status, to_status), \
+                f"Invalid transition {from_status} -> {to_status} was allowed"    def test_error_contract_pii_masking(self):
         """Test error contract & PII masking (§454-456, 481-485)."""
         # Test error object structure
         valid_error = {
