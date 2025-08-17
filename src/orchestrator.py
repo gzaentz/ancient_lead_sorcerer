@@ -112,7 +112,7 @@ class LeadSorcererOrchestrator:
         """Validate that all required providers are configured."""
         try:
             costs_config = load_costs_config()
-            required_providers = ['gse', 'openrouter', 'firecrawl', 'proxycurl', 'mailgun', 'snovio']
+            required_providers = ['gse', 'openrouter', 'firecrawl', 'coresignal', 'mailgun', 'snovio']
             validate_provider_config(required_providers, costs_config)
         except Exception as e:
             self.logger.error(f"Provider configuration validation failed: {e}")

@@ -10,6 +10,7 @@ Tests cover all functionality including:
 - Status transitions and audit logging
 """
 
+import asyncio
 import json
 import os
 import tempfile
@@ -17,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.enrich import (
-    ProxycurlClient,
+    CoresignalClient,
     MailgunClient,
     SnovioClient,
     select_best_contact,
@@ -30,67 +31,89 @@ from src.enrich import (
 from src.common import ErrorCode
 
 
-class TestProxycurlClient:
-    """Test Proxycurl client functionality."""
+class TestCoresignalClient:
+    """Test Coresignal client functionality."""
 
     def test_init(self):
         """Test client initialization."""
         semaphore_pool = MagicMock()
-        client = ProxycurlClient("test_key", semaphore_pool)
+        client = CoresignalClient("test_token", semaphore_pool)
 
-        assert client.api_key == "test_key"
-        assert client.base_url == "https://nubela.co/proxycurl/api/v2"
+        assert client.api_token == "test_token"
+        assert client.base_url == "https://api.coresignal.com"
         assert client.semaphore_pool == semaphore_pool
 
     @pytest.mark.asyncio
     async def test_enrich_company_success(self):
         """Test successful company enrichment."""
         semaphore_pool = AsyncMock()
-        client = ProxycurlClient("test_key", semaphore_pool)
+        client = CoresignalClient("test_token", semaphore_pool)
 
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            "name": "Test Company",
-            "description": "Test description",
-            "industry": "Technology",
+            "company": {
+                "name": "Test Company",
+                "description": "Test description",
+                "industry": "Technology",
+                "size": "51-200",
+                "location": {"city": "San Francisco"},
+                "linkedin_id": "12345"
+            }
         }
         mock_response.raise_for_status.return_value = None
 
         with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
+            mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
 
             result = await client.enrich_company("test.com")
 
-            assert result["name"] == "Test Company"
-            assert result["description"] == "Test description"
-            assert result["industry"] == "Technology"
+            assert result["company"]["name"] == "Test Company"
+            assert result["company"]["description"] == "Test description"
+            assert result["company"]["industry"] == "Technology"
             semaphore_pool.__aenter__.assert_called_once()
             semaphore_pool.__aexit__.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_enrich_contact_success(self):
-        """Test successful contact enrichment."""
+    async def test_enrich_contact_not_implemented(self):
+        """Test that contact enrichment raises NotImplementedError."""
         semaphore_pool = AsyncMock()
-        client = ProxycurlClient("test_key", semaphore_pool)
+        client = CoresignalClient("test_token", semaphore_pool)
+
+        with pytest.raises(NotImplementedError, match="Coresignal doesn't support direct LinkedIn URL enrichment"):
+            await client.enrich_contact("https://linkedin.com/in/test")
+
+    @pytest.mark.asyncio
+    async def test_enrich_company_contacts_success(self):
+        """Test successful company contacts enrichment."""
+        semaphore_pool = AsyncMock()
+        client = CoresignalClient("test_token", semaphore_pool)
 
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            "email": "test@example.com",
-            "phone": "+1234567890",
+            "people": [
+                {
+                    "first_name": "John",
+                    "last_name": "Doe",
+                    "full_name": "John Doe",
+                    "email": "john@example.com",
+                    "title": "CEO"
+                }
+            ]
         }
         mock_response.raise_for_status.return_value = None
 
         with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
+            mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
 
-            result = await client.enrich_contact("https://linkedin.com/in/test")
+            result = await client.enrich_company_contacts("test.com")
 
-            assert result["email"] == "test@example.com"
-            assert result["phone"] == "+1234567890"
+            assert result["people"][0]["first_name"] == "John"
+            assert result["people"][0]["email"] == "john@example.com"
+            assert result["people"][0]["title"] == "CEO"
             semaphore_pool.__aenter__.assert_called_once()
             semaphore_pool.__aexit__.assert_called_once()
 
@@ -119,7 +142,7 @@ class TestMailgunClient:
         mock_response.raise_for_status.return_value = None
 
         with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
+            mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
 
@@ -155,7 +178,7 @@ class TestSnovioClient:
         mock_response.raise_for_status.return_value = None
 
         with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
+            mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.post.return_value = mock_response
 
@@ -180,7 +203,7 @@ class TestSnovioClient:
         mock_response.raise_for_status.return_value = None
 
         with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client = MagicMock()
+            mock_client = AsyncMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
 
@@ -282,22 +305,23 @@ class TestCompanyEnrichment:
         """Test successful company enrichment."""
         company = {"name": None, "description": None}
         domain = "test.com"
-        proxycurl_client = MagicMock()
-        costs_config = {"proxycurl": 0.01}
+        coresignal_client = AsyncMock()
+        costs_config = {"coresignal": 0.01}
 
         # Mock successful enrichment
-        proxycurl_client.enrich_company.return_value = {
-            "name": "Test Company",
-            "description": "Test description",
-            "industry": "Technology",
-            "hq_location": "San Francisco",
-            "size_hint": "50-100 employees",
-            "linkedin_company_id": "12345",
-            "crunchbase_id": "67890",
+        coresignal_client.enrich_company.return_value = {
+            "company": {
+                "name": "Test Company",
+                "description": "Test description",
+                "industry": "Technology",
+                "size": "50-100 employees",
+                "location": {"city": "San Francisco"},
+                "linkedin_id": "12345"
+            }
         }
 
         enriched_company, cost = await enrich_company_data(
-            company, domain, proxycurl_client, costs_config
+            company, domain, coresignal_client, costs_config
         )
 
         assert enriched_company["name"] == "Test Company"
@@ -306,7 +330,6 @@ class TestCompanyEnrichment:
         assert enriched_company["hq_location"] == "San Francisco"
         assert enriched_company["size_hint"] == "50-100 employees"
         assert enriched_company["ids"]["linkedin"] == "/company/12345"
-        assert enriched_company["ids"]["crunchbase"] == "67890"
         assert cost == 0.01
 
     @pytest.mark.asyncio
@@ -314,14 +337,14 @@ class TestCompanyEnrichment:
         """Test company enrichment failure handling."""
         company = {"name": "Existing Name"}
         domain = "test.com"
-        proxycurl_client = MagicMock()
-        costs_config = {"proxycurl": 0.01}
+        coresignal_client = AsyncMock()
+        costs_config = {"coresignal": 0.01}
 
         # Mock failure
-        proxycurl_client.enrich_company.side_effect = Exception("API Error")
+        coresignal_client.enrich_company.side_effect = Exception("API Error")
 
         enriched_company, cost = await enrich_company_data(
-            company, domain, proxycurl_client, costs_config
+            company, domain, coresignal_client, costs_config
         )
 
         # Should return original company unchanged
@@ -333,20 +356,25 @@ class TestContactEnrichment:
     """Test contact data enrichment functionality."""
 
     @pytest.mark.asyncio
-    async def test_enrich_contact_data_proxycurl_success(self):
-        """Test successful contact enrichment via Proxycurl."""
-        contact = {"linkedin": "https://linkedin.com/in/test"}
+    async def test_enrich_contact_data_coresignal_success(self):
+        """Test successful contact enrichment via Coresignal company contacts."""
+        contact = {"full_name": "Test User"}
         domain = "test.com"
-        proxycurl_client = MagicMock()
-        mailgun_client = MagicMock()
-        snovio_client = MagicMock()
-        costs_config = {"proxycurl": 0.01, "mailgun": 0.002}
+        coresignal_client = AsyncMock()
+        mailgun_client = AsyncMock()
+        snovio_client = AsyncMock()
+        costs_config = {"coresignal": 0.01, "mailgun": 0.002}
 
-        # Mock Proxycurl success
-        proxycurl_client.enrich_contact.return_value = {
-            "email": "test@example.com",
-            "phone": "+1234567890",
-            "role": "Software Engineer",
+        # Mock Coresignal success
+        coresignal_client.enrich_company_contacts.return_value = {
+            "people": [
+                {
+                    "full_name": "Test User",
+                    "email": "test@example.com",
+                    "phone": "+1234567890",
+                    "title": "Software Engineer"
+                }
+            ]
         }
 
         # Mock Mailgun validation
@@ -355,7 +383,7 @@ class TestContactEnrichment:
         enriched_contact, cost = await enrich_contact_data(
             contact,
             domain,
-            proxycurl_client,
+            coresignal_client,
             mailgun_client,
             snovio_client,
             costs_config,
@@ -367,16 +395,16 @@ class TestContactEnrichment:
         assert enriched_contact["email_status"] == "valid"
         assert enriched_contact["email_confidence"] == 0.95
         assert enriched_contact["email_source"] == "provider"
-        assert cost == 0.012  # proxycurl + mailgun
+        assert cost == 0.012  # coresignal + mailgun
 
     @pytest.mark.asyncio
     async def test_enrich_contact_data_snovio_success(self):
         """Test successful email discovery via Snov.io."""
         contact = {"full_name": "John Doe"}
         domain = "test.com"
-        proxycurl_client = MagicMock()
-        mailgun_client = MagicMock()
-        snovio_client = MagicMock()
+        coresignal_client = AsyncMock()
+        mailgun_client = AsyncMock()
+        snovio_client = AsyncMock()
         costs_config = {"snovio": 0.015, "mailgun": 0.002}
 
         # Mock Snov.io success
@@ -388,7 +416,7 @@ class TestContactEnrichment:
         enriched_contact, cost = await enrich_contact_data(
             contact,
             domain,
-            proxycurl_client,
+            coresignal_client,
             mailgun_client,
             snovio_client,
             costs_config,
@@ -403,27 +431,27 @@ class TestContactEnrichment:
     async def test_enrich_contact_data_phone_normalization(self):
         """Test phone number normalization."""
         contact = {
-            "phone": "+1 (555) 123-4567",
+            "phone": "+1 (212) 555-1234",
             "company_country": "US",
             "default_country": "US",
         }
         domain = "test.com"
-        proxycurl_client = MagicMock()
-        mailgun_client = MagicMock()
-        snovio_client = MagicMock()
-        costs_config = {"proxycurl": 0.01}
+        coresignal_client = AsyncMock()
+        mailgun_client = AsyncMock()
+        snovio_client = AsyncMock()
+        costs_config = {"coresignal": 0.01}
 
         enriched_contact, cost = await enrich_contact_data(
             contact,
             domain,
-            proxycurl_client,
+            coresignal_client,
             mailgun_client,
             snovio_client,
             costs_config,
         )
 
         # Phone should be normalized to E.164
-        assert enriched_contact["phone"] == "+15551234567"
+        assert enriched_contact["phone"] == "+12125551234"
         assert cost == 0.0
 
 
@@ -437,28 +465,25 @@ class TestEvidenceFileWriting:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch("src.enrich.normalize_domain", return_value="test.com"):
-                with patch("src.enrich.os.path.join") as mock_join:
-                    mock_join.side_effect = lambda *args: os.path.join(temp_dir, *args)
+                with patch("src.enrich.portalocker.Lock") as mock_lock:
+                    mock_lock.return_value.__enter__ = MagicMock()
+                    mock_lock.return_value.__exit__ = MagicMock()
 
-                    with patch("src.enrich.portalocker.Lock") as mock_lock:
-                        mock_lock.return_value.__enter__ = MagicMock()
-                        mock_lock.return_value.__exit__ = MagicMock()
+                    result_path = write_evidence_file(
+                        domain, evidence_data, temp_dir
+                    )
 
-                        result_path = write_evidence_file(
-                            domain, evidence_data, temp_dir
-                        )
+                    # Check that file was created
+                    expected_path = os.path.join(
+                        temp_dir, "evidence", "enrich", "test.com.json"
+                    )
+                    assert result_path == expected_path
+                    assert os.path.exists(expected_path)
 
-                        # Check that file was created
-                        expected_path = os.path.join(
-                            temp_dir, "evidence", "enrich", "test.com.json"
-                        )
-                        assert result_path == expected_path
-                        assert os.path.exists(expected_path)
-
-                        # Check file contents
-                        with open(expected_path, "r") as f:
-                            content = json.load(f)
-                            assert content == evidence_data
+                    # Check file contents
+                    with open(expected_path, "r") as f:
+                        content = json.load(f)
+                        assert content == evidence_data
 
 
 class TestMainEnrichmentLogic:
@@ -490,6 +515,37 @@ class TestMainEnrichmentLogic:
                     },
                     "status_history": [],
                     "audit": [],
+                    "icp": {
+                        "pre_score": 0.8,
+                        "pre_reason": "Test reason",
+                        "pre_pass": True,
+                        "pre_flags": [],
+                        "scoring_meta": {
+                            "method": "test",
+                            "model": "test",
+                            "prompt_fingerprint": "test",
+                            "temperature": 0.1
+                        },
+                        "crawl_score": 0.8,
+                        "crawl_reason": "Test reason",
+                        "threshold": 0.7,
+                        "filtering_strict": True
+                    },
+                    "provenance": {
+                        "queries": ["test query"],
+                        "discovery_evidence": ["test evidence"],
+                        "scored_at": "2023-01-01T00:00:00Z",
+                        "crawled_at": "2023-01-01T00:00:00Z",
+                        "enriched_at": None,
+                        "next_revisit_at": "2023-01-01T00:00:00Z",
+                        "tool_versions": {
+                            "domain": {"version": "1.0", "schema_version": "test"},
+                            "crawl": {"version": "1.0", "schema_version": "test"},
+                            "enrich": {"version": "1.0", "schema_version": "test"}
+                        },
+                        "cache": {},
+                        "evidence_paths": []
+                    }
                 }
             ],
             "icp_config": {
@@ -506,7 +562,7 @@ class TestMainEnrichmentLogic:
         with patch.dict(
             os.environ,
             {
-                "PROXYCURL_KEY": "test_key",
+                "CORESIGNAL_TOKEN": "test_token",
                 "MAILGUN_SMTP_LOGIN": "test@domain.com",
                 "MAILGUN_SMTP_PW": "password",
                 "SNOV_IO_ID": "client_id",
@@ -516,7 +572,7 @@ class TestMainEnrichmentLogic:
             # Mock costs config
             with patch("src.enrich.load_costs_config") as mock_load_costs:
                 mock_load_costs.return_value = {
-                    "proxycurl": 0.01,
+                    "coresignal": 0.01,
                     "mailgun": 0.002,
                     "snovio": 0.015,
                 }
@@ -529,25 +585,27 @@ class TestMainEnrichmentLogic:
                     with patch("src.enrich.resolve_data_dir", return_value="./data"):
                         # Mock provider clients
                         with patch(
-                            "src.enrich.ProxycurlClient"
-                        ) as mock_proxycurl_class:
+                            "src.enrich.CoresignalClient"
+                        ) as mock_coresignal_class:
                             with patch(
                                 "src.enrich.MailgunClient"
                             ) as mock_mailgun_class:
                                 with patch(
                                     "src.enrich.SnovioClient"
                                 ) as mock_snovio_class:
-                                    mock_proxycurl = MagicMock()
+                                    mock_coresignal = MagicMock()
                                     mock_mailgun = MagicMock()
                                     mock_snovio = MagicMock()
 
-                                    mock_proxycurl_class.return_value = mock_proxycurl
+                                    mock_coresignal_class.return_value = mock_coresignal
                                     mock_mailgun_class.return_value = mock_mailgun
                                     mock_snovio_class.return_value = mock_snovio
 
                                     # Mock company enrichment
-                                    mock_proxycurl.enrich_company.return_value = {
-                                        "name": "Test Company"
+                                    mock_coresignal.enrich_company.return_value = {
+                                        "company": {
+                                            "name": "Test Company"
+                                        }
                                     }
 
                                     # Mock evidence file writing
@@ -585,6 +643,37 @@ class TestMainEnrichmentLogic:
                     },
                     "status_history": [],
                     "audit": [],
+                    "icp": {
+                        "pre_score": 0.8,
+                        "pre_reason": "Test reason",
+                        "pre_pass": True,
+                        "pre_flags": [],
+                        "scoring_meta": {
+                            "method": "test",
+                            "model": "test",
+                            "prompt_fingerprint": "test",
+                            "temperature": 0.1
+                        },
+                        "crawl_score": 0.8,
+                        "crawl_reason": "Test reason",
+                        "threshold": 0.7,
+                        "filtering_strict": True
+                    },
+                    "provenance": {
+                        "queries": ["test query"],
+                        "discovery_evidence": ["test evidence"],
+                        "scored_at": "2023-01-01T00:00:00Z",
+                        "crawled_at": "2023-01-01T00:00:00Z",
+                        "enriched_at": None,
+                        "next_revisit_at": "2023-01-01T00:00:00Z",
+                        "tool_versions": {
+                            "domain": {"version": "1.0", "schema_version": "test"},
+                            "crawl": {"version": "1.0", "schema_version": "test"},
+                            "enrich": {"version": "1.0", "schema_version": "test"}
+                        },
+                        "cache": {},
+                        "evidence_paths": []
+                    }
                 }
             ],
             "icp_config": {
@@ -605,7 +694,7 @@ class TestMainEnrichmentLogic:
         with patch.dict(
             os.environ,
             {
-                "PROXYCURL_KEY": "test_key",
+                "CORESIGNAL_TOKEN": "test_token",
                 "MAILGUN_SMTP_LOGIN": "test@domain.com",
                 "MAILGUN_SMTP_PW": "password",
                 "SNOV_IO_ID": "client_id",
@@ -615,7 +704,7 @@ class TestMainEnrichmentLogic:
             # Mock costs config
             with patch("src.enrich.load_costs_config") as mock_load_costs:
                 mock_load_costs.return_value = {
-                    "proxycurl": 0.01,
+                    "coresignal": 0.01,
                     "mailgun": 0.002,
                     "snovio": 0.015,
                 }
@@ -628,19 +717,19 @@ class TestMainEnrichmentLogic:
                     with patch("src.enrich.resolve_data_dir", return_value="./data"):
                         # Mock provider clients
                         with patch(
-                            "src.enrich.ProxycurlClient"
-                        ) as mock_proxycurl_class:
+                            "src.enrich.CoresignalClient"
+                        ) as mock_coresignal_class:
                             with patch(
                                 "src.enrich.MailgunClient"
                             ) as mock_mailgun_class:
                                 with patch(
                                     "src.enrich.SnovioClient"
                                 ) as mock_snovio_class:
-                                    mock_proxycurl = MagicMock()
+                                    mock_coresignal = MagicMock()
                                     mock_mailgun = MagicMock()
                                     mock_snovio = MagicMock()
 
-                                    mock_proxycurl_class.return_value = mock_proxycurl
+                                    mock_coresignal_class.return_value = mock_coresignal
                                     mock_mailgun_class.return_value = mock_mailgun
                                     mock_snovio_class.return_value = mock_snovio
 
@@ -672,6 +761,37 @@ class TestMainEnrichmentLogic:
                     },
                     "status_history": [],
                     "audit": [],
+                    "icp": {
+                        "pre_score": 0.8,
+                        "pre_reason": "Test reason",
+                        "pre_pass": True,
+                        "pre_flags": [],
+                        "scoring_meta": {
+                            "method": "test",
+                            "model": "test",
+                            "prompt_fingerprint": "test",
+                            "temperature": 0.1
+                        },
+                        "crawl_score": 0.8,
+                        "crawl_reason": "Test reason",
+                        "threshold": 0.7,
+                        "filtering_strict": True
+                    },
+                    "provenance": {
+                        "queries": ["test query"],
+                        "discovery_evidence": ["test evidence"],
+                        "scored_at": "2023-01-01T00:00:00Z",
+                        "crawled_at": "2023-01-01T00:00:00Z",
+                        "enriched_at": None,
+                        "next_revisit_at": "2023-01-01T00:00:00Z",
+                        "tool_versions": {
+                            "domain": {"version": "1.0", "schema_version": "test"},
+                            "crawl": {"version": "1.0", "schema_version": "test"},
+                            "enrich": {"version": "1.0", "schema_version": "test"}
+                        },
+                        "cache": {},
+                        "evidence_paths": []
+                    }
                 }
             ],
             "icp_config": {
@@ -746,15 +866,15 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_provider_failover(self):
         """Test provider failover when primary enrichment fails."""
-        contact = {"linkedin": "https://linkedin.com/in/test"}
+        contact = {"full_name": "Test User"}  # Contact without email
         domain = "test.com"
-        proxycurl_client = MagicMock()
-        mailgun_client = MagicMock()
-        snovio_client = MagicMock()
-        costs_config = {"proxycurl": 0.01, "snovio": 0.015, "mailgun": 0.002}
+        coresignal_client = AsyncMock()
+        mailgun_client = AsyncMock()
+        snovio_client = AsyncMock()
+        costs_config = {"coresignal": 0.01, "snovio": 0.015, "mailgun": 0.002}
 
-        # Mock Proxycurl failure
-        proxycurl_client.enrich_contact.side_effect = Exception("Proxycurl API Error")
+        # Mock Coresignal company contacts failure
+        coresignal_client.enrich_company_contacts.side_effect = Exception("Coresignal API Error")
 
         # Mock Snov.io success
         snovio_client.find_email.return_value = {"email": "test@example.com"}
@@ -765,7 +885,7 @@ class TestErrorHandling:
         enriched_contact, cost = await enrich_contact_data(
             contact,
             domain,
-            proxycurl_client,
+            coresignal_client,
             mailgun_client,
             snovio_client,
             costs_config,
@@ -794,6 +914,37 @@ class TestErrorHandling:
                     },
                     "status_history": [],
                     "audit": [],
+                    "icp": {
+                        "pre_score": 0.8,
+                        "pre_reason": "Test reason",
+                        "pre_pass": True,
+                        "pre_flags": [],
+                        "scoring_meta": {
+                            "method": "test",
+                            "model": "test",
+                            "prompt_fingerprint": "test",
+                            "temperature": 0.1
+                        },
+                        "crawl_score": 0.8,
+                        "crawl_reason": "Test reason",
+                        "threshold": 0.7,
+                        "filtering_strict": True
+                    },
+                    "provenance": {
+                        "queries": ["test query"],
+                        "discovery_evidence": ["test evidence"],
+                        "scored_at": "2023-01-01T00:00:00Z",
+                        "crawled_at": "2023-01-01T00:00:00Z",
+                        "enriched_at": None,
+                        "next_revisit_at": "2023-01-01T00:00:00Z",
+                        "tool_versions": {
+                            "domain": {"version": "1.0", "schema_version": "test"},
+                            "crawl": {"version": "1.0", "schema_version": "test"},
+                            "enrich": {"version": "1.0", "schema_version": "test"}
+                        },
+                        "cache": {},
+                        "evidence_paths": []
+                    }
                 }
             ],
             "icp_config": {
@@ -810,7 +961,7 @@ class TestErrorHandling:
         with patch.dict(
             os.environ,
             {
-                "PROXYCURL_KEY": "test_key",
+                "CORESIGNAL_TOKEN": "test_token",
                 "MAILGUN_SMTP_LOGIN": "test@domain.com",
                 "MAILGUN_SMTP_PW": "password",
                 "SNOV_IO_ID": "client_id",
@@ -820,7 +971,7 @@ class TestErrorHandling:
             # Mock costs config
             with patch("src.enrich.load_costs_config") as mock_load_costs:
                 mock_load_costs.return_value = {
-                    "proxycurl": 0.01,
+                    "coresignal": 0.01,
                     "mailgun": 0.002,
                     "snovio": 0.015,
                 }
@@ -833,24 +984,24 @@ class TestErrorHandling:
                     with patch("src.enrich.resolve_data_dir", return_value="./data"):
                         # Mock provider clients
                         with patch(
-                            "src.enrich.ProxycurlClient"
-                        ) as mock_proxycurl_class:
+                            "src.enrich.CoresignalClient"
+                        ) as mock_coresignal_class:
                             with patch(
                                 "src.enrich.MailgunClient"
                             ) as mock_mailgun_class:
                                 with patch(
                                     "src.enrich.SnovioClient"
                                 ) as mock_snovio_class:
-                                    mock_proxycurl = MagicMock()
+                                    mock_coresignal = MagicMock()
                                     mock_mailgun = MagicMock()
                                     mock_snovio = MagicMock()
 
-                                    mock_proxycurl_class.return_value = mock_proxycurl
+                                    mock_coresignal_class.return_value = mock_coresignal
                                     mock_mailgun_class.return_value = mock_mailgun
                                     mock_snovio_class.return_value = mock_snovio
 
                                     # Mock company enrichment to raise error
-                                    mock_proxycurl.enrich_company.side_effect = (
+                                    mock_coresignal.enrich_company.side_effect = (
                                         Exception("Test error")
                                     )
 
@@ -884,12 +1035,72 @@ class TestMissingRequirements:
 
     def test_provider_missing_checks(self):
         """Test that PROVIDER_ERROR is raised when required providers are absent."""
-        # Test missing Proxycurl key
-        with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(KeyError):
-                from src.enrich import EnrichTool
+        # Test missing environment variables
+        payload = {
+            "lead_records": [
+                {
+                    "lead_id": "lead1",
+                    "domain": "test.com",
+                    "status": "enrich_ready",
+                    "company": {},
+                    "contacts": [],
+                    "cost": {
+                        "domain_usd": 0.0,
+                        "crawl_usd": 0.0,
+                        "enrich_usd": 0.0,
+                        "total_usd": 0.0,
+                    },
+                    "status_history": [],
+                    "audit": [],
+                    "icp": {
+                        "pre_score": 0.8,
+                        "pre_reason": "Test reason",
+                        "pre_pass": True,
+                        "pre_flags": [],
+                        "scoring_meta": {
+                            "method": "test",
+                            "model": "test",
+                            "prompt_fingerprint": "test",
+                            "temperature": 0.1
+                        },
+                        "crawl_score": 0.8,
+                        "crawl_reason": "Test reason",
+                        "threshold": 0.7,
+                        "filtering_strict": True
+                    },
+                    "provenance": {
+                        "queries": ["test query"],
+                        "discovery_evidence": ["test evidence"],
+                        "scored_at": "2023-01-01T00:00:00Z",
+                        "crawled_at": "2023-01-01T00:00:00Z",
+                        "enriched_at": None,
+                        "next_revisit_at": "2023-01-01T00:00:00Z",
+                        "tool_versions": {
+                            "domain": {"version": "1.0", "schema_version": "test"},
+                            "crawl": {"version": "1.0", "schema_version": "test"},
+                            "enrich": {"version": "1.0", "schema_version": "test"}
+                        },
+                        "cache": {},
+                        "evidence_paths": []
+                    }
+                }
+            ],
+            "icp_config": {
+                "concurrency": {"max_concurrent_requests": 3},
+                "role_priority": {"default": 99},
+                "default_country": "US",
+                "required_fields": {"company": [], "contact": []},
+                "testing": {"process_rejected": False, "process_low_crawl": False},
+            },
+            "caps": {"company_usd": 0.02, "contact_usd": 0.03, "run_usd_max": 5.0},
+        }
 
-                EnrichTool()
+        with patch.dict(os.environ, {}, clear=True):
+            result = asyncio.run(run_enrich(payload))
+
+            # Should have PROVIDER_ERROR
+            assert len(result["errors"]) == 1
+            assert result["errors"][0]["code"] == ErrorCode.PROVIDER_ERROR.value
 
     def test_evidence_array_truncation(self):
         """Test evidence array truncation: validate company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5."""

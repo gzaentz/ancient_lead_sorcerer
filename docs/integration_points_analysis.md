@@ -198,25 +198,35 @@ class ContactEnrichmentProvider(ABC):
 
 #### 2. Provider Factory
 
-```python
+````python
 class EnrichmentProviderFactory:
     @staticmethod
     def create_provider(provider_type: str, config: Dict[str, Any]) -> Union[CompanyEnrichmentProvider, ContactEnrichmentProvider]:
+        # Validate required configuration keys
+        if provider_type == "coresignal":
+            required_keys = ["api_key", "base_url"]
+            missing = [k for k in required_keys if k not in config]
+            if missing:
+                raise ValueError(f"Missing configuration for Coresignal: {missing}")
+        elif provider_type == "proxycurl":
+            required_keys = ["api_key"]
+            missing = [k for k in required_keys if k not in config]
+            if missing:
+                raise ValueError(f"Missing configuration for Proxycurl: {missing}")
+
         if provider_type == "coresignal":
             return CoresignalClient(config)
         elif provider_type == "proxycurl":
             return ProxycurlClient(config)
         else:
             raise ValueError(f"Unknown provider type: {provider_type}")
-```
-
 #### 3. Configuration-Driven Provider Selection
 
 ```python
 # In environment or configuration
 COMPANY_ENRICH_PROVIDER=coresignal
 CONTACT_ENRICH_PROVIDER=coresignal
-```
+````
 
 ## Test Coverage and Mocking Strategies
 

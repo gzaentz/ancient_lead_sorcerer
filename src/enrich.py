@@ -2,11 +2,11 @@
 Enrich tool for Lead Sorcerer.
 
 This tool fills required fields first, enriches only the best contact per domain,
-and keeps costs to cents. It uses Proxycurl for firmographic + role enrichment,
+and keeps costs to cents. It uses Coresignal for firmographic + role enrichment,
 Mailgun for primary SMTP validation, and Snov.io for email enrichment.
 
 External API dependencies:
-- Proxycurl for firmographic + role enrichment
+- Coresignal for firmographic + role enrichment
 - Mailgun for primary SMTP validation
 - Snov.io for email enrichment
 """
@@ -73,17 +73,17 @@ MAX_WALL_CLOCK = 45.0
 # ============================================================================
 
 
-class ProxycurlClient:
-    """Client for Proxycurl API."""
+class CoresignalClient:
+    """Client for Coresignal API."""
 
-    def __init__(self, api_key: str, semaphore_pool: AsyncSemaphorePool):
-        self.api_key = api_key
-        self.base_url = "https://nubela.co/proxycurl/api/v2"
+    def __init__(self, api_token: str, semaphore_pool: AsyncSemaphorePool):
+        self.api_token = api_token
+        self.base_url = "https://api.coresignal.com"
         self.semaphore_pool = semaphore_pool
 
     async def enrich_company(self, domain: str) -> Dict[str, Any]:
         """
-        Enrich company information using Proxycurl.
+        Enrich company information using Coresignal.
 
         Args:
             domain: Company domain
@@ -92,34 +92,54 @@ class ProxycurlClient:
             Enriched company data
         """
         async with self.semaphore_pool:
-            url = f"{self.base_url}/company"
-            params = {"domain": domain, "api_key": self.api_key}
+            url = f"{self.base_url}/v2/company_clean/enrich"
+            params = {"website": domain}
+            headers = {"Authorization": f"Bearer {self.api_token}"}
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT)
+                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
             ) as client:
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers=headers)
                 response.raise_for_status()
                 return response.json()
 
     async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
         """
-        Enrich contact information using Proxycurl.
+        Enrich contact information using Coresignal.
+
+        Note: Coresignal doesn't support direct LinkedIn URL enrichment.
+        This method is maintained for backward compatibility but will raise
+        an error. Use enrich_company_contacts() for contact enrichment.
 
         Args:
-            linkedin_url: LinkedIn profile URL
+            linkedin_url: LinkedIn profile URL (not supported by Coresignal)
 
         Returns:
             Enriched contact data
         """
+        raise NotImplementedError(
+            "Coresignal doesn't support direct LinkedIn URL enrichment. "
+            "Use enrich_company_contacts() method instead."
+        )
+
+    async def enrich_company_contacts(self, domain: str) -> Dict[str, Any]:
+        """
+        Enrich company contacts using Coresignal.
+
+        Args:
+            domain: Company domain
+
+        Returns:
+            Enriched company contacts data
+        """
         async with self.semaphore_pool:
-            url = f"{self.base_url}/linkedin"
-            params = {"linkedin_profile_url": linkedin_url, "api_key": self.api_key}
+            url = f"{self.base_url}/v2/people/by-company-domain/{domain}"
+            headers = {"Authorization": f"Bearer {self.api_token}"}
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT)
+                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
             ) as client:
-                response = await client.get(url, params=params)
+                response = await client.get(url, headers=headers)
                 response.raise_for_status()
                 return response.json()
 
@@ -151,7 +171,7 @@ class MailgunClient:
             params = {"address": email, "api_key": self.smtp_password}
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT)
+                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
             ) as client:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
@@ -184,7 +204,7 @@ class SnovioClient:
             }
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT)
+                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
             ) as client:
                 response = await client.post(url, data=data)
                 response.raise_for_status()
@@ -217,12 +237,160 @@ class SnovioClient:
             }
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT)
+                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
             ) as client:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
                 return response.json()
 
+
+# ============================================================================
+# Field Mapping Functions
+# ============================================================================
+
+def map_coresignal_company_fields(coresignal_response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Map Coresignal company response to unified schema.
+
+    Args:
+        coresignal_response: Raw response from Coresignal company API
+
+    Returns:
+        Mapped company data in unified format
+    """
+    if not coresignal_response:
+        return {}
+
+    # Extract company data from response
+    company_data = coresignal_response.get("company", {})
+
+    mapped_data = {}
+
+    # Map core fields
+    if company_data.get("name"):
+        mapped_data["name"] = company_data["name"]
+
+    if company_data.get("description"):
+        mapped_data["description"] = company_data["description"]
+
+    if company_data.get("industry"):
+        mapped_data["industry"] = company_data["industry"]
+
+    # Map size information
+    if company_data.get("size"):
+        mapped_data["size_hint"] = company_data["size"]
+
+    if company_data.get("employee_count"):
+        # Convert exact count to size hint if size_hint not available
+        if "size_hint" not in mapped_data:
+            count = company_data["employee_count"]
+            if count <= 10:
+                mapped_data["size_hint"] = "1-10"
+            elif count <= 50:
+                mapped_data["size_hint"] = "11-50"
+            elif count <= 200:
+                mapped_data["size_hint"] = "51-200"
+            elif count <= 500:
+                mapped_data["size_hint"] = "201-500"
+            elif count <= 1000:
+                mapped_data["size_hint"] = "501-1000"
+            else:
+                mapped_data["size_hint"] = "1000+"
+
+    # Map location information
+    if company_data.get("location", {}).get("city"):
+        mapped_data["hq_location"] = company_data["location"]["city"]
+
+    # Map LinkedIn ID
+    if company_data.get("linkedin_id"):
+        mapped_data["linkedin_company_id"] = company_data["linkedin_id"]
+
+    # Map additional fields that Proxycurl doesn't have
+    if company_data.get("founded_year"):
+        mapped_data["founded_year"] = company_data["founded_year"]
+
+    if company_data.get("revenue"):
+        mapped_data["revenue"] = company_data["revenue"]
+
+    if company_data.get("funding"):
+        mapped_data["funding"] = company_data["funding"]
+
+    if company_data.get("type"):
+        mapped_data["company_type"] = company_data["type"]
+
+    if company_data.get("sector"):
+        mapped_data["sector"] = company_data["sector"]
+
+    return mapped_data
+
+def map_coresignal_contact_fields(coresignal_response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Map Coresignal contact response to unified schema.
+
+    Args:
+        coresignal_response: Raw response from Coresignal people API
+
+    Returns:
+        Mapped contact data in unified format
+    """
+    if not coresignal_response:
+        return {}
+
+    # Extract people data from response
+    people_data = coresignal_response.get("people", [])
+    if not people_data:
+        return {}
+
+    # For now, return the first person found
+    # In a full implementation, this would need to handle multiple contacts
+    person = people_data[0] if people_data else {}
+
+    mapped_data = {}
+
+    # Map core fields
+    if person.get("first_name"):
+        mapped_data["first_name"] = person["first_name"]
+
+    if person.get("last_name"):
+        mapped_data["last_name"] = person["last_name"]
+
+    if person.get("full_name"):
+        mapped_data["full_name"] = person["full_name"]
+
+    if person.get("email"):
+        mapped_data["email"] = person["email"]
+        mapped_data["email_source"] = "provider"
+        mapped_data["email_status"] = "unknown"  # Will be validated by Mailgun
+
+    if person.get("phone"):
+        mapped_data["phone"] = person["phone"]
+
+    if person.get("title"):
+        mapped_data["role"] = person["title"]
+
+    if person.get("linkedin_url"):
+        mapped_data["linkedin"] = person["linkedin_url"]
+
+    # Map additional fields that Proxycurl doesn't have
+    if person.get("role"):
+        mapped_data["role_description"] = person["role"]
+
+    if person.get("seniority"):
+        mapped_data["seniority"] = person["seniority"]
+
+    if person.get("department"):
+        mapped_data["department"] = person["department"]
+
+    if person.get("location"):
+        mapped_data["location"] = person["location"]
+
+    if person.get("experience_years"):
+        mapped_data["experience_years"] = person["experience_years"]
+
+    if person.get("skills"):
+        mapped_data["skills"] = person["skills"]
+
+    return mapped_data
 
 # ============================================================================
 # Core Enrichment Logic
@@ -284,7 +452,7 @@ def select_best_contact(
 async def enrich_company_data(
     company: Dict[str, Any],
     domain: str,
-    proxycurl_client: ProxycurlClient,
+    coresignal_client: CoresignalClient,
     costs_config: Dict[str, float],
 ) -> Tuple[Dict[str, Any], float]:
     """
@@ -301,43 +469,55 @@ async def enrich_company_data(
     """
     try:
         # Enrich company information
-        enriched_data = await proxycurl_client.enrich_company(domain)
+        enriched_data = await coresignal_client.enrich_company(domain)
+
+        # Map Coresignal response to unified schema
+        mapped_data = map_coresignal_company_fields(enriched_data)
 
         # Update company fields
-        if enriched_data.get("name") and not company.get("name"):
-            company["name"] = enriched_data["name"]
+        if mapped_data.get("name") and not company.get("name"):
+            company["name"] = mapped_data["name"]
 
-        if enriched_data.get("description") and not company.get("description"):
-            company["description"] = enriched_data["description"]
+        if mapped_data.get("description") and not company.get("description"):
+            company["description"] = mapped_data["description"]
 
-        if enriched_data.get("industry") and not company.get("industry"):
-            company["industry"] = enriched_data["industry"]
+        if mapped_data.get("industry") and not company.get("industry"):
+            company["industry"] = mapped_data["industry"]
 
-        if enriched_data.get("hq_location") and not company.get("hq_location"):
-            company["hq_location"] = enriched_data["hq_location"]
+        if mapped_data.get("hq_location") and not company.get("hq_location"):
+            company["hq_location"] = mapped_data["hq_location"]
 
-        if enriched_data.get("size_hint") and not company.get("size_hint"):
-            company["size_hint"] = enriched_data["size_hint"]
+        if mapped_data.get("size_hint") and not company.get("size_hint"):
+            company["size_hint"] = mapped_data["size_hint"]
 
         # Backfill company.ids if missing
-        if enriched_data.get("linkedin_company_id") and not company.get("ids", {}).get(
+        if mapped_data.get("linkedin_company_id") and not company.get("ids", {}).get(
             "linkedin"
         ):
             if "ids" not in company:
                 company["ids"] = {}
             company["ids"]["linkedin"] = (
-                f"/company/{enriched_data['linkedin_company_id']}"
+                f"/company/{mapped_data['linkedin_company_id']}"
             )
 
-        if enriched_data.get("crunchbase_id") and not company.get("ids", {}).get(
-            "crunchbase"
-        ):
-            if "ids" not in company:
-                company["ids"] = {}
-            company["ids"]["crunchbase"] = enriched_data["crunchbase_id"]
+        # Add additional Coresignal fields
+        if mapped_data.get("founded_year") and not company.get("founded_year"):
+            company["founded_year"] = mapped_data["founded_year"]
+
+        if mapped_data.get("revenue") and not company.get("revenue"):
+            company["revenue"] = mapped_data["revenue"]
+
+        if mapped_data.get("funding") and not company.get("funding"):
+            company["funding"] = mapped_data["funding"]
+
+        if mapped_data.get("company_type") and not company.get("company_type"):
+            company["company_type"] = mapped_data["company_type"]
+
+        if mapped_data.get("sector") and not company.get("sector"):
+            company["sector"] = mapped_data["sector"]
 
         # Calculate cost
-        cost_usd = costs_config.get("proxycurl", 0.0)
+        cost_usd = costs_config.get("coresignal", 0.0)
 
         return company, cost_usd
 
@@ -349,7 +529,7 @@ async def enrich_company_data(
 async def enrich_contact_data(
     contact: Dict[str, Any],
     domain: str,
-    proxycurl_client: ProxycurlClient,
+    coresignal_client: CoresignalClient,
     mailgun_client: MailgunClient,
     snovio_client: SnovioClient,
     costs_config: Dict[str, float],
@@ -360,7 +540,7 @@ async def enrich_contact_data(
     Args:
         contact: Contact data to enrich
         domain: Company domain
-        proxycurl_client: Proxycurl client
+        coresignal_client: Coresignal client
         mailgun_client: Mailgun client
         snovio_client: Snov.io client
         costs_config: Costs configuration
@@ -371,29 +551,34 @@ async def enrich_contact_data(
     total_cost = 0.0
 
     try:
-        # Enrich via Proxycurl if LinkedIn available
-        if contact.get("linkedin"):
+        # Enrich via Coresignal company contacts if no email
+        if not contact.get("email"):
             try:
-                enriched_data = await proxycurl_client.enrich_contact(
-                    contact["linkedin"]
-                )
+                # Try to get company contacts from Coresignal
+                company_contacts = await coresignal_client.enrich_company_contacts(domain)
 
-                # Update contact fields
-                if enriched_data.get("email") and not contact.get("email"):
-                    contact["email"] = enriched_data["email"]
-                    contact["email_source"] = "provider"
-                    contact["email_status"] = "unknown"  # Will be validated by Mailgun
+                # Map Coresignal response to unified schema
+                mapped_contact = map_coresignal_contact_fields(company_contacts)
 
-                if enriched_data.get("phone") and not contact.get("phone"):
-                    contact["phone"] = enriched_data["phone"]
+                # Try to find a matching contact by name
+                if mapped_contact.get("full_name") and contact.get("full_name"):
+                    if mapped_contact["full_name"].lower() == contact["full_name"].lower():
+                        # Update contact fields
+                        if mapped_contact.get("email") and not contact.get("email"):
+                            contact["email"] = mapped_contact["email"]
+                            contact["email_source"] = "provider"
+                            contact["email_status"] = "unknown"  # Will be validated by Mailgun
 
-                if enriched_data.get("role") and not contact.get("role"):
-                    contact["role"] = enriched_data["role"]
+                        if mapped_contact.get("phone") and not contact.get("phone"):
+                            contact["phone"] = mapped_contact["phone"]
 
-                total_cost += costs_config.get("proxycurl", 0.0)
+                        if mapped_contact.get("role") and not contact.get("role"):
+                            contact["role"] = mapped_contact["role"]
+
+                        total_cost += costs_config.get("coresignal", 0.0)
 
             except Exception as exc:
-                logging.warning(f"Failed to enrich contact via Proxycurl: {exc}")
+                logging.warning(f"Failed to enrich contact via Coresignal company contacts: {exc}")
 
         # Try Snov.io for email discovery if no email
         if not contact.get("email"):
@@ -451,7 +636,7 @@ async def enrich_contact_data(
             try:
                 normalized_phone = parse_phone_number(
                     contact["phone"],
-                    company_country=contact.get("company_country"),
+                    country_code=contact.get("company_country"),
                     default_country=contact.get("default_country", "US"),
                 )
                 contact["phone"] = normalized_phone
@@ -553,7 +738,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         # Load costs configuration
         try:
             costs_config = load_costs_config()
-            required_providers = ["proxycurl", "mailgun", "snovio"]
+            required_providers = ["coresignal", "mailgun", "snovio"]
             validate_provider_config(required_providers, costs_config)
         except (FileNotFoundError, KeyError) as exc:
             return {
@@ -587,14 +772,14 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         async_semaphore_pool = AsyncSemaphorePool(permit_manager)
 
         # Initialize provider clients
-        proxycurl_key = os.environ.get("PROXYCURL_KEY")
+        coresignal_token = os.environ.get("CORESIGNAL_TOKEN")
         mailgun_login = os.environ.get("MAILGUN_SMTP_LOGIN")
         mailgun_password = os.environ.get("MAILGUN_SMTP_PW")
         snovio_id = os.environ.get("SNOV_IO_ID")
         snovio_secret = os.environ.get("SNOV_IO_SECRET")
 
         if not all(
-            [proxycurl_key, mailgun_login, mailgun_password, snovio_id, snovio_secret]
+            [coresignal_token, mailgun_login, mailgun_password, snovio_id, snovio_secret]
         ):
             return {
                 "data": {"lead_records": []},
@@ -608,7 +793,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "metrics": build_metrics(0, 0, 0),
             }
 
-        proxycurl_client = ProxycurlClient(proxycurl_key, async_semaphore_pool)
+        coresignal_client = CoresignalClient(coresignal_token, async_semaphore_pool)
         mailgun_client = MailgunClient(
             mailgun_login, mailgun_password, async_semaphore_pool
         )
@@ -655,7 +840,6 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     processed_records.append(record)
                     continue
 
-                record.get("lead_id", "")
                 domain = record.get("domain", "")
                 company = record.get("company", {})
                 contacts = record.get("contacts", [])
@@ -668,7 +852,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 company_cost = 0.0
                 if company_usd_cap > 0:
                     company, company_cost = await enrich_company_data(
-                        company, normalized_domain, proxycurl_client, costs_config
+                        company, normalized_domain, coresignal_client, costs_config
                     )
                     company_cost = min(company_cost, company_usd_cap)
 
@@ -693,7 +877,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         ) = await enrich_contact_data(
                             contact,
                             normalized_domain,
-                            proxycurl_client,
+                            coresignal_client,
                             mailgun_client,
                             snovio_client,
                             costs_config,
@@ -753,7 +937,6 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 record["provenance"]["evidence_paths"]["enrich"] = evidence_path
 
                 # Update status
-                record.get("status", "")
 
                 # Check if all required fields are filled
                 required_company_fields = icp_config.get("required_fields", {}).get(

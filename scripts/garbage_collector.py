@@ -100,8 +100,8 @@ def cleanup_artifacts(data_dir, max_age_days=365, max_versions=3):
             files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
 
             # Keep latest max_versions
-            files[:max_versions]
-            files_to_check = files[max_versions:]
+            # Skip latest max_versions
+            files_to_check = files[max_versions:]            files_to_check = files[max_versions:]
 
             # Check remaining files for age and references
             for file_path in files_to_check:

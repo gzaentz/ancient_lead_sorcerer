@@ -1,6 +1,10 @@
 # Provider cost configuration for Lead Sorcerer
 # All costs are in USD per unit
 
+coresignal:
+  unit: 'lookup'
+  usd_per_unit: 0.0100
+
 proxycurl:
   unit: 'lookup'
   usd_per_unit: 0.0100
