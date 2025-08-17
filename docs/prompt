@@ -1,15 +1,15 @@
-PHASE_NUM = 0
+TASK_NUM = 1
 
-# Cursor Build Prompt – Phase <PHASE_NUM>
+# Cursor Build Prompt – Task <TASK_NUM>
 
 ## Goal
 
-Implement **Phase <PHASE_NUM>** exactly as defined in `docs/tasks.md`.
+Implement **Task <TASK_NUM>** exactly as defined in `docs/tasks.md`.
 
 ## Inputs
 
 1. `docs/brd.md` (Business Requirements Document with all specifications)
-2. `docs/tasks.md` (Phase <PHASE_NUM> section with specific tasks)
+2. `docs/tasks.md` (Task <TASK_NUM> section with specific tasks)
 
 ## Critical: BRD Reference Checking
 
@@ -26,7 +26,7 @@ Implement **Phase <PHASE_NUM>** exactly as defined in `docs/tasks.md`.
 • Deterministic UUIDs per BRD spec (uuid5 with NAMESPACE_DNS/NAMESPACE_URL)
 • Follow refresh-policy logic and error-handling rules verbatim
 • Respect concurrency limits (max_concurrent_requests)
-• Use portalocker for file writes only during write phase
+• Use portalocker for file writes only during write task
 
 ## Work Guidelines
 
@@ -39,11 +39,11 @@ Implement **Phase <PHASE_NUM>** exactly as defined in `docs/tasks.md`.
 
 ## Deliverables
 
-• Updated source files for Phase <PHASE_NUM>
+• Updated source files for Task <TASK_NUM>
 • Updated `docs/tasks.md` with completed checkboxes
 • Unit tests for new functionality
 • Single commit with descriptive message
 
 ## Completion Signal
 
-Consider Phase <PHASE_NUM> complete—and stop—once **all** checkboxes in `docs/tasks.md` under Phase <PHASE_NUM> are checked and committed.
+Consider Task <TASK_NUM> complete—and stop—once **all** checkboxes in `docs/tasks.md` under Task <TASK_NUM> are checked and committed.

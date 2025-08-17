@@ -1,5 +1,5 @@
 """
-Pytest configuration and common fixtures for Lead Sorcerer tests.
+Test configuration and fixtures for Lead Sorcerer tests.
 """
 
 import pytest
@@ -13,9 +13,11 @@ def temp_data_dir():
     """Create a temporary data directory for testing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create subdirectories
-        os.makedirs(os.path.join(temp_dir, "evidence"), exist_ok=True)
-        os.makedirs(os.path.join(temp_dir, "crawl_artifacts"), exist_ok=True)
-        os.makedirs(os.path.join(temp_dir, "exports"), exist_ok=True)
+        (Path(temp_dir) / "evidence" / "domain").mkdir(parents=True, exist_ok=True)
+        (Path(temp_dir) / "evidence" / "enrich").mkdir(parents=True, exist_ok=True)
+        (Path(temp_dir) / "crawl_artifacts").mkdir(parents=True, exist_ok=True)
+        (Path(temp_dir) / "exports").mkdir(parents=True, exist_ok=True)
+
         yield temp_dir
 
 
@@ -23,20 +25,20 @@ def temp_data_dir():
 def sample_icp_config():
     """Sample ICP configuration for testing."""
     return {
-        "name": "Test ICP",
-        "icp_text": "Test companies for testing purposes",
-        "queries": ["test companies in ${region}"],
+        "name": "test_icp",
+        "icp_text": "Technology companies in California",
+        "queries": ["${industry} companies in ${region}"],
         "required_fields": {
-            "company": ["name"],
+            "company": ["name", "hq_location"],
             "contact": ["email"]
         },
         "optional_fields": {
-            "company": ["description"],
+            "company": ["tech_stack"],
             "contact": ["phone"]
         },
         "threshold": 0.7,
         "filtering_strict": True,
-        "mode": "fast",
+        "mode": "thorough",
         "refresh_policy": {
             "revisit_after_days": 90,
             "failure_revisit_days": 1,
@@ -78,61 +80,53 @@ def sample_lead_record():
         "lead_id": "test-lead-id",
         "domain": "example.com",
         "company": {
-            "name": None,
-            "description": None,
-            "industry": None,
-            "naics_keywords": [],
-            "hq_location": None,
-            "locations": [],
-            "size_hint": None,
-            "socials": {
-                "linkedin": None,
-                "github": None,
-                "twitter": None,
-                "telegram": None,
-                "instagram": None
-            },
-            "careers_url": None,
-            "blog_url": None,
-            "tech_stack": [],
-            "evidence_urls": [],
-            "ids": {"linkedin": None, "crunchbase": None}
+            "name": "Example Corp",
+            "description": "A technology company",
+            "industry": "Technology",
+            "hq_location": "San Francisco, CA",
+            "socials": {"linkedin": None, "github": None, "twitter": None},
+            "evidence_urls": []
         },
-        "contacts": [],
+        "contacts": [
+            {
+                "contact_id": "test-contact-id",
+                "full_name": "John Doe",
+                "role": "CEO",
+                "email": "john@example.com",
+                "phone": "+1234567890",
+                "linkedin": "/in/johndoe"
+            }
+        ],
         "icp": {
-            "pre_score": None,
-            "pre_reason": None,
-            "pre_pass": None,
-            "pre_flags": [],
-            "scoring_meta": {
-                "method": None,
-                "model": None,
-                "prompt_fingerprint": None,
-                "temperature": None
-            },
-            "crawl_score": None,
-            "crawl_reason": None,
-            "threshold": 0.7,
-            "filtering_strict": True
+            "pre_score": 0.8,
+            "pre_pass": True,
+            "threshold": 0.7
         },
         "provenance": {
-            "queries": [],
-            "discovery_evidence": [],
-            "scored_at": None,
-            "crawled_at": None,
-            "enriched_at": None,
+            "scored_at": "2024-01-01T00:00:00Z",
             "next_revisit_at": None,
-            "tool_versions": {
-                "domain": {"version": None, "schema_version": None},
-                "crawl": {"version": None, "schema_version": None},
-                "enrich": {"version": None, "schema_version": None}
-            },
-            "cache": {"domain_cache_hit": None},
-            "evidence_paths": {"domain": None, "crawl": None, "enrich": None}
+            "tool_versions": {},
+            "evidence_paths": {}
         },
-        "best_contact_id": None,
-        "status": "new",
+        "status": "scored",
         "status_history": [],
         "audit": [],
-        "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0}
+        "cost": {
+            "domain_usd": 0.0,
+            "crawl_usd": 0.0,
+            "enrich_usd": 0.0,
+            "total_usd": 0.0
+        }
+    }
+
+
+@pytest.fixture
+def mock_schema_file():
+    """Mock schema file content for testing."""
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            "test": {"type": "string"}
+        }
     }
