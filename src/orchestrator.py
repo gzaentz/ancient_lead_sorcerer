@@ -11,16 +11,16 @@ Authoritative specifications: BRD §410-439
 import argparse
 import asyncio
 import json
-import logging
 import os
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .common import (
-    AsyncSemaphorePool, PermitManager, resolve_data_dir, setup_logging,
-    validate_provider_config, load_costs_config, now_z, round4
+    PermitManager, setup_logging,
+    validate_provider_config, load_costs_config, round4
 )
 from .domain import DomainTool
 from .crawl import CrawlTool
@@ -196,7 +196,6 @@ class LeadSorcererOrchestrator:
 
             # Check testing flags for additional processing
             testing = self.icp_config.get("testing", {})
-            process_rejected = testing.get("process_rejected", False)
 
             # Step 2: Crawl tool - extract company and contact data
             crawl_result = None
@@ -584,19 +583,12 @@ async def main():
             print(json.dumps(result, indent=2))
             return 0
         else:
-import argparse
-import asyncio
-import json
-import logging
-import os
-import sys
-import time
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+            print(json.dumps(result, indent=2))
+            return 1
     except Exception as e:
         print(json.dumps({"error": str(e), "success": False}, indent=2), file=sys.stderr)
         return 1
+
 
 if __name__ == "__main__":
     import sys

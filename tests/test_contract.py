@@ -1,22 +1,13 @@
 """
 Contract tests for Lead Sorcerer.
 
-Tests cover the contract requirements from Task 6.2 including envelope shape,
-schema validation, state machine transitions, error contracts, version stamping,
-and revisit max-rule enforcement.
+Tests cover the contract requirements from Task 6.2 including state transitions,
+error contracts, and schema validation.
 """
 
-import json
 import pytest
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-
 from src.common import ErrorCode, validate_envelope
-from src.domain import DomainTool
-from src.crawl import CrawlTool
-from src.enrich import run_enrich
-from src.common import validate_state_transition
-from typing import Dict, List, Any
+
 class TestContractTests:
     """Test contract requirements from Task 6.2."""
 
@@ -84,30 +75,32 @@ class TestContractTests:
 
         for from_status, to_status in invalid_transitions:
             assert not is_valid_transition(from_status, to_status), \
-                f"Invalid transition {from_status} -> {to_status} was allowed"    def test_error_contract_pii_masking(self):
+                f"Invalid transition {from_status} -> {to_status} was allowed"
+
+    def test_error_contract_pii_masking(self):
         """Test error contract & PII masking (§454-456, 481-485)."""
         # Test error object structure
-        valid_error = {
-            "code": "PROVIDER_ERROR",
-            "message": "API call failed",
-            "tool": "domain",
-            "lead_id": "test-lead-id",
-            "retryable": True,
-            "context": {}
-        }
+        # valid_error = {
+        #     "code": "PROVIDER_ERROR",
+        #     "message": "API call failed",
+        #     "tool": "domain",
+        #     "lead_id": "test-lead-id",
+        #     "retryable": True,
+        #     "context": {}
+        # }
 
         # Test PII masking in errors
-        pii_error = {
-            "code": "PARSE_ERROR",
-            "message": "Invalid phone: +1234567890",
-            "tool": "enrich",
-            "lead_id": "test-lead-id",
-            "retryable": False,
-            "context": {
-                "email": "john@example.com",
-                "phone": "+1234567890"
-            }
-        }
+        # pii_error = {
+        #     "code": "PARSE_ERROR",
+        #     "message": "Invalid phone: +1234567890",
+        #     "tool": "enrich",
+        #     "lead_id": "test-lead-id",
+        #     "retryable": False,
+        #     "context": {
+        #         "email": "john@example.com",
+        #         "phone": "+1234567890"
+        #     }
+        # }
 
         # This test will verify PII masking
         # Implementation depends on masking logic
@@ -185,10 +178,10 @@ class TestErrorContractTests:
     def test_error_retryable_flags(self):
         """Test that error retryable flags are set correctly."""
         # Test retryable errors
-        retryable_codes = ["HTTP_429", "HTTP_TIMEOUT", "SMTP_TIMEOUT", "PROVIDER_ERROR"]
+        # retryable_codes = ["HTTP_429", "HTTP_TIMEOUT", "SMTP_TIMEOUT", "PROVIDER_ERROR"]
 
         # Test non-retryable errors
-        non_retryable_codes = ["SCHEMA_VALIDATION", "DNS_FAILURE", "PARSE_ERROR", "UNKNOWN"]
+        # non_retryable_codes = ["SCHEMA_VALIDATION", "DNS_FAILURE", "PARSE_ERROR", "UNKNOWN"]
 
         # This test will verify retryable flag logic
         # Implementation depends on error handling logic
@@ -210,12 +203,12 @@ class TestMetricsContractTests:
 
     def test_metrics_structure_completeness(self):
         """Test that metrics structure is complete."""
-        required_metrics = [
-            "count_in", "count_out", "duration_ms", "cache_hit_rate",
-            "pass_rate", "cost_usd"
-        ]
+        # required_metrics = [
+        #     "count_in", "count_out", "duration_ms", "cache_hit_rate",
+        #     "pass_rate", "cost_usd"
+        # ]
 
-        required_cost_metrics = ["domain", "crawl", "enrich", "total"]
+        # required_cost_metrics = ["domain", "crawl", "enrich", "total"]
 
         # This test will verify metrics structure
         # Implementation depends on metrics logic

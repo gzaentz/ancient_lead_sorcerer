@@ -10,18 +10,22 @@ Tests cover all functionality including:
 - Status transitions and audit logging
 """
 
-import asyncio
 import json
 import os
 import tempfile
-import unittest
-from unittest.mock import AsyncMock, MagicMock, patch, mock_open
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.enrich import (
-    ProxycurlClient, MailgunClient, SnovioClient, select_best_contact,
-    enrich_company_data, enrich_contact_data, write_evidence_file,
-    run_enrich, main, INTERNAL_VERSION, TOOL_NAME
+    ProxycurlClient,
+    MailgunClient,
+    SnovioClient,
+    select_best_contact,
+    enrich_company_data,
+    enrich_contact_data,
+    write_evidence_file,
+    run_enrich,
+    main,
 )
 from src.common import ErrorCode
 
@@ -48,11 +52,11 @@ class TestProxycurlClient:
         mock_response.json.return_value = {
             "name": "Test Company",
             "description": "Test description",
-            "industry": "Technology"
+            "industry": "Technology",
         }
         mock_response.raise_for_status.return_value = None
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
@@ -74,11 +78,11 @@ class TestProxycurlClient:
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "email": "test@example.com",
-            "phone": "+1234567890"
+            "phone": "+1234567890",
         }
         mock_response.raise_for_status.return_value = None
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
@@ -111,13 +115,10 @@ class TestMailgunClient:
         client = MailgunClient("test@domain.com", "password", semaphore_pool)
 
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "result": "valid",
-            "score": 0.95
-        }
+        mock_response.json.return_value = {"result": "valid", "score": 0.95}
         mock_response.raise_for_status.return_value = None
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
@@ -153,7 +154,7 @@ class TestSnovioClient:
         mock_response.json.return_value = {"access_token": "test_token"}
         mock_response.raise_for_status.return_value = None
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.post.return_value = mock_response
@@ -178,7 +179,7 @@ class TestSnovioClient:
         mock_response.json.return_value = {"email": "john.doe@example.com"}
         mock_response.raise_for_status.return_value = None
 
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
@@ -201,13 +202,15 @@ class TestBestContactSelection:
 
     def test_select_best_contact_single_contact(self):
         """Test selection with single contact."""
-        contacts = [{
-            "contact_id": "contact1",
-            "role": "CEO",
-            "seniority": 1,
-            "email_status": "valid",
-            "linkedin": "https://linkedin.com/in/ceo"
-        }]
+        contacts = [
+            {
+                "contact_id": "contact1",
+                "role": "CEO",
+                "seniority": 1,
+                "email_status": "valid",
+                "linkedin": "https://linkedin.com/in/ceo",
+            }
+        ]
         role_priority_config = {"ceo": 1, "default": 99}
 
         result = select_best_contact(contacts, role_priority_config)
@@ -221,22 +224,22 @@ class TestBestContactSelection:
                 "role": "Manager",
                 "seniority": 4,
                 "email_status": "unknown",
-                "linkedin": ""
+                "linkedin": "",
             },
             {
                 "contact_id": "contact2",
                 "role": "CEO",
                 "seniority": 1,
                 "email_status": "valid",
-                "linkedin": "https://linkedin.com/in/ceo"
+                "linkedin": "https://linkedin.com/in/ceo",
             },
             {
                 "contact_id": "contact3",
                 "role": "VP Sales",
                 "seniority": 2,
                 "email_status": "valid",
-                "linkedin": "https://linkedin.com/in/vp"
-            }
+                "linkedin": "https://linkedin.com/in/vp",
+            },
         ]
         role_priority_config = {"ceo": 1, "vp sales": 2, "manager": 4, "default": 99}
 
@@ -253,7 +256,7 @@ class TestBestContactSelection:
                 "seniority": 4,
                 "email_status": "valid",
                 "linkedin": "",
-                "full_name": "John Doe"
+                "full_name": "John Doe",
             },
             {
                 "contact_id": "contact2",
@@ -261,8 +264,8 @@ class TestBestContactSelection:
                 "seniority": 4,
                 "email_status": "valid",
                 "linkedin": "",
-                "full_name": "Jane Smith"
-            }
+                "full_name": "Jane Smith",
+            },
         ]
         role_priority_config = {"manager": 4, "default": 99}
 
@@ -290,7 +293,7 @@ class TestCompanyEnrichment:
             "hq_location": "San Francisco",
             "size_hint": "50-100 employees",
             "linkedin_company_id": "12345",
-            "crunchbase_id": "67890"
+            "crunchbase_id": "67890",
         }
 
         enriched_company, cost = await enrich_company_data(
@@ -343,17 +346,19 @@ class TestContactEnrichment:
         proxycurl_client.enrich_contact.return_value = {
             "email": "test@example.com",
             "phone": "+1234567890",
-            "role": "Software Engineer"
+            "role": "Software Engineer",
         }
 
         # Mock Mailgun validation
-        mailgun_client.validate_email.return_value = {
-            "result": "valid",
-            "score": 0.95
-        }
+        mailgun_client.validate_email.return_value = {"result": "valid", "score": 0.95}
 
         enriched_contact, cost = await enrich_contact_data(
-            contact, domain, proxycurl_client, mailgun_client, snovio_client, costs_config
+            contact,
+            domain,
+            proxycurl_client,
+            mailgun_client,
+            snovio_client,
+            costs_config,
         )
 
         assert enriched_contact["email"] == "test@example.com"
@@ -378,13 +383,15 @@ class TestContactEnrichment:
         snovio_client.find_email.return_value = {"email": "john.doe@test.com"}
 
         # Mock Mailgun validation
-        mailgun_client.validate_email.return_value = {
-            "result": "valid",
-            "score": 0.90
-        }
+        mailgun_client.validate_email.return_value = {"result": "valid", "score": 0.90}
 
         enriched_contact, cost = await enrich_contact_data(
-            contact, domain, proxycurl_client, mailgun_client, snovio_client, costs_config
+            contact,
+            domain,
+            proxycurl_client,
+            mailgun_client,
+            snovio_client,
+            costs_config,
         )
 
         assert enriched_contact["email"] == "john.doe@test.com"
@@ -398,7 +405,7 @@ class TestContactEnrichment:
         contact = {
             "phone": "+1 (555) 123-4567",
             "company_country": "US",
-            "default_country": "US"
+            "default_country": "US",
         }
         domain = "test.com"
         proxycurl_client = MagicMock()
@@ -407,7 +414,12 @@ class TestContactEnrichment:
         costs_config = {"proxycurl": 0.01}
 
         enriched_contact, cost = await enrich_contact_data(
-            contact, domain, proxycurl_client, mailgun_client, snovio_client, costs_config
+            contact,
+            domain,
+            proxycurl_client,
+            mailgun_client,
+            snovio_client,
+            costs_config,
         )
 
         # Phone should be normalized to E.164
@@ -424,23 +436,27 @@ class TestEvidenceFileWriting:
         evidence_data = {"test": "data"}
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch('src.enrich.normalize_domain', return_value="test.com"):
-                with patch('src.enrich.os.path.join') as mock_join:
+            with patch("src.enrich.normalize_domain", return_value="test.com"):
+                with patch("src.enrich.os.path.join") as mock_join:
                     mock_join.side_effect = lambda *args: os.path.join(temp_dir, *args)
 
-                    with patch('src.enrich.portalocker.Lock') as mock_lock:
+                    with patch("src.enrich.portalocker.Lock") as mock_lock:
                         mock_lock.return_value.__enter__ = MagicMock()
                         mock_lock.return_value.__exit__ = MagicMock()
 
-                        result_path = write_evidence_file(domain, evidence_data, temp_dir)
+                        result_path = write_evidence_file(
+                            domain, evidence_data, temp_dir
+                        )
 
                         # Check that file was created
-                        expected_path = os.path.join(temp_dir, "evidence", "enrich", "test.com.json")
+                        expected_path = os.path.join(
+                            temp_dir, "evidence", "enrich", "test.com.json"
+                        )
                         assert result_path == expected_path
                         assert os.path.exists(expected_path)
 
                         # Check file contents
-                        with open(expected_path, 'r') as f:
+                        with open(expected_path, "r") as f:
                             content = json.load(f)
                             assert content == evidence_data
 
@@ -452,61 +468,75 @@ class TestMainEnrichmentLogic:
     async def test_run_enrich_success(self):
         """Test successful enrichment run."""
         payload = {
-            "lead_records": [{
-                "lead_id": "lead1",
-                "domain": "test.com",
-                "status": "enrich_ready",
-                "company": {"name": None},
-                "contacts": [{
-                    "contact_id": "contact1",
-                    "role": "CEO",
-                    "seniority": 1,
-                    "email_status": "unknown"
-                }],
-                "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0},
-                "status_history": [],
-                "audit": []
-            }],
+            "lead_records": [
+                {
+                    "lead_id": "lead1",
+                    "domain": "test.com",
+                    "status": "enrich_ready",
+                    "company": {"name": None},
+                    "contacts": [
+                        {
+                            "contact_id": "contact1",
+                            "role": "CEO",
+                            "seniority": 1,
+                            "email_status": "unknown",
+                        }
+                    ],
+                    "cost": {
+                        "domain_usd": 0.0,
+                        "crawl_usd": 0.0,
+                        "enrich_usd": 0.0,
+                        "total_usd": 0.0,
+                    },
+                    "status_history": [],
+                    "audit": [],
+                }
+            ],
             "icp_config": {
                 "concurrency": {"max_concurrent_requests": 3},
                 "role_priority": {"ceo": 1, "default": 99},
                 "default_country": "US",
                 "required_fields": {"company": ["name"], "contact": ["email"]},
-                "testing": {"process_rejected": False, "process_low_crawl": False}
+                "testing": {"process_rejected": False, "process_low_crawl": False},
             },
-            "caps": {
-                "company_usd": 0.02,
-                "contact_usd": 0.03,
-                "run_usd_max": 5.0
-            }
+            "caps": {"company_usd": 0.02, "contact_usd": 0.03, "run_usd_max": 5.0},
         }
 
         # Mock environment variables
-        with patch.dict(os.environ, {
-            'PROXYCURL_KEY': 'test_key',
-            'MAILGUN_SMTP_LOGIN': 'test@domain.com',
-            'MAILGUN_SMTP_PW': 'password',
-            'SNOV_IO_ID': 'client_id',
-            'SNOV_IO_SECRET': 'client_secret'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "PROXYCURL_KEY": "test_key",
+                "MAILGUN_SMTP_LOGIN": "test@domain.com",
+                "MAILGUN_SMTP_PW": "password",
+                "SNOV_IO_ID": "client_id",
+                "SNOV_IO_SECRET": "client_secret",
+            },
+        ):
             # Mock costs config
-            with patch('src.enrich.load_costs_config') as mock_load_costs:
+            with patch("src.enrich.load_costs_config") as mock_load_costs:
                 mock_load_costs.return_value = {
-                    'proxycurl': 0.01,
-                    'mailgun': 0.002,
-                    'snovio': 0.015
+                    "proxycurl": 0.01,
+                    "mailgun": 0.002,
+                    "snovio": 0.015,
                 }
 
                 # Mock schema checksum
-                with patch('src.enrich.load_schema_checksum') as mock_schema:
+                with patch("src.enrich.load_schema_checksum") as mock_schema:
                     mock_schema.return_value = "test_checksum"
 
                     # Mock data directory resolution
-                    with patch('src.enrich.resolve_data_dir', return_value="./data"):
+                    with patch("src.enrich.resolve_data_dir", return_value="./data"):
                         # Mock provider clients
-                        with patch('src.enrich.ProxycurlClient') as mock_proxycurl_class:
-                            with patch('src.enrich.MailgunClient') as mock_mailgun_class:
-                                with patch('src.enrich.SnovioClient') as mock_snovio_class:
+                        with patch(
+                            "src.enrich.ProxycurlClient"
+                        ) as mock_proxycurl_class:
+                            with patch(
+                                "src.enrich.MailgunClient"
+                            ) as mock_mailgun_class:
+                                with patch(
+                                    "src.enrich.SnovioClient"
+                                ) as mock_snovio_class:
                                     mock_proxycurl = MagicMock()
                                     mock_mailgun = MagicMock()
                                     mock_snovio = MagicMock()
@@ -521,69 +551,91 @@ class TestMainEnrichmentLogic:
                                     }
 
                                     # Mock evidence file writing
-                                    with patch('src.enrich.write_evidence_file', return_value="test_path"):
+                                    with patch(
+                                        "src.enrich.write_evidence_file",
+                                        return_value="test_path",
+                                    ):
                                         result = await run_enrich(payload)
 
                                         assert "data" in result
                                         assert "errors" in result
                                         assert "metrics" in result
                                         assert len(result["data"]["lead_records"]) == 1
-                                        assert result["data"]["lead_records"][0]["status"] == "enrich_partial"
+                                        assert (
+                                            result["data"]["lead_records"][0]["status"]
+                                            == "enrich_partial"
+                                        )
 
     @pytest.mark.asyncio
     async def test_run_enrich_budget_exceeded(self):
         """Test enrichment with budget exceeded."""
         payload = {
-            "lead_records": [{
-                "lead_id": "lead1",
-                "domain": "test.com",
-                "status": "enrich_ready",
-                "company": {},
-                "contacts": [],
-                "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0},
-                "status_history": [],
-                "audit": []
-            }],
+            "lead_records": [
+                {
+                    "lead_id": "lead1",
+                    "domain": "test.com",
+                    "status": "enrich_ready",
+                    "company": {},
+                    "contacts": [],
+                    "cost": {
+                        "domain_usd": 0.0,
+                        "crawl_usd": 0.0,
+                        "enrich_usd": 0.0,
+                        "total_usd": 0.0,
+                    },
+                    "status_history": [],
+                    "audit": [],
+                }
+            ],
             "icp_config": {
                 "concurrency": {"max_concurrent_requests": 3},
                 "role_priority": {"default": 99},
                 "default_country": "US",
                 "required_fields": {"company": [], "contact": []},
-                "testing": {"process_rejected": False, "process_low_crawl": False}
+                "testing": {"process_rejected": False, "process_low_crawl": False},
             },
             "caps": {
                 "company_usd": 0.02,
                 "contact_usd": 0.03,
-                "run_usd_max": 0.0  # Budget already exceeded
-            }
+                "run_usd_max": 0.0,  # Budget already exceeded
+            },
         }
 
         # Mock environment variables
-        with patch.dict(os.environ, {
-            'PROXYCURL_KEY': 'test_key',
-            'MAILGUN_SMTP_LOGIN': 'test@domain.com',
-            'MAILGUN_SMTP_PW': 'password',
-            'SNOV_IO_ID': 'client_id',
-            'SNOV_IO_SECRET': 'client_secret'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "PROXYCURL_KEY": "test_key",
+                "MAILGUN_SMTP_LOGIN": "test@domain.com",
+                "MAILGUN_SMTP_PW": "password",
+                "SNOV_IO_ID": "client_id",
+                "SNOV_IO_SECRET": "client_secret",
+            },
+        ):
             # Mock costs config
-            with patch('src.enrich.load_costs_config') as mock_load_costs:
+            with patch("src.enrich.load_costs_config") as mock_load_costs:
                 mock_load_costs.return_value = {
-                    'proxycurl': 0.01,
-                    'mailgun': 0.002,
-                    'snovio': 0.015
+                    "proxycurl": 0.01,
+                    "mailgun": 0.002,
+                    "snovio": 0.015,
                 }
 
                 # Mock schema checksum
-                with patch('src.enrich.load_schema_checksum') as mock_schema:
+                with patch("src.enrich.load_schema_checksum") as mock_schema:
                     mock_schema.return_value = "test_checksum"
 
                     # Mock data directory resolution
-                    with patch('src.enrich.resolve_data_dir', return_value="./data"):
+                    with patch("src.enrich.resolve_data_dir", return_value="./data"):
                         # Mock provider clients
-                        with patch('src.enrich.ProxycurlClient') as mock_proxycurl_class:
-                            with patch('src.enrich.MailgunClient') as mock_mailgun_class:
-                                with patch('src.enrich.SnovioClient') as mock_snovio_class:
+                        with patch(
+                            "src.enrich.ProxycurlClient"
+                        ) as mock_proxycurl_class:
+                            with patch(
+                                "src.enrich.MailgunClient"
+                            ) as mock_mailgun_class:
+                                with patch(
+                                    "src.enrich.SnovioClient"
+                                ) as mock_snovio_class:
                                     mock_proxycurl = MagicMock()
                                     mock_mailgun = MagicMock()
                                     mock_snovio = MagicMock()
@@ -596,34 +648,40 @@ class TestMainEnrichmentLogic:
 
                                     # Should have BUDGET_EXCEEDED error
                                     assert len(result["errors"]) == 1
-                                    assert result["errors"][0]["code"] == ErrorCode.BUDGET_EXCEEDED.value
+                                    assert (
+                                        result["errors"][0]["code"]
+                                        == ErrorCode.BUDGET_EXCEEDED.value
+                                    )
 
     @pytest.mark.asyncio
     async def test_run_enrich_missing_environment_variables(self):
         """Test enrichment with missing environment variables."""
         payload = {
-            "lead_records": [{
-                "lead_id": "lead1",
-                "domain": "test.com",
-                "status": "enrich_ready",
-                "company": {},
-                "contacts": [],
-                "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0},
-                "status_history": [],
-                "audit": []
-            }],
+            "lead_records": [
+                {
+                    "lead_id": "lead1",
+                    "domain": "test.com",
+                    "status": "enrich_ready",
+                    "company": {},
+                    "contacts": [],
+                    "cost": {
+                        "domain_usd": 0.0,
+                        "crawl_usd": 0.0,
+                        "enrich_usd": 0.0,
+                        "total_usd": 0.0,
+                    },
+                    "status_history": [],
+                    "audit": [],
+                }
+            ],
             "icp_config": {
                 "concurrency": {"max_concurrent_requests": 3},
                 "role_priority": {"default": 99},
                 "default_country": "US",
                 "required_fields": {"company": [], "contact": []},
-                "testing": {"process_rejected": False, "process_low_crawl": False}
+                "testing": {"process_rejected": False, "process_low_crawl": False},
             },
-            "caps": {
-                "company_usd": 0.02,
-                "contact_usd": 0.03,
-                "run_usd_max": 5.0
-            }
+            "caps": {"company_usd": 0.02, "contact_usd": 0.03, "run_usd_max": 5.0},
         }
 
         # Mock missing environment variables
@@ -640,21 +698,17 @@ class TestCLIInterface:
 
     def test_main_success(self):
         """Test successful CLI execution."""
-        input_data = json.dumps({
-            "lead_records": [],
-            "icp_config": {},
-            "caps": {}
-        })
+        input_data = json.dumps({"lead_records": [], "icp_config": {}, "caps": {}})
 
-        with patch('builtins.input', return_value=input_data):
-            with patch('src.enrich.asyncio.run') as mock_run:
+        with patch("builtins.input", return_value=input_data):
+            with patch("src.enrich.asyncio.run") as mock_run:
                 mock_run.return_value = {
                     "data": {"lead_records": []},
                     "errors": [],
-                    "metrics": {}
+                    "metrics": {},
                 }
 
-                with patch('builtins.print') as mock_print:
+                with patch("builtins.print") as mock_print:
                     main()
 
                     mock_run.assert_called_once()
@@ -664,9 +718,9 @@ class TestCLIInterface:
         """Test CLI with JSON parsing error."""
         input_data = "invalid json"
 
-        with patch('builtins.input', return_value=input_data):
-            with patch('builtins.print') as mock_print:
-                with patch('builtins.exit') as mock_exit:
+        with patch("builtins.input", return_value=input_data):
+            with patch("builtins.print") as mock_print:
+                with patch("builtins.exit") as mock_exit:
                     main()
 
                     mock_print.assert_called_once()
@@ -674,16 +728,12 @@ class TestCLIInterface:
 
     def test_main_general_error(self):
         """Test CLI with general error."""
-        input_data = json.dumps({
-            "lead_records": [],
-            "icp_config": {},
-            "caps": {}
-        })
+        input_data = json.dumps({"lead_records": [], "icp_config": {}, "caps": {}})
 
-        with patch('builtins.input', return_value=input_data):
-            with patch('src.enrich.asyncio.run', side_effect=Exception("Test error")):
-                with patch('builtins.print') as mock_print:
-                    with patch('builtins.exit') as mock_exit:
+        with patch("builtins.input", return_value=input_data):
+            with patch("src.enrich.asyncio.run", side_effect=Exception("Test error")):
+                with patch("builtins.print") as mock_print:
+                    with patch("builtins.exit") as mock_exit:
                         main()
 
                         mock_print.assert_called_once()
@@ -710,13 +760,15 @@ class TestErrorHandling:
         snovio_client.find_email.return_value = {"email": "test@example.com"}
 
         # Mock Mailgun validation
-        mailgun_client.validate_email.return_value = {
-            "result": "valid",
-            "score": 0.90
-        }
+        mailgun_client.validate_email.return_value = {"result": "valid", "score": 0.90}
 
         enriched_contact, cost = await enrich_contact_data(
-            contact, domain, proxycurl_client, mailgun_client, snovio_client, costs_config
+            contact,
+            domain,
+            proxycurl_client,
+            mailgun_client,
+            snovio_client,
+            costs_config,
         )
 
         # Should still get email via Snov.io
@@ -727,56 +779,68 @@ class TestErrorHandling:
     async def test_individual_record_error_handling(self):
         """Test handling of individual record errors."""
         payload = {
-            "lead_records": [{
-                "lead_id": "lead1",
-                "domain": "test.com",
-                "status": "enrich_ready",
-                "company": {},
-                "contacts": [],
-                "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0},
-                "status_history": [],
-                "audit": []
-            }],
+            "lead_records": [
+                {
+                    "lead_id": "lead1",
+                    "domain": "test.com",
+                    "status": "enrich_ready",
+                    "company": {},
+                    "contacts": [],
+                    "cost": {
+                        "domain_usd": 0.0,
+                        "crawl_usd": 0.0,
+                        "enrich_usd": 0.0,
+                        "total_usd": 0.0,
+                    },
+                    "status_history": [],
+                    "audit": [],
+                }
+            ],
             "icp_config": {
                 "concurrency": {"max_concurrent_requests": 3},
                 "role_priority": {"default": 99},
                 "default_country": "US",
                 "required_fields": {"company": [], "contact": []},
-                "testing": {"process_rejected": False, "process_low_crawl": False}
+                "testing": {"process_rejected": False, "process_low_crawl": False},
             },
-            "caps": {
-                "company_usd": 0.02,
-                "contact_usd": 0.03,
-                "run_usd_max": 5.0
-            }
+            "caps": {"company_usd": 0.02, "contact_usd": 0.03, "run_usd_max": 5.0},
         }
 
         # Mock environment variables
-        with patch.dict(os.environ, {
-            'PROXYCURL_KEY': 'test_key',
-            'MAILGUN_SMTP_LOGIN': 'test@domain.com',
-            'MAILGUN_SMTP_PW': 'password',
-            'SNOV_IO_ID': 'client_id',
-            'SNOV_IO_SECRET': 'client_secret'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "PROXYCURL_KEY": "test_key",
+                "MAILGUN_SMTP_LOGIN": "test@domain.com",
+                "MAILGUN_SMTP_PW": "password",
+                "SNOV_IO_ID": "client_id",
+                "SNOV_IO_SECRET": "client_secret",
+            },
+        ):
             # Mock costs config
-            with patch('src.enrich.load_costs_config') as mock_load_costs:
+            with patch("src.enrich.load_costs_config") as mock_load_costs:
                 mock_load_costs.return_value = {
-                    'proxycurl': 0.01,
-                    'mailgun': 0.002,
-                    'snovio': 0.015
+                    "proxycurl": 0.01,
+                    "mailgun": 0.002,
+                    "snovio": 0.015,
                 }
 
                 # Mock schema checksum
-                with patch('src.enrich.load_schema_checksum') as mock_schema:
+                with patch("src.enrich.load_schema_checksum") as mock_schema:
                     mock_schema.return_value = "test_checksum"
 
                     # Mock data directory resolution
-                    with patch('src.enrich.resolve_data_dir', return_value="./data"):
+                    with patch("src.enrich.resolve_data_dir", return_value="./data"):
                         # Mock provider clients
-                        with patch('src.enrich.ProxycurlClient') as mock_proxycurl_class:
-                            with patch('src.enrich.MailgunClient') as mock_mailgun_class:
-                                with patch('src.enrich.SnovioClient') as mock_snovio_class:
+                        with patch(
+                            "src.enrich.ProxycurlClient"
+                        ) as mock_proxycurl_class:
+                            with patch(
+                                "src.enrich.MailgunClient"
+                            ) as mock_mailgun_class:
+                                with patch(
+                                    "src.enrich.SnovioClient"
+                                ) as mock_snovio_class:
                                     mock_proxycurl = MagicMock()
                                     mock_mailgun = MagicMock()
                                     mock_snovio = MagicMock()
@@ -786,22 +850,34 @@ class TestErrorHandling:
                                     mock_snovio_class.return_value = mock_snovio
 
                                     # Mock company enrichment to raise error
-                                    mock_proxycurl.enrich_company.side_effect = Exception("Test error")
+                                    mock_proxycurl.enrich_company.side_effect = (
+                                        Exception("Test error")
+                                    )
 
                                     # Mock evidence file writing
-                                    with patch('src.enrich.write_evidence_file', return_value="test_path"):
+                                    with patch(
+                                        "src.enrich.write_evidence_file",
+                                        return_value="test_path",
+                                    ):
                                         result = await run_enrich(payload)
 
                                         # Should have error but still return partial results
                                         assert len(result["errors"]) == 1
-                                        assert result["errors"][0]["code"] == ErrorCode.UNKNOWN.value
+                                        assert (
+                                            result["errors"][0]["code"]
+                                            == ErrorCode.UNKNOWN.value
+                                        )
                                         assert len(result["data"]["lead_records"]) == 1
-                                        assert result["data"]["lead_records"][0]["status"] == "enrich_partial"
+                                        assert (
+                                            result["data"]["lead_records"][0]["status"]
+                                            == "enrich_partial"
+                                        )
 
 
 # ============================================================================
 # Missing Tests from Task 6
 # ============================================================================
+
 
 class TestMissingRequirements:
     """Test missing requirements from Task 6."""
@@ -812,6 +888,7 @@ class TestMissingRequirements:
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(KeyError):
                 from src.enrich import EnrichTool
+
                 EnrichTool()
 
     def test_evidence_array_truncation(self):

@@ -1,10 +1,9 @@
 """Test the unified lead record JSON schema."""
 
 import json
-import os
 import hashlib
 from pathlib import Path
-from jsonschema import Draft202012Validator, ValidationError
+from jsonschema import Draft202012Validator
 
 
 def test_schema_file_exists():
@@ -50,12 +49,12 @@ def test_schema_validation():
                 "method": None,
                 "model": None,
                 "prompt_fingerprint": None,
-                "temperature": None
+                "temperature": None,
             },
             "crawl_score": None,
             "crawl_reason": None,
             "threshold": 0.7,
-            "filtering_strict": True
+            "filtering_strict": True,
         },
         "provenance": {
             "queries": [],
@@ -67,36 +66,28 @@ def test_schema_validation():
             "tool_versions": {
                 "domain": {"version": None, "schema_version": None},
                 "crawl": {"version": None, "schema_version": None},
-                "enrich": {"version": None, "schema_version": None}
+                "enrich": {"version": None, "schema_version": None},
             },
             "cache": {},
-            "evidence_paths": {
-                "domain": None,
-                "crawl": None,
-                "enrich": None
-            }
+            "evidence_paths": {"domain": None, "crawl": None, "enrich": None},
         },
         "status": "new",
         "status_history": [
-            {
-                "status": "new",
-                "ts": "2024-01-01T00:00:00Z",
-                "notes": "Initial status"
-            }
+            {"status": "new", "ts": "2024-01-01T00:00:00Z", "notes": "Initial status"}
         ],
         "audit": [
             {
                 "step": "Domain",
                 "notes": "Initial audit entry",
-                "ts": "2024-01-01T00:00:00Z"
+                "ts": "2024-01-01T00:00:00Z",
             }
         ],
         "cost": {
             "domain_usd": 0.0,
             "crawl_usd": 0.0,
             "enrich_usd": 0.0,
-            "total_usd": 0.0
-        }
+            "total_usd": 0.0,
+        },
     }
 
     # Should not raise validation errors
@@ -112,7 +103,9 @@ def test_schema_checksum():
 
     checksum = hashlib.sha256(schema_content).hexdigest()
     assert len(checksum) == 64, "SHA256 checksum should be 64 characters"
-    assert checksum.isalnum() or all(c in 'abcdef' for c in checksum), "Checksum should be valid hex"
+    assert checksum.isalnum() or all(c in "abcdef" for c in checksum), (
+        "Checksum should be valid hex"
+    )
 
 
 def test_schema_constraints():
@@ -128,8 +121,19 @@ def test_schema_constraints():
         "lead_id": "550e8400-e29b-41d4-a716-446655440000",
         "domain": "example.com",
         "company": {
-            "evidence_urls": ["url1", "url2", "url3", "url4", "url5",
-                             "url6", "url7", "url8", "url9", "url10", "url11"]  # > 10
+            "evidence_urls": [
+                "url1",
+                "url2",
+                "url3",
+                "url4",
+                "url5",
+                "url6",
+                "url7",
+                "url8",
+                "url9",
+                "url10",
+                "url11",
+            ]  # > 10
         },
         "contacts": [],
         "icp": {
@@ -141,12 +145,12 @@ def test_schema_constraints():
                 "method": None,
                 "model": None,
                 "prompt_fingerprint": None,
-                "temperature": None
+                "temperature": None,
             },
             "crawl_score": None,
             "crawl_reason": None,
             "threshold": 0.7,
-            "filtering_strict": True
+            "filtering_strict": True,
         },
         "provenance": {
             "queries": [],
@@ -158,36 +162,28 @@ def test_schema_constraints():
             "tool_versions": {
                 "domain": {"version": None, "schema_version": None},
                 "crawl": {"version": None, "schema_version": None},
-                "enrich": {"version": None, "schema_version": None}
+                "enrich": {"version": None, "schema_version": None},
             },
             "cache": {},
-            "evidence_paths": {
-                "domain": None,
-                "crawl": None,
-                "enrich": None
-            }
+            "evidence_paths": {"domain": None, "crawl": None, "enrich": None},
         },
         "status": "new",
         "status_history": [
-            {
-                "status": "new",
-                "ts": "2024-01-01T00:00:00Z",
-                "notes": "Initial status"
-            }
+            {"status": "new", "ts": "2024-01-01T00:00:00Z", "notes": "Initial status"}
         ],
         "audit": [
             {
                 "step": "Domain",
                 "notes": "Initial audit entry",
-                "ts": "2024-01-01T00:00:00Z"
+                "ts": "2024-01-01T00:00:00Z",
             }
         ],
         "cost": {
             "domain_usd": 0.0,
             "crawl_usd": 0.0,
             "enrich_usd": 0.0,
-            "total_usd": 0.0
-        }
+            "total_usd": 0.0,
+        },
     }
 
     # Should raise validation error for too many evidence URLs
@@ -196,4 +192,6 @@ def test_schema_constraints():
 
     # Check that the error is about maxItems
     error_messages = [str(e) for e in errors]
-    assert any("maxItems" in msg for msg in error_messages), "Should have maxItems validation error"
+    assert any("maxItems" in msg for msg in error_messages), (
+        "Should have maxItems validation error"
+    )

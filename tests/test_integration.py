@@ -6,15 +6,11 @@ pipeline tests and error path scenarios.
 """
 
 import pytest
-import asyncio
-from unittest.mock import patch, AsyncMock, MagicMock
-from pathlib import Path
+from unittest.mock import patch, AsyncMock
 
-from src.orchestrator import LeadSorcererOrchestrator
-from src.domain import DomainTool
-from src.crawl import CrawlTool
-from src.enrich import run_enrich
 
+class TestEndToEndPipeline:
+    """Test end-to-end pipeline functionality."""
 
     @pytest.mark.asyncio
     async def test_end_to_end_pipeline_happy_path(self):
@@ -113,7 +109,7 @@ from src.enrich import run_enrich
             assert crawl_result["data"]["lead_records"][0]["status"] == "enrich_ready"
 
             enrich_result = MockRunEnrich.return_value
-            assert enrich_result["data"]["lead_records"][0]["status"] == "enriched"        pass
+            assert enrich_result["data"]["lead_records"][0]["status"] == "enriched"
 
     @pytest.mark.asyncio
     async def test_crawl_tool_failure(self):

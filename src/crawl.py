@@ -14,24 +14,37 @@ Authoritative specifications: docs/brd.md §273-320
 """
 
 import asyncio
-import hashlib
 import json
-import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
-import httpx
 from firecrawl import FirecrawlApp
 from .common import (
-    AsyncSemaphorePool, ErrorCode, PermitManager, append_audit, append_status,
-    build_error, canonicalize_linkedin, compute_content_hash, compute_next_revisit,
-    enforce_field_ownership, generate_contact_id, get_role_priority, get_seniority_rank,
-    load_costs_config, load_schema_checksum, mask_linkedin, normalize_domain,
-    normalize_text, now_z, parse_phone_number, resolve_data_dir, round4,
-    setup_logging, truncate_evidence_arrays, validate_envelope, write_with_lock
+    AsyncSemaphorePool,
+    ErrorCode,
+    PermitManager,
+    append_audit,
+    append_status,
+    build_error,
+    canonicalize_linkedin,
+    compute_content_hash,
+    compute_next_revisit,
+    generate_contact_id,
+    get_role_priority,
+    get_seniority_rank,
+    load_costs_config,
+    load_schema_checksum,
+    normalize_domain,
+    normalize_text,
+    now_z,
+    resolve_data_dir,
+    round4,
+    setup_logging,
+    truncate_evidence_arrays,
+    validate_envelope,
+    write_with_lock,
 )
 
 
@@ -49,26 +62,25 @@ FIRECRAWL_EXTRACT_SCHEMA = {
         "description": "string",
         "industry": "string",
         "hq_location": "string",
-        "socials": {
-            "linkedin": "string"
-        },
+        "socials": {"linkedin": "string"},
         "careers_url": "string",
-        "blog_url": "string"
+        "blog_url": "string",
     },
     "employees": [
         {
             "full_name": "string",
             "role": "string",
             "linkedin": "string",
-            "email": "string"
+            "email": "string",
         }
-    ]
+    ],
 }
 
 
 # ============================================================================
 # Main Tool Class
 # ============================================================================
+
 
 class CrawlTool:
     """Crawl tool for extracting company and contact information from websites."""
@@ -82,7 +94,9 @@ class CrawlTool:
         required_providers = ["firecrawl"]
         for provider in required_providers:
             if provider not in self.costs_config:
-                raise KeyError(f"Missing required provider in costs configuration: {provider}")
+                raise KeyError(
+                    f"Missing required provider in costs configuration: {provider}"
+                )
 
         # Initialize Firecrawl client
         self.firecrawl_key = os.environ.get("FIRECRAWL_KEY")
@@ -91,7 +105,9 @@ class CrawlTool:
 
         self.firecrawl_client = FirecrawlApp(api_key=self.firecrawl_key)
         # Global permit manager for concurrency control
-        self.permit_manager = PermitManager(max_permits=3)  # Default, will be overridden
+        self.permit_manager = PermitManager(
+            max_permits=3
+        )  # Default, will be overridden
         self.async_semaphore_pool = AsyncSemaphorePool(self.permit_manager)
 
     async def run(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -113,7 +129,7 @@ class CrawlTool:
                 return {
                     "data": {"lead_records": []},
                     "errors": validation_errors,
-                    "metrics": self._build_metrics(0, 0, 0)
+                    "metrics": self._build_metrics(0, 0, 0),
                 }
 
             # Extract and validate required fields
@@ -124,11 +140,13 @@ class CrawlTool:
                 return {
                     "data": {"lead_records": []},
                     "errors": [],
-                    "metrics": self._build_metrics(0, 0, 0)
+                    "metrics": self._build_metrics(0, 0, 0),
                 }
 
             # Update concurrency limits from icp_config
-            max_concurrent = icp_config.get("concurrency", {}).get("max_concurrent_requests", 3)
+            max_concurrent = icp_config.get("concurrency", {}).get(
+                "max_concurrent_requests", 3
+            )
             self.permit_manager.max_permits = max_concurrent
 
             # Validate testing flags
@@ -151,7 +169,9 @@ class CrawlTool:
                 return {
                     "data": {"lead_records": lead_records},
                     "errors": [],
-                    "metrics": self._build_metrics(len(lead_records), len(lead_records), 0)
+                    "metrics": self._build_metrics(
+                        len(lead_records), len(lead_records), 0
+                    ),
                 }
 
             # Process records
@@ -176,12 +196,14 @@ class CrawlTool:
                         if result["error"]:
                             errors.append(result["error"])
                 except Exception as exc:
-                    self.logger.error(f"Unexpected error processing record {record.get('lead_id', 'unknown')}: {exc}")
+                    self.logger.error(
+                        f"Unexpected error processing record {record.get('lead_id', 'unknown')}: {exc}"
+                    )
                     error = build_error(
                         code=ErrorCode.UNKNOWN,
                         exc=exc,
                         tool=TOOL_NAME,
-                        lead_id=record.get("lead_id")
+                        lead_id=record.get("lead_id"),
                     )
                     errors.append(error)
                     processed_records.append(record)
@@ -191,19 +213,33 @@ class CrawlTool:
             for original_record in lead_records:
                 # Find processed version
                 processed_record = next(
-                    (r for r in processed_records if r.get("lead_id") == original_record.get("lead_id")),
-                    original_record
+                    (
+                        r
+                        for r in processed_records
+                        if r.get("lead_id") == original_record.get("lead_id")
+                    ),
+                    original_record,
                 )
                 final_records.append(processed_record)
 
             # Calculate metrics
             duration_ms = int((time.time() - start_time) * 1000)
-            cache_hit_rate = cache_hits / (cache_hits + cache_misses) if (cache_hits + cache_misses) > 0 else None
+            cache_hit_rate = (
+                cache_hits / (cache_hits + cache_misses)
+                if (cache_hits + cache_misses) > 0
+                else None
+            )
 
             # Calculate pass rate: enrich_ready / crawled
-            crawled_count = sum(1 for r in final_records if r.get("status") == "crawled")
-            enrich_ready_count = sum(1 for r in final_records if r.get("status") == "enrich_ready")
-            pass_rate = enrich_ready_count / crawled_count if crawled_count > 0 else None
+            crawled_count = sum(
+                1 for r in final_records if r.get("status") == "crawled"
+            )
+            enrich_ready_count = sum(
+                1 for r in final_records if r.get("status") == "enrich_ready"
+            )
+            pass_rate = (
+                enrich_ready_count / crawled_count if crawled_count > 0 else None
+            )
 
             return {
                 "data": {"lead_records": final_records},
@@ -214,28 +250,28 @@ class CrawlTool:
                     duration_ms,
                     cache_hit_rate,
                     pass_rate,
-                    {"crawl": total_cost}
-                )
+                    {"crawl": total_cost},
+                ),
             }
 
         except Exception as exc:
             self.logger.error(f"Fatal error in crawl tool: {exc}")
-            error = build_error(
-                code=ErrorCode.UNKNOWN,
-                exc=exc,
-                tool=TOOL_NAME
-            )
+            error = build_error(code=ErrorCode.UNKNOWN, exc=exc, tool=TOOL_NAME)
             return {
-                "data": {"lead_records": lead_records if 'lead_records' in locals() else []},
+                "data": {
+                    "lead_records": lead_records if "lead_records" in locals() else []
+                },
                 "errors": [error],
                 "metrics": self._build_metrics(
-                    len(lead_records) if 'lead_records' in locals() else 0,
+                    len(lead_records) if "lead_records" in locals() else 0,
                     0,
-                    int((time.time() - start_time) * 1000)
-                )
+                    int((time.time() - start_time) * 1000),
+                ),
             }
 
-    async def _process_single_record(self, record: Dict[str, Any], icp_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def _process_single_record(
+        self, record: Dict[str, Any], icp_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Process a single lead record.
 
@@ -254,9 +290,15 @@ class CrawlTool:
                 code=ErrorCode.SCHEMA_VALIDATION,
                 exc=ValueError("Missing domain in record"),
                 tool=TOOL_NAME,
-                lead_id=lead_id
+                lead_id=lead_id,
             )
-            return {"success": False, "record": record, "cache_hit": False, "cost": 0.0, "error": error}
+            return {
+                "success": False,
+                "record": record,
+                "cache_hit": False,
+                "cost": 0.0,
+                "error": error,
+            }
 
         # Normalize domain to eTLD+1
         normalized_domain = normalize_domain(domain)
@@ -273,32 +315,44 @@ class CrawlTool:
         # Check if artifact exists and is fresh
         if os.path.exists(artifact_path):
             try:
-                with open(artifact_path, 'r') as f:
+                with open(artifact_path, "r") as f:
                     artifact = json.load(f)
 
                 # Check TTL
-                crawl_ttl_days = icp_config.get("refresh_policy", {}).get("crawl_ttl_days", 14)
+                crawl_ttl_days = icp_config.get("refresh_policy", {}).get(
+                    "crawl_ttl_days", 14
+                )
                 crawled_at = artifact.get("crawled_at")
 
                 if crawled_at:
                     try:
-                        crawled_dt = datetime.fromisoformat(crawled_at.replace('Z', '+00:00'))
+                        crawled_dt = datetime.fromisoformat(
+                            crawled_at.replace("Z", "+00:00")
+                        )
                         # Ensure crawled_dt is timezone-aware
                         if crawled_dt.tzinfo is None:
                             crawled_dt = crawled_dt.replace(tzinfo=timezone.utc)
 
-                        if datetime.now(timezone.utc) - crawled_dt < timedelta(days=crawl_ttl_days):
+                        if datetime.now(timezone.utc) - crawled_dt < timedelta(
+                            days=crawl_ttl_days
+                        ):
                             # Check content hash
-                            current_hash = compute_content_hash(artifact.get("extracted_data", {}))
+                            current_hash = compute_content_hash(
+                                artifact.get("extracted_data", {})
+                            )
                             if current_hash == artifact.get("content_hash"):
                                 cache_hit = True
                                 extracted_data = artifact.get("extracted_data")
-                                self.logger.info(f"Cache hit for domain {normalized_domain}")
+                                self.logger.info(
+                                    f"Cache hit for domain {normalized_domain}"
+                                )
                     except ValueError:
                         # Invalid timestamp, treat as cache miss
                         pass
             except Exception as exc:
-                self.logger.warning(f"Failed to read artifact for {normalized_domain}: {exc}")
+                self.logger.warning(
+                    f"Failed to read artifact for {normalized_domain}: {exc}"
+                )
 
         # Extract data if not cached
         if not cache_hit:
@@ -309,7 +363,7 @@ class CrawlTool:
                 artifact_data = {
                     "crawled_at": now_z(),
                     "content_hash": compute_content_hash(extracted_data),
-                    "extracted_data": extracted_data
+                    "extracted_data": extracted_data,
                 }
 
                 # Ensure directory exists
@@ -318,34 +372,50 @@ class CrawlTool:
                 # Write with lock
                 write_with_lock(artifact_path, artifact_data)
 
-                self.logger.info(f"Extracted and cached data for domain {normalized_domain}")
+                self.logger.info(
+                    f"Extracted and cached data for domain {normalized_domain}"
+                )
 
             except Exception as exc:
-                self.logger.error(f"Failed to extract data for {normalized_domain}: {exc}")
+                self.logger.error(
+                    f"Failed to extract data for {normalized_domain}: {exc}"
+                )
                 error = build_error(
                     code=ErrorCode.EXTRACT_ERROR,
                     exc=exc,
                     tool=TOOL_NAME,
                     lead_id=lead_id,
-                    context={"domain": normalized_domain}
+                    context={"domain": normalized_domain},
                 )
 
                 # Set status to crawl_failed
                 record["status"] = "crawl_failed"
                 if "status_history" not in record:
                     record["status_history"] = []
-                append_status(record["status_history"], "crawl_failed", f"Extraction failed: {exc}")
+                append_status(
+                    record["status_history"],
+                    "crawl_failed",
+                    f"Extraction failed: {exc}",
+                )
 
-                failure_revisit_days = icp_config.get("refresh_policy", {}).get("failure_revisit_days", 1)
+                failure_revisit_days = icp_config.get("refresh_policy", {}).get(
+                    "failure_revisit_days", 1
+                )
                 if "provenance" not in record:
                     record["provenance"] = {}
                 record["provenance"]["next_revisit_at"] = compute_next_revisit(
                     record["provenance"].get("next_revisit_at"),
                     failure_revisit_days,
-                    is_failure=True
+                    is_failure=True,
                 )
 
-                return {"success": False, "record": record, "cache_hit": False, "cost": 0.0, "error": error}
+                return {
+                    "success": False,
+                    "record": record,
+                    "cache_hit": False,
+                    "cost": 0.0,
+                    "error": error,
+                }
 
         # Process extracted data
         if extracted_data:
@@ -357,27 +427,40 @@ class CrawlTool:
                 threshold = icp_config.get("threshold", 0.7)
 
                 # Check if company meets required fields
-                required_company_fields = icp_config.get("required_fields", {}).get("company", [])
-                company_meets_requirements = self._check_company_requirements(record, required_company_fields)
+                required_company_fields = icp_config.get("required_fields", {}).get(
+                    "company", []
+                )
+                company_meets_requirements = self._check_company_requirements(
+                    record, required_company_fields
+                )
 
                 if crawl_score >= threshold and company_meets_requirements:
                     record["status"] = "enrich_ready"
-                    append_status(record.get("status_history", []), "enrich_ready", "Passed ICP validation")
+                    append_status(
+                        record.get("status_history", []),
+                        "enrich_ready",
+                        "Passed ICP validation",
+                    )
                 else:
                     record["status"] = "crawled"
                     if "status_history" not in record:
                         record["status_history"] = []
-                    append_status(record.get("status_history", []), "crawled", "Crawled but did not meet ICP requirements")
+                    append_status(
+                        record.get("status_history", []),
+                        "crawled",
+                        "Crawled but did not meet ICP requirements",
+                    )
 
                 # Update provenance
                 record["provenance"]["crawled_at"] = now_z()
                 record["provenance"]["evidence_paths"]["crawl"] = artifact_path
 
                 # Set next_revisit_at
-                revisit_after_days = icp_config.get("refresh_policy", {}).get("revisit_after_days", 90)
+                revisit_after_days = icp_config.get("refresh_policy", {}).get(
+                    "revisit_after_days", 90
+                )
                 record["provenance"]["next_revisit_at"] = compute_next_revisit(
-                    record["provenance"].get("next_revisit_at"),
-                    revisit_after_days
+                    record["provenance"].get("next_revisit_at"), revisit_after_days
                 )
 
                 # Update tool versions
@@ -385,11 +468,15 @@ class CrawlTool:
                     record["provenance"]["tool_versions"] = {}
                 record["provenance"]["tool_versions"]["crawl"] = {
                     "version": INTERNAL_VERSION,
-                    "schema_version": self.schema_version
+                    "schema_version": self.schema_version,
                 }
 
                 # Add audit trail
-                append_audit(record, "Crawl", f"Extracted {len(record.get('contacts', []))} contacts from {normalized_domain}")
+                append_audit(
+                    record,
+                    "Crawl",
+                    f"Extracted {len(record.get('contacts', []))} contacts from {normalized_domain}",
+                )
 
                 # Truncate evidence arrays
                 truncate_evidence_arrays(record)
@@ -404,30 +491,54 @@ class CrawlTool:
                     }
                 record["cost"]["crawl_usd"] = round4(cost)
                 record["cost"]["total_usd"] = round4(
-                    record["cost"].get("domain_usd", 0.0) +
-                    record["cost"].get("crawl_usd", 0.0) +
-                    record["cost"].get("enrich_usd", 0.0)
+                    record["cost"].get("domain_usd", 0.0)
+                    + record["cost"].get("crawl_usd", 0.0)
+                    + record["cost"].get("enrich_usd", 0.0)
                 )
 
-                return {"success": True, "record": record, "cache_hit": cache_hit, "cost": cost, "error": None}
+                return {
+                    "success": True,
+                    "record": record,
+                    "cache_hit": cache_hit,
+                    "cost": cost,
+                    "error": None,
+                }
 
             except Exception as exc:
-                self.logger.error(f"Failed to process extracted data for {normalized_domain}: {exc}")
+                self.logger.error(
+                    f"Failed to process extracted data for {normalized_domain}: {exc}"
+                )
                 error = build_error(
                     code=ErrorCode.EXTRACT_ERROR,
                     exc=exc,
                     tool=TOOL_NAME,
                     lead_id=lead_id,
-                    context={"domain": normalized_domain}
+                    context={"domain": normalized_domain},
                 )
 
                 # Set status to crawl_failed
                 record["status"] = "crawl_failed"
-                append_status(record.get("status_history", []), "crawl_failed", f"Data processing failed: {exc}")
+                append_status(
+                    record.get("status_history", []),
+                    "crawl_failed",
+                    f"Data processing failed: {exc}",
+                )
 
-                return {"success": False, "record": record, "cache_hit": cache_hit, "cost": 0.0, "error": error}
+                return {
+                    "success": False,
+                    "record": record,
+                    "cache_hit": cache_hit,
+                    "cost": 0.0,
+                    "error": error,
+                }
 
-        return {"success": False, "record": record, "cache_hit": cache_hit, "cost": 0.0, "error": None}
+        return {
+            "success": False,
+            "record": record,
+            "cache_hit": cache_hit,
+            "cost": 0.0,
+            "error": None,
+        }
 
     async def _extract_with_firecrawl(self, domain: str) -> Dict[str, Any]:
         """
@@ -451,15 +562,17 @@ class CrawlTool:
                             asyncio.to_thread(
                                 self.firecrawl_client.extract,
                                 url=url,
-                                schema=FIRECRAWL_EXTRACT_SCHEMA
+                                schema=FIRECRAWL_EXTRACT_SCHEMA,
                             ),
-                            timeout=10.0  # 10 second timeout per attempt
+                            timeout=10.0,  # 10 second timeout per attempt
                         )
 
                         if response and response.get("success"):
                             return response.get("data", {})
                         else:
-                            self.logger.warning(f"Firecrawl extract failed for {url}: {response}")
+                            self.logger.warning(
+                                f"Firecrawl extract failed for {url}: {response}"
+                            )
 
                     except asyncio.TimeoutError:
                         self.logger.warning(f"Timeout extracting from {url}")
@@ -469,12 +582,19 @@ class CrawlTool:
                         continue
 
                 # If all attempts failed
-                raise Exception(f"Failed to extract data from {domain} after trying both HTTP and HTTPS")
+                raise Exception(
+                    f"Failed to extract data from {domain} after trying both HTTP and HTTPS"
+                )
 
             except Exception as exc:
                 raise Exception(f"Firecrawl extraction failed: {exc}")
 
-    def _process_extracted_data(self, record: Dict[str, Any], extracted_data: Dict[str, Any], icp_config: Dict[str, Any]) -> None:
+    def _process_extracted_data(
+        self,
+        record: Dict[str, Any],
+        extracted_data: Dict[str, Any],
+        icp_config: Dict[str, Any],
+    ) -> None:
         """
         Process extracted data and populate record fields.
 
@@ -504,7 +624,7 @@ class CrawlTool:
                 "github": None,
                 "twitter": None,
                 "telegram": None,
-                "instagram": None
+                "instagram": None,
             }
 
         # Handle LinkedIn
@@ -513,7 +633,9 @@ class CrawlTool:
             link_type, slug = canonicalize_linkedin(linkedin_url)
             if link_type == "company":
                 company["ids"]["linkedin"] = f"/company/{slug}"
-                company["socials"]["linkedin"] = f"https://www.linkedin.com/company/{slug}"
+                company["socials"]["linkedin"] = (
+                    f"https://www.linkedin.com/company/{slug}"
+                )
             elif link_type == "in":
                 # This is a person, not company - skip
                 pass
@@ -548,12 +670,13 @@ class CrawlTool:
             normalized_role = normalize_text(role)
 
             # Generate contact ID
-            contact_id = generate_contact_id(domain, normalized_name, normalized_role, linkedin or "")
+            contact_id = generate_contact_id(
+                domain, normalized_name, normalized_role, linkedin or ""
+            )
 
             # Check if contact already exists
             existing_contact = next(
-                (c for c in contacts if c.get("contact_id") == contact_id),
-                None
+                (c for c in contacts if c.get("contact_id") == contact_id), None
             )
 
             if existing_contact:
@@ -579,7 +702,7 @@ class CrawlTool:
                 "phone": None,
                 "linkedin": None,
                 "other_links": [],
-                "evidence_urls": []
+                "evidence_urls": [],
             }
 
             # Handle LinkedIn
@@ -609,7 +732,9 @@ class CrawlTool:
         # Perform ICP validation
         self._validate_icp_fit(record, icp_config)
 
-    def _check_company_requirements(self, record: Dict[str, Any], required_fields: List[str]) -> bool:
+    def _check_company_requirements(
+        self, record: Dict[str, Any], required_fields: List[str]
+    ) -> bool:
         """
         Check if company meets required field requirements.
 
@@ -632,7 +757,9 @@ class CrawlTool:
 
         return True
 
-    def _validate_icp_fit(self, record: Dict[str, Any], icp_config: Dict[str, Any]) -> None:
+    def _validate_icp_fit(
+        self, record: Dict[str, Any], icp_config: Dict[str, Any]
+    ) -> None:
         """
         Validate ICP fit based on crawled data.
 
@@ -684,12 +811,19 @@ class CrawlTool:
             record["icp"] = {}
 
         record["icp"]["crawl_score"] = round4(score)
-        record["icp"]["crawl_reason"] = "; ".join(reasons) if reasons else "No specific reasons"
+        record["icp"]["crawl_reason"] = (
+            "; ".join(reasons) if reasons else "No specific reasons"
+        )
 
-    def _build_metrics(self, count_in: int, count_out: int, duration_ms: int,
-                       cache_hit_rate: Optional[float] = None,
-                       pass_rate: Optional[float] = None,
-                       cost_usd: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+    def _build_metrics(
+        self,
+        count_in: int,
+        count_out: int,
+        duration_ms: int,
+        cache_hit_rate: Optional[float] = None,
+        pass_rate: Optional[float] = None,
+        cost_usd: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, Any]:
         """
         Build metrics structure for tool output.
 
@@ -708,14 +842,16 @@ class CrawlTool:
             "count_in": count_in,
             "count_out": count_out,
             "duration_ms": duration_ms,
-            "cache_hit_rate": round4(cache_hit_rate) if cache_hit_rate is not None else None,
+            "cache_hit_rate": round4(cache_hit_rate)
+            if cache_hit_rate is not None
+            else None,
             "pass_rate": round4(pass_rate) if pass_rate is not None else None,
             "cost_usd": {
                 "domain": 0.0,
                 "crawl": round4(cost_usd.get("crawl", 0.0)) if cost_usd else 0.0,
                 "enrich": 0.0,
-                "total": round4(cost_usd.get("crawl", 0.0)) if cost_usd else 0.0
-            }
+                "total": round4(cost_usd.get("crawl", 0.0)) if cost_usd else 0.0,
+            },
         }
 
         return metrics
@@ -724,6 +860,7 @@ class CrawlTool:
 # ============================================================================
 # CLI Interface
 # ============================================================================
+
 
 def main():
     """CLI entry point for the crawl tool."""
@@ -749,40 +886,44 @@ def main():
     except json.JSONDecodeError as exc:
         error_result = {
             "data": {"lead_records": []},
-            "errors": [{
-                "code": "SCHEMA_VALIDATION",
-                "message": f"Invalid JSON input: {exc}",
-                "tool": TOOL_NAME,
-                "retryable": False
-            }],
+            "errors": [
+                {
+                    "code": "SCHEMA_VALIDATION",
+                    "message": f"Invalid JSON input: {exc}",
+                    "tool": TOOL_NAME,
+                    "retryable": False,
+                }
+            ],
             "metrics": {
                 "count_in": 0,
                 "count_out": 0,
                 "duration_ms": 0,
                 "cache_hit_rate": None,
                 "pass_rate": None,
-                "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0}
-            }
+                "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0},
+            },
         }
         json.dump(error_result, sys.stdout)
         sys.exit(1)
     except Exception as exc:
         error_result = {
             "data": {"lead_records": []},
-            "errors": [{
-                "code": "UNKNOWN",
-                "message": f"Fatal error: {exc}",
-                "tool": TOOL_NAME,
-                "retryable": False
-            }],
+            "errors": [
+                {
+                    "code": "UNKNOWN",
+                    "message": f"Fatal error: {exc}",
+                    "tool": TOOL_NAME,
+                    "retryable": False,
+                }
+            ],
             "metrics": {
                 "count_in": 0,
                 "count_out": 0,
                 "duration_ms": 0,
                 "cache_hit_rate": None,
                 "pass_rate": None,
-                "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0}
-            }
+                "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0},
+            },
         }
         json.dump(error_result, sys.stdout)
         sys.exit(1)

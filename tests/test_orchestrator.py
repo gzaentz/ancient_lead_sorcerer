@@ -5,11 +5,10 @@ Tests the orchestrator's ability to coordinate the Domain → Crawl → Enrich p
 handle persistence, exports, and respect all BRD constraints.
 """
 
-import asyncio
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -26,30 +25,19 @@ class TestLeadSorcererOrchestrator:
             "name": "test_icp",
             "icp_text": "Test ICP description",
             "queries": ["test query"],
-            "required_fields": {
-                "company": ["name"],
-                "contact": ["email"]
-            },
+            "required_fields": {"company": ["name"], "contact": ["email"]},
             "threshold": 0.7,
-            "concurrency": {
-                "max_concurrent_requests": 3
-            },
-            "testing": {
-                "process_rejected": False,
-                "process_low_crawl": False
-            },
-            "exports": {
-                "enabled": True
-            },
+            "concurrency": {"max_concurrent_requests": 3},
+            "testing": {"process_rejected": False, "process_low_crawl": False},
+            "exports": {"enabled": True},
             "default_country": "US",
-            "role_priority": {
-                "ceo": 1,
-                "vp": 2
-            }
+            "role_priority": {"ceo": 1, "vp": 2},
         }
 
         # Create temporary file with proper content
-        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8')
+        temp_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        )
         temp_file.write(json.dumps(config, indent=2))
         temp_file.close()
 
@@ -70,10 +58,10 @@ class TestLeadSorcererOrchestrator:
                         "icp": {
                             "pre_pass": True,
                             "pre_score": 0.8,
-                            "pre_reason": "Good match"
+                            "pre_reason": "Good match",
                         },
                         "status": "scored",
-                        "cost": {"domain_usd": 0.001, "total_usd": 0.001}
+                        "cost": {"domain_usd": 0.001, "total_usd": 0.001},
                     },
                     {
                         "lead_id": "test-lead-2",
@@ -81,11 +69,11 @@ class TestLeadSorcererOrchestrator:
                         "icp": {
                             "pre_pass": False,
                             "pre_score": 0.3,
-                            "pre_reason": "Poor match"
+                            "pre_reason": "Poor match",
                         },
                         "status": "scored",
-                        "cost": {"domain_usd": 0.001, "total_usd": 0.001}
-                    }
+                        "cost": {"domain_usd": 0.001, "total_usd": 0.001},
+                    },
                 ]
             },
             "errors": [],
@@ -93,8 +81,8 @@ class TestLeadSorcererOrchestrator:
                 "count_in": 1,
                 "count_out": 2,
                 "pass_rate": 0.5,
-                "cost_usd": {"domain": 0.002, "total": 0.002}
-            }
+                "cost_usd": {"domain": 0.002, "total": 0.002},
+            },
         }
 
     @pytest.fixture
@@ -108,8 +96,10 @@ class TestLeadSorcererOrchestrator:
                         "domain": "example.com",
                         "status": "enrich_ready",
                         "company": {"name": "Example Corp"},
-                        "contacts": [{"contact_id": "contact-1", "full_name": "John Doe"}],
-                        "cost": {"crawl_usd": 0.002, "total_usd": 0.003}
+                        "contacts": [
+                            {"contact_id": "contact-1", "full_name": "John Doe"}
+                        ],
+                        "cost": {"crawl_usd": 0.002, "total_usd": 0.003},
                     }
                 ]
             },
@@ -118,8 +108,8 @@ class TestLeadSorcererOrchestrator:
                 "count_in": 1,
                 "count_out": 1,
                 "pass_rate": 1.0,
-                "cost_usd": {"crawl": 0.002, "total": 0.002}
-            }
+                "cost_usd": {"crawl": 0.002, "total": 0.002},
+            },
         }
 
     @pytest.fixture
@@ -133,7 +123,7 @@ class TestLeadSorcererOrchestrator:
                         "domain": "example.com",
                         "status": "enriched",
                         "best_contact_id": "contact-1",
-                        "cost": {"enrich_usd": 0.003, "total_usd": 0.006}
+                        "cost": {"enrich_usd": 0.003, "total_usd": 0.006},
                     }
                 ]
             },
@@ -142,19 +132,18 @@ class TestLeadSorcererOrchestrator:
                 "count_in": 1,
                 "count_out": 1,
                 "pass_rate": 1.0,
-                "cost_usd": {"enrich": 0.003, "total": 0.003}
-            }
+                "cost_usd": {"enrich": 0.003, "total": 0.003},
+            },
         }
 
     @pytest.mark.asyncio
     async def test_orchestrator_initialization(self, temp_config_file):
         """Test orchestrator initialization with valid config."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             # Mock the tools to avoid environment variable dependencies
-            mock_domain = MockDomainTool.return_value
-            mock_crawl = MockCrawlTool.return_value
 
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
@@ -167,24 +156,30 @@ class TestLeadSorcererOrchestrator:
     async def test_data_dir_precedence(self, temp_config_file):
         """Test data directory precedence resolution."""
         # Test environment variable precedence
-        with patch.dict('os.environ', {'LEADPOET_DATA_DIR': '/custom/data'}), \
-             patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch.dict("os.environ", {"LEADPOET_DATA_DIR": "/custom/data"}),
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
             assert orchestrator.data_dir == "/custom/data"
 
     @pytest.mark.asyncio
     async def test_provider_config_validation(self, temp_config_file):
         """Test provider configuration validation."""
-        with patch('src.orchestrator.load_costs_config') as mock_load_costs, \
-             patch('src.orchestrator.validate_provider_config') as mock_validate, \
-             patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.load_costs_config") as mock_load_costs,
+            patch("src.orchestrator.validate_provider_config") as mock_validate,
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             mock_load_costs.return_value = {
-                'gse': 0.0005, 'openrouter': 0.0020, 'firecrawl': 0.0010,
-                'proxycurl': 0.0100, 'mailgun': 0.0020, 'snovio': 0.0150
+                "gse": 0.0005,
+                "openrouter": 0.0020,
+                "firecrawl": 0.0010,
+                "proxycurl": 0.0100,
+                "mailgun": 0.0020,
+                "snovio": 0.0150,
             }
 
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
@@ -196,9 +191,10 @@ class TestLeadSorcererOrchestrator:
     @pytest.mark.asyncio
     async def test_testing_flags_validation(self, temp_config_file):
         """Test testing flags validation."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
             # Should not raise an exception
@@ -207,9 +203,10 @@ class TestLeadSorcererOrchestrator:
     @pytest.mark.asyncio
     async def test_refresh_policy_validation(self, temp_config_file):
         """Test refresh policy validation."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
             # Should not raise an exception
@@ -218,20 +215,24 @@ class TestLeadSorcererOrchestrator:
     @pytest.mark.asyncio
     async def test_sink_rotation_logic(self, temp_config_file):
         """Test sink rotation logic."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
             # Test size-based rotation
-            with patch('pathlib.Path.stat') as mock_stat:
+            with patch("pathlib.Path.stat") as mock_stat:
                 mock_stat.return_value.st_size = 15 * 1024 * 1024  # 15 MB
 
-                with patch.object(orchestrator, '_rotate_sink_with_compaction') as mock_rotate:
+                with patch.object(
+                    orchestrator, "_rotate_sink_with_compaction"
+                ) as mock_rotate:
                     # Mock the datetime.utcnow() call in the orchestrator
-                    with patch('src.orchestrator.datetime') as mock_datetime:
+                    with patch("src.orchestrator.datetime") as mock_datetime:
                         # Create a proper datetime object for comparison
                         from datetime import datetime
+
                         current_time = datetime(2024, 1, 1, 0, 0, 0)
                         mock_datetime.utcnow.return_value = current_time
 
@@ -241,27 +242,29 @@ class TestLeadSorcererOrchestrator:
                         mock_stat.return_value.st_mtime = old_timestamp
 
                         # Mock datetime.fromtimestamp to return a proper datetime object
-                        mock_datetime.fromtimestamp.return_value = datetime(2023, 12, 1, 0, 0, 0)
+                        mock_datetime.fromtimestamp.return_value = datetime(
+                            2023, 12, 1, 0, 0, 0
+                        )
 
-                        orchestrator._rotate_sink_if_needed(Path("test.jsonl"), current_time, "test_sink")
+                        orchestrator._rotate_sink_if_needed(
+                            Path("test.jsonl"), current_time, "test_sink"
+                        )
                         mock_rotate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_csv_export_flattening(self, temp_config_file):
         """Test CSV export flattening logic."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
             test_record = {
                 "lead_id": "test-1",
-                "company": {
-                    "name": "Test Corp",
-                    "industry": "Technology"
-                },
+                "company": {"name": "Test Corp", "industry": "Technology"},
                 "contacts": ["contact1", "contact2"],
-                "status": "enriched"
+                "status": "enriched",
             }
 
             # Test field collection
@@ -269,7 +272,11 @@ class TestLeadSorcererOrchestrator:
             orchestrator._collect_fields(test_record, "", fields)
 
             expected_fields = {
-                "lead_id", "status", "company.name", "company.industry", "contacts"
+                "lead_id",
+                "status",
+                "company.name",
+                "company.industry",
+                "contacts",
             }
             assert fields == expected_fields
 
@@ -281,16 +288,27 @@ class TestLeadSorcererOrchestrator:
             assert value == "contact1|contact2"
 
     @pytest.mark.asyncio
-    async def test_metrics_calculation(self, temp_config_file, mock_domain_result, mock_crawl_result, mock_enrich_result):
+    async def test_metrics_calculation(
+        self,
+        temp_config_file,
+        mock_domain_result,
+        mock_crawl_result,
+        mock_enrich_result,
+    ):
         """Test final metrics calculation."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool"),
+            patch("src.orchestrator.CrawlTool"),
+        ):
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
             orchestrator.start_time = 1000  # Mock start time
 
-            with patch('time.time', return_value=1100):  # Mock end time (100 seconds later)
-                metrics = orchestrator._calculate_final_metrics(mock_domain_result, mock_crawl_result, mock_enrich_result)
+            with patch(
+                "time.time", return_value=1100
+            ):  # Mock end time (100 seconds later)
+                metrics = orchestrator._calculate_final_metrics(
+                    mock_domain_result, mock_crawl_result, mock_enrich_result
+                )
 
                 assert metrics["duration_ms"] == 100000  # 100 seconds in ms
                 assert metrics["lead_counts"]["domain"] == 2
@@ -300,12 +318,19 @@ class TestLeadSorcererOrchestrator:
                 assert metrics["cost_usd"]["total"] == 0.007  # 0.002 + 0.002 + 0.003
 
     @pytest.mark.asyncio
-    async def test_pipeline_execution_mock(self, temp_config_file, mock_domain_result, mock_crawl_result, mock_enrich_result):
+    async def test_pipeline_execution_mock(
+        self,
+        temp_config_file,
+        mock_domain_result,
+        mock_crawl_result,
+        mock_enrich_result,
+    ):
         """Test pipeline execution with mocked tools."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool, \
-             patch('src.orchestrator.run_enrich') as MockRunEnrich:
-
+        with (
+            patch("src.orchestrator.DomainTool") as MockDomainTool,
+            patch("src.orchestrator.CrawlTool") as MockCrawlTool,
+            patch("src.orchestrator.run_enrich") as MockRunEnrich,
+        ):
             # Mock domain tool
             mock_domain = MockDomainTool.return_value
             mock_domain.run = AsyncMock(return_value=mock_domain_result)
@@ -320,13 +345,14 @@ class TestLeadSorcererOrchestrator:
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
             # Mock provider validation
-            with patch.object(orchestrator, '_validate_provider_config'), \
-                 patch.object(orchestrator, '_validate_testing_flags'), \
-                 patch.object(orchestrator, '_validate_refresh_policy'), \
-                 patch.object(orchestrator, '_persist_domain_results'), \
-                 patch.object(orchestrator, '_export_leads'), \
-                 patch.object(orchestrator, '_log_pipeline_summary'):
-
+            with (
+                patch.object(orchestrator, "_validate_provider_config"),
+                patch.object(orchestrator, "_validate_testing_flags"),
+                patch.object(orchestrator, "_validate_refresh_policy"),
+                patch.object(orchestrator, "_persist_domain_results"),
+                patch.object(orchestrator, "_export_leads"),
+                patch.object(orchestrator, "_log_pipeline_summary"),
+            ):
                 result = await orchestrator.run_pipeline()
 
                 assert result["success"] is True
@@ -336,9 +362,10 @@ class TestLeadSorcererOrchestrator:
     @pytest.mark.asyncio
     async def test_error_handling(self, temp_config_file):
         """Test error handling in pipeline execution."""
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool:
-
+        with (
+            patch("src.orchestrator.DomainTool") as MockDomainTool,
+            patch("src.orchestrator.CrawlTool"),
+        ):
             # Mock domain tool to raise an exception
             mock_domain = MockDomainTool.return_value
             mock_domain.run = AsyncMock(side_effect=Exception("Test error"))
@@ -346,7 +373,7 @@ class TestLeadSorcererOrchestrator:
             orchestrator = LeadSorcererOrchestrator(temp_config_file)
 
             # Mock provider validation
-            with patch.object(orchestrator, '_validate_provider_config'):
+            with patch.object(orchestrator, "_validate_provider_config"):
                 result = await orchestrator.run_pipeline()
 
                 assert result["success"] is False
@@ -356,13 +383,15 @@ class TestLeadSorcererOrchestrator:
     @pytest.mark.asyncio
     async def test_cli_interface(self, temp_config_file):
         """Test CLI interface functionality."""
-        with patch('sys.argv', ['orchestrator', '--config', temp_config_file]), \
-             patch('src.orchestrator.LeadSorcererOrchestrator') as MockOrchestrator:
-
+        with (
+            patch("sys.argv", ["orchestrator", "--config", temp_config_file]),
+            patch("src.orchestrator.LeadSorcererOrchestrator") as MockOrchestrator,
+        ):
             mock_orchestrator = MockOrchestrator.return_value
             mock_orchestrator.run_pipeline = AsyncMock(return_value={"success": True})
 
             from src.orchestrator import main
+
             result = await main()
 
             assert result == 0
@@ -372,6 +401,7 @@ class TestLeadSorcererOrchestrator:
 # ============================================================================
 # Missing Tests from Task 6
 # ============================================================================
+
 
 class TestMissingRequirements:
     """Test missing requirements from Task 6."""

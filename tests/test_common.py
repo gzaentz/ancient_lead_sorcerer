@@ -5,8 +5,6 @@ Tests all cross-cutting functionality including data normalization, concurrency,
 error handling, schema validation, and other common utilities.
 """
 
-import asyncio
-import json
 import logging
 import os
 import tempfile
@@ -14,25 +12,50 @@ import time
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, mock_open
-from pathlib import Path
 
 import pytest
-import pytest_asyncio
 
 # Import the common utilities
 from src.common import (
-    ErrorCode, normalize_domain, normalize_text, generate_lead_id,
-    generate_contact_id, now_z, mask_email, mask_phone, mask_linkedin,
-    canonicalize_linkedin, parse_phone_number, resolve_data_dir,
-    compute_next_revisit, append_status, append_audit, recompute_total_cost,
-    round4, truncate_evidence_arrays, PermitManager, AsyncSemaphorePool,
-    SyncSemaphorePool, build_error, wrap_unknown_errors,
-    exponential_backoff_with_timeout, load_schema_checksum,
-    validate_envelope, validate_template_placeholders, build_metrics,
-    load_costs_config, PIIMaskingFormatter, setup_logging,
-    write_with_lock, append_jsonl_with_lock, compute_content_hash,
-    should_fetch_next_page, validate_provider_config, validate_testing_flags,
-    get_role_priority, get_seniority_rank, get_email_status_rank
+    ErrorCode,
+    normalize_domain,
+    normalize_text,
+    generate_lead_id,
+    generate_contact_id,
+    now_z,
+    mask_email,
+    mask_phone,
+    mask_linkedin,
+    canonicalize_linkedin,
+    parse_phone_number,
+    resolve_data_dir,
+    compute_next_revisit,
+    append_status,
+    append_audit,
+    recompute_total_cost,
+    round4,
+    truncate_evidence_arrays,
+    PermitManager,
+    AsyncSemaphorePool,
+    SyncSemaphorePool,
+    build_error,
+    wrap_unknown_errors,
+    exponential_backoff_with_timeout,
+    load_schema_checksum,
+    validate_template_placeholders,
+    build_metrics,
+    load_costs_config,
+    PIIMaskingFormatter,
+    setup_logging,
+    write_with_lock,
+    append_jsonl_with_lock,
+    compute_content_hash,
+    should_fetch_next_page,
+    validate_provider_config,
+    validate_testing_flags,
+    get_role_priority,
+    get_seniority_rank,
+    get_email_status_rank,
 )
 
 
@@ -42,9 +65,17 @@ class TestErrorCode(unittest.TestCase):
     def test_error_codes_exist(self):
         """Test that all required error codes are present."""
         expected_codes = [
-            "SCHEMA_VALIDATION", "HTTP_429", "HTTP_TIMEOUT", "SMTP_TIMEOUT",
-            "DNS_FAILURE", "PROVIDER_ERROR", "EXTRACT_ERROR", "BUDGET_EXCEEDED",
-            "PARSE_ERROR", "UNKNOWN", "NO_RESULTS"
+            "SCHEMA_VALIDATION",
+            "HTTP_429",
+            "HTTP_TIMEOUT",
+            "SMTP_TIMEOUT",
+            "DNS_FAILURE",
+            "PROVIDER_ERROR",
+            "EXTRACT_ERROR",
+            "BUDGET_EXCEEDED",
+            "PARSE_ERROR",
+            "UNKNOWN",
+            "NO_RESULTS",
         ]
 
         for code in expected_codes:
@@ -105,6 +136,7 @@ class TestDataFileConventions(unittest.TestCase):
 
         # IDs should be valid UUIDs
         import uuid
+
         self.assertTrue(uuid.UUID(id1))
         self.assertTrue(uuid.UUID(id2))
         self.assertTrue(uuid.UUID(id3))
@@ -127,6 +159,7 @@ class TestDataFileConventions(unittest.TestCase):
 
         # IDs should be valid UUIDs
         import uuid
+
         self.assertTrue(uuid.UUID(id1))
         self.assertTrue(uuid.UUID(id2))
         self.assertTrue(uuid.UUID(id3))
@@ -138,10 +171,10 @@ class TestDataFileConventions(unittest.TestCase):
         after = datetime.utcnow()
 
         # Should be in UTC
-        self.assertTrue(timestamp.endswith('Z'))
+        self.assertTrue(timestamp.endswith("Z"))
 
         # Should be parseable as ISO-8601
-        parsed = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
         # Should be within the expected range
         self.assertTrue(before <= parsed <= after)
@@ -246,7 +279,6 @@ class TestDataFileConventions(unittest.TestCase):
         """Test next revisit computation with max-rule."""
         now = datetime.utcnow()
         revisit_days = 90
-        failure_days = 1
 
         # Test new revisit
         result = compute_next_revisit(None, revisit_days)
@@ -297,7 +329,7 @@ class TestDataFileConventions(unittest.TestCase):
                 "domain_usd": 0.1,
                 "crawl_usd": 0.2,
                 "enrich_usd": 0.3,
-                "total_usd": 0.0
+                "total_usd": 0.0,
             }
         }
 
@@ -331,7 +363,7 @@ class TestDataFileConventions(unittest.TestCase):
                 {
                     "evidence_urls": ["url" + str(i) for i in range(10)]  # 10 URLs
                 }
-            ]
+            ],
         }
 
         truncate_evidence_arrays(record)
@@ -402,7 +434,7 @@ class TestErrorHandling(unittest.TestCase):
             Exception("Test error"),
             "test_tool",
             "test_lead_id",
-            {"context": "test"}
+            {"context": "test"},
         )
 
         self.assertEqual(error["code"], "PROVIDER_ERROR")
@@ -413,6 +445,7 @@ class TestErrorHandling(unittest.TestCase):
 
     def test_wrap_unknown_errors(self):
         """Test unknown error wrapper decorator."""
+
         @wrap_unknown_errors("test_tool")
         def failing_function():
             raise ValueError("Test error")
@@ -471,12 +504,14 @@ class TestErrorHandling(unittest.TestCase):
 class TestSchemaValidation(unittest.TestCase):
     """Test schema validation utilities."""
 
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('os.path.exists')
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("os.path.exists")
     def test_load_schema_checksum(self, mock_exists, mock_file):
         """Test schema checksum loading."""
         mock_exists.return_value = True
-        mock_file.return_value.__enter__.return_value.read.return_value = b'{"test": "schema"}'
+        mock_file.return_value.__enter__.return_value.read.return_value = (
+            b'{"test": "schema"}'
+        )
 
         checksum = load_schema_checksum("test_schema.json")
         self.assertIsInstance(checksum, str)
@@ -507,7 +542,7 @@ class TestMetrics(unittest.TestCase):
             duration_ms=1500,
             cache_hit_rate=0.8,
             pass_rate=0.9,
-            cost_usd={"domain": 0.1, "crawl": 0.2, "enrich": 0.3}
+            cost_usd={"domain": 0.1, "crawl": 0.2, "enrich": 0.3},
         )
 
         self.assertEqual(metrics["count_in"], 10)
@@ -521,7 +556,7 @@ class TestMetrics(unittest.TestCase):
 class TestCosts(unittest.TestCase):
     """Test cost configuration utilities."""
 
-    @patch('builtins.open', new_callable=mock_open)
+    @patch("builtins.open", new_callable=mock_open)
     def test_load_costs_config(self, mock_file):
         """Test cost configuration loading."""
         mock_file.return_value.__enter__.return_value.read.return_value = """
@@ -577,14 +612,14 @@ class TestLogging(unittest.TestCase):
 class TestFileLocking(unittest.TestCase):
     """Test file locking utilities."""
 
-    @patch('src.common.portalocker.Lock')
+    @patch("src.common.portalocker.Lock")
     def test_write_with_lock(self, mock_lock):
         """Test writing with portalocker lock."""
         mock_lock_instance = Mock()
         mock_lock.return_value.__enter__ = Mock(return_value=mock_lock_instance)
         mock_lock.return_value.__exit__ = Mock(return_value=None)
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
             temp_path = temp_file.name
 
         try:
@@ -595,20 +630,20 @@ class TestFileLocking(unittest.TestCase):
             mock_lock_instance.__exit__.assert_called_once()
 
             # Verify content was written
-            with open(temp_path, 'r') as f:
+            with open(temp_path, "r") as f:
                 content = f.read()
             self.assertEqual(content, "test content")
         finally:
             os.unlink(temp_path)
 
-    @patch('src.common.portalocker.Lock')
+    @patch("src.common.portalocker.Lock")
     def test_append_jsonl_with_lock(self, mock_lock):
         """Test appending JSONL with portalocker lock."""
         mock_lock_instance = Mock()
         mock_lock.return_value.__enter__ = Mock(return_value=mock_lock_instance)
         mock_lock.return_value.__exit__ = Mock(return_value=None)
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_file:
             temp_path = temp_file.name
 
         try:
@@ -620,7 +655,7 @@ class TestFileLocking(unittest.TestCase):
             mock_lock_instance.__exit__.assert_called_once()
 
             # Verify content was written
-            with open(temp_path, 'r') as f:
+            with open(temp_path, "r") as f:
                 content = f.read().strip()
             self.assertEqual(content, '{"test": "data"}')
         finally:
@@ -686,7 +721,9 @@ class TestTestingFlags(unittest.TestCase):
     def test_validate_testing_flags(self):
         """Test testing flags validation."""
         # Valid config
-        valid_config = {"testing": {"process_rejected": False, "process_low_crawl": True}}
+        valid_config = {
+            "testing": {"process_rejected": False, "process_low_crawl": True}
+        }
         validate_testing_flags(valid_config)
 
         # Invalid config
@@ -735,19 +772,23 @@ class TestFieldOwnership(unittest.TestCase):
         record_before = {
             "company": {"name": "Old Name"},
             "contacts": [{"full_name": "Old Name"}],
-            "icp": {"pre_score": 0.5}
+            "icp": {"pre_score": 0.5},
         }
 
         record_after = {
             "company": {"name": "New Name"},
             "contacts": [{"full_name": "New Name"}],
-            "icp": {"pre_score": 0.8}
+            "icp": {"pre_score": 0.8},
         }
 
         # This test verifies the concept of field ownership
         # The actual implementation will use the helper from 1.1.24
-        self.assertNotEqual(record_before["company"]["name"], record_after["company"]["name"])
-        self.assertNotEqual(record_before["icp"]["pre_score"], record_after["icp"]["pre_score"])
+        self.assertNotEqual(
+            record_before["company"]["name"], record_after["company"]["name"]
+        )
+        self.assertNotEqual(
+            record_before["icp"]["pre_score"], record_after["icp"]["pre_score"]
+        )
 
 
 class TestStatusHistory(unittest.TestCase):
@@ -783,5 +824,5 @@ class TestProviderPayloadRedaction(unittest.TestCase):
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

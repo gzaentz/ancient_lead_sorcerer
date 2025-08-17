@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import phonenumbers
@@ -32,8 +32,10 @@ from jsonschema import Draft202012Validator, ValidationError
 # Constants and Configuration
 # ============================================================================
 
+
 class ErrorCode(Enum):
     """Authoritative error codes for all tools."""
+
     SCHEMA_VALIDATION = "SCHEMA_VALIDATION"
     HTTP_429 = "HTTP_429"
     HTTP_TIMEOUT = "HTTP_TIMEOUT"
@@ -51,6 +53,7 @@ class ErrorCode(Enum):
 # Data & File Conventions
 # ============================================================================
 
+
 def normalize_domain(domain: str) -> str:
     """
     Normalize domain to eTLD+1 using Public Suffix List.
@@ -65,12 +68,12 @@ def normalize_domain(domain: str) -> str:
         return domain
 
     # Remove protocol if present
-    if domain.startswith(('http://', 'https://')):
+    if domain.startswith(("http://", "https://")):
         domain = urlparse(domain).netloc
 
     # Remove port if present
-    if ':' in domain:
-        domain = domain.split(':')[0]
+    if ":" in domain:
+        domain = domain.split(":")[0]
 
     # Normalize to lowercase
     domain = domain.lower().strip()
@@ -104,16 +107,16 @@ def normalize_text(text: str) -> str:
     text = str(text)
 
     # Unicode NFKD normalization (strip accents)
-    text = unicodedata.normalize('NFKD', text)
+    text = unicodedata.normalize("NFKD", text)
 
     # Convert to lowercase
     text = text.lower()
 
     # Trim and collapse internal whitespace to single spaces
-    text = ' '.join(text.split())
+    text = " ".join(text.split())
 
     # Remove combining characters (accents) after NFKD
-    text = ''.join(c for c in text if not unicodedata.combining(c))
+    text = "".join(c for c in text if not unicodedata.combining(c))
 
     return text
 
@@ -134,7 +137,9 @@ def generate_lead_id(domain: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, normalized_domain))
 
 
-def generate_contact_id(domain: str, full_name: str, role: str, linkedin: str = "") -> str:
+def generate_contact_id(
+    domain: str, full_name: str, role: str, linkedin: str = ""
+) -> str:
     """
     Generate deterministic contact_id using uuid5 with NAMESPACE_URL.
 
@@ -155,7 +160,9 @@ def generate_contact_id(domain: str, full_name: str, role: str, linkedin: str = 
     normalized_linkedin = linkedin or ""
 
     # Create deterministic string for UUID5
-    contact_string = f"{normalized_domain}|{normalized_name}|{normalized_role}|{normalized_linkedin}"
+    contact_string = (
+        f"{normalized_domain}|{normalized_name}|{normalized_role}|{normalized_linkedin}"
+    )
     return str(uuid.uuid5(uuid.NAMESPACE_URL, contact_string))
 
 
@@ -166,7 +173,7 @@ def now_z() -> str:
     Returns:
         ISO-8601 UTC timestamp string
     """
-    return datetime.utcnow().replace(tzinfo=None).isoformat() + 'Z'
+    return datetime.utcnow().replace(tzinfo=None).isoformat() + "Z"
 
 
 def mask_email(email: str) -> str:
@@ -179,10 +186,10 @@ def mask_email(email: str) -> str:
     Returns:
         Masked email (e.g., "j***@domain.com")
     """
-    if not email or '@' not in email:
+    if not email or "@" not in email:
         return email
 
-    local_part, domain = email.split('@', 1)
+    local_part, domain = email.split("@", 1)
     if len(local_part) <= 1:
         return f"{local_part}***@{domain}"
 
@@ -203,13 +210,13 @@ def mask_phone(phone: str) -> str:
         return phone
 
     # Remove all non-digit characters except +
-    digits_only = re.sub(r'[^\d+]', '', phone)
+    digits_only = re.sub(r"[^\d+]", "", phone)
 
     if len(digits_only) <= 4:
         return phone
 
     # Keep + and last 4 digits
-    if digits_only.startswith('+'):
+    if digits_only.startswith("+"):
         return f"+XXXXXXXX{digits_only[-4:]}"
     else:
         return f"XXXXXXXX{digits_only[-4:]}"
@@ -229,16 +236,16 @@ def mask_linkedin(linkedin_path: str) -> str:
         return linkedin_path
 
     # Extract path from full URL if needed
-    if linkedin_path.startswith('http'):
+    if linkedin_path.startswith("http"):
         parsed = urlparse(linkedin_path)
         path = parsed.path
     else:
         path = linkedin_path
 
     # Mask the slug part
-    if path.startswith('/in/'):
+    if path.startswith("/in/"):
         return "/in/***"
-    elif path.startswith('/company/'):
+    elif path.startswith("/company/"):
         return "/company/***"
     else:
         return path
@@ -262,22 +269,25 @@ def canonicalize_linkedin(linkedin_url: str) -> Tuple[str, str]:
     match = re.match(pattern, linkedin_url)
 
     if match:
-        link_type = match.group('type')
-        slug = match.group('slug')
+        link_type = match.group("type")
+        slug = match.group("slug")
         return link_type, slug
 
     # Handle relative paths
-    if linkedin_url.startswith('/in/') or linkedin_url.startswith('/company/'):
-        parts = linkedin_url.split('/')
+    if linkedin_url.startswith("/in/") or linkedin_url.startswith("/company/"):
+        parts = linkedin_url.split("/")
         if len(parts) >= 3:
             return parts[1], parts[2]
 
     return "", ""
 
 
-def parse_phone_number(phone: str, country_code: Optional[str] = None,
-                      company_country: Optional[str] = None,
-                      default_country: str = "US") -> Optional[str]:
+def parse_phone_number(
+    phone: str,
+    country_code: Optional[str] = None,
+    company_country: Optional[str] = None,
+    default_country: str = "US",
+) -> Optional[str]:
     """
     Parse and normalize phone number to E.164 format.
 
@@ -301,7 +311,9 @@ def parse_phone_number(phone: str, country_code: Optional[str] = None,
         try:
             parsed = phonenumbers.parse(phone, country_code)
             if phonenumbers.is_valid_number(parsed):
-                return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+                return phonenumbers.format_number(
+                    parsed, phonenumbers.PhoneNumberFormat.E164
+                )
         except phonenumbers.NumberParseException:
             pass
 
@@ -310,7 +322,9 @@ def parse_phone_number(phone: str, country_code: Optional[str] = None,
         try:
             parsed = phonenumbers.parse(phone, company_country)
             if phonenumbers.is_valid_number(parsed):
-                return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+                return phonenumbers.format_number(
+                    parsed, phonenumbers.PhoneNumberFormat.E164
+                )
         except phonenumbers.NumberParseException:
             pass
 
@@ -318,7 +332,9 @@ def parse_phone_number(phone: str, country_code: Optional[str] = None,
     try:
         parsed = phonenumbers.parse(phone, default_country)
         if phonenumbers.is_valid_number(parsed):
-            return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+            return phonenumbers.format_number(
+                parsed, phonenumbers.PhoneNumberFormat.E164
+            )
     except phonenumbers.NumberParseException:
         pass
 
@@ -337,11 +353,11 @@ def resolve_data_dir(payload: Dict[str, Any]) -> str:
         Resolved data directory path
     """
     # Check payload.config.data_dir first
-    if payload.get('config', {}).get('data_dir'):
-        return payload['config']['data_dir']
+    if payload.get("config", {}).get("data_dir"):
+        return payload["config"]["data_dir"]
 
     # Check environment variable
-    env_data_dir = os.environ.get('LEADPOUT_DATA_DIR')
+    env_data_dir = os.environ.get("LEADPOUT_DATA_DIR")
     if env_data_dir:
         return env_data_dir
 
@@ -349,10 +365,12 @@ def resolve_data_dir(payload: Dict[str, Any]) -> str:
     return "./data"
 
 
-def compute_next_revisit(existing_next_revisit: Optional[str],
-                        revisit_after_days: int,
-                        failure_revisit_days: Optional[int] = None,
-                        is_failure: bool = False) -> str:
+def compute_next_revisit(
+    existing_next_revisit: Optional[str],
+    revisit_after_days: int,
+    failure_revisit_days: Optional[int] = None,
+    is_failure: bool = False,
+) -> str:
     """
     Compute next_revisit_at using max-rule.
 
@@ -373,12 +391,14 @@ def compute_next_revisit(existing_next_revisit: Optional[str],
 
     # Calculate new revisit time
     new_revisit = datetime.utcnow() + timedelta(days=delta_days)
-    new_revisit_str = new_revisit.isoformat() + 'Z'
+    new_revisit_str = new_revisit.isoformat() + "Z"
 
     # Apply max-rule: max(existing_next_revisit_at or 0, now + delta_days)
     if existing_next_revisit:
         try:
-            existing_dt = datetime.fromisoformat(existing_next_revisit.replace('Z', '+00:00'))
+            existing_dt = datetime.fromisoformat(
+                existing_next_revisit.replace("Z", "+00:00")
+            )
             # Make both timezone-aware for comparison
             new_revisit_aware = new_revisit.replace(tzinfo=existing_dt.tzinfo)
             if existing_dt > new_revisit_aware:
@@ -390,7 +410,9 @@ def compute_next_revisit(existing_next_revisit: Optional[str],
     return new_revisit_str
 
 
-def append_status(history: List[Dict[str, Any]], new_status: str, notes: Optional[str] = None) -> None:
+def append_status(
+    history: List[Dict[str, Any]], new_status: str, notes: Optional[str] = None
+) -> None:
     """
     Append status entry to status_history array.
 
@@ -399,11 +421,7 @@ def append_status(history: List[Dict[str, Any]], new_status: str, notes: Optiona
         new_status: New status value
         notes: Optional notes about the status change
     """
-    status_entry = {
-        "status": new_status,
-        "ts": now_z(),
-        "notes": notes
-    }
+    status_entry = {"status": new_status, "ts": now_z(), "notes": notes}
     history.append(status_entry)
 
 
@@ -416,15 +434,11 @@ def append_audit(record: Dict[str, Any], step: str, notes: str) -> None:
         step: Tool step (Domain|Crawl|Enrich)
         notes: Audit notes
     """
-    if 'audit' not in record:
-        record['audit'] = []
+    if "audit" not in record:
+        record["audit"] = []
 
-    audit_entry = {
-        "step": step,
-        "notes": notes,
-        "ts": now_z()
-    }
-    record['audit'].append(audit_entry)
+    audit_entry = {"step": step, "notes": notes, "ts": now_z()}
+    record["audit"].append(audit_entry)
 
 
 def recompute_total_cost(record: Dict[str, Any]) -> None:
@@ -434,15 +448,15 @@ def recompute_total_cost(record: Dict[str, Any]) -> None:
     Args:
         record: Lead record to update
     """
-    if 'cost' not in record:
-        record['cost'] = {}
+    if "cost" not in record:
+        record["cost"] = {}
 
-    domain_cost = record['cost'].get('domain_usd', 0.0)
-    crawl_cost = record['cost'].get('crawl_usd', 0.0)
-    enrich_cost = record['cost'].get('enrich_usd', 0.0)
+    domain_cost = record["cost"].get("domain_usd", 0.0)
+    crawl_cost = record["cost"].get("crawl_usd", 0.0)
+    enrich_cost = record["cost"].get("enrich_usd", 0.0)
 
     total = domain_cost + crawl_cost + enrich_cost
-    record['cost']['total_usd'] = round4(total)
+    record["cost"]["total_usd"] = round4(total)
 
 
 def round4(f: float) -> float:
@@ -458,9 +472,9 @@ def round4(f: float) -> float:
     return round(f, 4)
 
 
-def enforce_field_ownership(record_before: Dict[str, Any],
-                           record_after: Dict[str, Any],
-                           stage: str) -> None:
+def enforce_field_ownership(
+    record_before: Dict[str, Any], record_after: Dict[str, Any], stage: str
+) -> None:
     """
     Validate that only authorized fields were modified.
 
@@ -485,20 +499,21 @@ def truncate_evidence_arrays(record: Dict[str, Any]) -> None:
         record: Lead record to truncate
     """
     # Company evidence_urls ≤ 10
-    if 'company' in record and 'evidence_urls' in record['company']:
-        if len(record['company']['evidence_urls']) > 10:
-            record['company']['evidence_urls'] = record['company']['evidence_urls'][:10]
+    if "company" in record and "evidence_urls" in record["company"]:
+        if len(record["company"]["evidence_urls"]) > 10:
+            record["company"]["evidence_urls"] = record["company"]["evidence_urls"][:10]
 
     # Contacts evidence_urls ≤ 5
-    if 'contacts' in record:
-        for contact in record['contacts']:
-            if 'evidence_urls' in contact and len(contact['evidence_urls']) > 5:
-                contact['evidence_urls'] = contact['evidence_urls'][:5]
+    if "contacts" in record:
+        for contact in record["contacts"]:
+            if "evidence_urls" in contact and len(contact["evidence_urls"]) > 5:
+                contact["evidence_urls"] = contact["evidence_urls"][:5]
 
 
 # ============================================================================
 # Concurrency Guard
 # ============================================================================
+
 
 class PermitManager:
     """Global permit manager for controlling concurrent requests across all tools."""
@@ -613,9 +628,14 @@ class SyncSemaphorePool:
 # Error Handling & Retries
 # ============================================================================
 
-def build_error(code: ErrorCode, exc: Optional[Exception] = None,
-                tool: str = "", lead_id: Optional[str] = None,
-                context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+
+def build_error(
+    code: ErrorCode,
+    exc: Optional[Exception] = None,
+    tool: str = "",
+    lead_id: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """
     Build error object with PII masking and secret redaction.
 
@@ -632,8 +652,13 @@ def build_error(code: ErrorCode, exc: Optional[Exception] = None,
     error = {
         "code": code.value,
         "tool": tool,
-        "retryable": code in [ErrorCode.HTTP_429, ErrorCode.HTTP_TIMEOUT,
-                             ErrorCode.SMTP_TIMEOUT, ErrorCode.PROVIDER_ERROR]
+        "retryable": code
+        in [
+            ErrorCode.HTTP_429,
+            ErrorCode.HTTP_TIMEOUT,
+            ErrorCode.SMTP_TIMEOUT,
+            ErrorCode.PROVIDER_ERROR,
+        ],
     }
 
     if lead_id:
@@ -653,11 +678,11 @@ def build_error(code: ErrorCode, exc: Optional[Exception] = None,
         masked_context = {}
         for key, value in context.items():
             if isinstance(value, str):
-                if 'email' in key.lower():
+                if "email" in key.lower():
                     masked_context[key] = mask_email(value)
-                elif 'phone' in key.lower():
+                elif "phone" in key.lower():
                     masked_context[key] = mask_phone(value)
-                elif 'linkedin' in key.lower():
+                elif "linkedin" in key.lower():
                     masked_context[key] = mask_linkedin(value)
                 else:
                     masked_context[key] = value
@@ -678,6 +703,7 @@ def wrap_unknown_errors(func):
     Returns:
         Wrapped function
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -685,9 +711,7 @@ def wrap_unknown_errors(func):
         except Exception as exc:
             # Create UNKNOWN error
             error = build_error(
-                code=ErrorCode.UNKNOWN,
-                exc=exc,
-                tool=func.__module__ or "unknown"
+                code=ErrorCode.UNKNOWN, exc=exc, tool=func.__module__ or "unknown"
             )
 
             # Return partial results with error
@@ -700,16 +724,21 @@ def wrap_unknown_errors(func):
                     "duration_ms": 0,
                     "cache_hit_rate": None,
                     "pass_rate": None,
-                    "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0}
-                }
+                    "cost_usd": {
+                        "domain": 0.0,
+                        "crawl": 0.0,
+                        "enrich": 0.0,
+                        "total": 0.0,
+                    },
+                },
             }
 
     return wrapper
 
 
-def exponential_backoff_with_timeout(max_attempts: int = 5,
-                                   base_delay: float = 1.0,
-                                   max_wall_clock: float = 45.0):
+def exponential_backoff_with_timeout(
+    max_attempts: int = 5, base_delay: float = 1.0, max_wall_clock: float = 45.0
+):
     """
     Decorator for exponential backoff with wall-clock timeout.
 
@@ -721,6 +750,7 @@ def exponential_backoff_with_timeout(max_attempts: int = 5,
     Returns:
         Decorated function
     """
+
     def decorator(func):
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -735,7 +765,9 @@ def exponential_backoff_with_timeout(max_attempts: int = 5,
 
                     # Check wall-clock timeout
                     if time.time() - start_time > max_wall_clock:
-                        raise TimeoutError(f"Wall-clock timeout after {max_wall_clock}s")
+                        raise TimeoutError(
+                            f"Wall-clock timeout after {max_wall_clock}s"
+                        )
 
                     # Don't sleep on last attempt
                     if attempt < max_attempts:
@@ -759,7 +791,9 @@ def exponential_backoff_with_timeout(max_attempts: int = 5,
 
                     # Check wall-clock timeout
                     if time.time() - start_time > max_wall_clock:
-                        raise TimeoutError(f"Wall-clock timeout after {max_wall_clock}s")
+                        raise TimeoutError(
+                            f"Wall-clock timeout after {max_wall_clock}s"
+                        )
 
                     # Don't sleep on last attempt
                     if attempt < max_attempts:
@@ -783,6 +817,7 @@ def exponential_backoff_with_timeout(max_attempts: int = 5,
 # Schema Validation & Versioning
 # ============================================================================
 
+
 def load_schema_checksum() -> str:
     """
     Load canonical schema and compute SHA256 checksum.
@@ -794,7 +829,7 @@ def load_schema_checksum() -> str:
     if not schema_path.exists():
         raise FileNotFoundError(f"Schema file not found: {schema_path}")
 
-    with open(schema_path, 'rb') as f:
+    with open(schema_path, "rb") as f:
         schema_content = f.read()
 
     return hashlib.sha256(schema_content).hexdigest()
@@ -816,7 +851,7 @@ def validate_envelope(io_data: Dict[str, Any], stage: str) -> List[Dict[str, Any
     try:
         # Load schema
         schema_path = Path("schemas/unified_lead_record.json")
-        with open(schema_path, 'r') as f:
+        with open(schema_path, "r") as f:
             schema = json.load(f)
 
         # Validate against schema
@@ -824,20 +859,27 @@ def validate_envelope(io_data: Dict[str, Any], stage: str) -> List[Dict[str, Any
         validation_errors = list(validator.iter_errors(io_data))
 
         for error in validation_errors:
-            errors.append(build_error(
-                code=ErrorCode.SCHEMA_VALIDATION,
-                exc=ValidationError(f"Schema validation failed: {error.message}"),
-                tool=stage,
-                context={"path": list(error.path), "schema_path": str(error.schema_path)}
-            ))
+            errors.append(
+                build_error(
+                    code=ErrorCode.SCHEMA_VALIDATION,
+                    exc=ValidationError(f"Schema validation failed: {error.message}"),
+                    tool=stage,
+                    context={
+                        "path": list(error.path),
+                        "schema_path": str(error.schema_path),
+                    },
+                )
+            )
 
     except Exception as exc:
-        errors.append(build_error(
-            code=ErrorCode.SCHEMA_VALIDATION,
-            exc=exc,
-            tool=stage,
-            context={"error": "Failed to load or validate schema"}
-        ))
+        errors.append(
+            build_error(
+                code=ErrorCode.SCHEMA_VALIDATION,
+                exc=exc,
+                tool=stage,
+                context={"error": "Failed to load or validate schema"},
+            )
+        )
 
     return errors
 
@@ -856,8 +898,8 @@ def validate_template_placeholders(template: str, context: Dict[str, Any]) -> Li
     import string
 
     # Extract all placeholders from template
-    template_obj = string.Template(template)
-    placeholders = re.findall(r'\$\{([^}]+)\}', template)
+    string.Template(template)
+    placeholders = re.findall(r"\$\{([^}]+)\}", template)
 
     # Check which placeholders are missing from context
     missing = []
@@ -872,10 +914,15 @@ def validate_template_placeholders(template: str, context: Dict[str, Any]) -> Li
 # Metrics
 # ============================================================================
 
-def build_metrics(count_in: int, count_out: int, duration_ms: int,
-                 cache_hit_rate: Optional[float] = None,
-                 pass_rate: Optional[float] = None,
-                 cost_usd: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+
+def build_metrics(
+    count_in: int,
+    count_out: int,
+    duration_ms: int,
+    cache_hit_rate: Optional[float] = None,
+    pass_rate: Optional[float] = None,
+    cost_usd: Optional[Dict[str, float]] = None,
+) -> Dict[str, Any]:
     """
     Build metrics structure for tool output.
 
@@ -894,14 +941,16 @@ def build_metrics(count_in: int, count_out: int, duration_ms: int,
         "count_in": count_in,
         "count_out": count_out,
         "duration_ms": duration_ms,
-        "cache_hit_rate": round4(cache_hit_rate) if cache_hit_rate is not None else None,
+        "cache_hit_rate": round4(cache_hit_rate)
+        if cache_hit_rate is not None
+        else None,
         "pass_rate": round4(pass_rate) if pass_rate is not None else None,
         "cost_usd": {
             "domain": round4(cost_usd.get("domain", 0.0)) if cost_usd else 0.0,
             "crawl": round4(cost_usd.get("crawl", 0.0)) if cost_usd else 0.0,
             "enrich": round4(cost_usd.get("enrich", 0.0)) if cost_usd else 0.0,
-            "total": round4(cost_usd.get("total", 0.0)) if cost_usd else 0.0
-        }
+            "total": round4(cost_usd.get("total", 0.0)) if cost_usd else 0.0,
+        },
     }
 
     return metrics
@@ -923,14 +972,15 @@ def load_costs_config(path: str = "config/costs.yaml") -> Dict[str, float]:
     """
     try:
         import yaml
-        with open(path, 'r') as f:
+
+        with open(path, "r") as f:
             costs = yaml.safe_load(f)
 
         # Extract usd_per_unit for each provider
         result = {}
         for provider, config in costs.items():
-            if 'usd_per_unit' in config:
-                result[provider] = float(config['usd_per_unit'])
+            if "usd_per_unit" in config:
+                result[provider] = float(config["usd_per_unit"])
 
         return result
 
@@ -946,12 +996,13 @@ def load_costs_config(path: str = "config/costs.yaml") -> Dict[str, float]:
 # Logging & Secret Redaction
 # ============================================================================
 
+
 class PIIMaskingFormatter(logging.Formatter):
     """Log formatter that masks PII and secrets."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.secret_keys = {'key', 'token', 'secret', 'password', 'pw'}
+        self.secret_keys = {"key", "token", "secret", "password", "pw"}
 
     def format(self, record):
         # Get the original message
@@ -996,15 +1047,15 @@ class PIIMaskingFormatter(logging.Formatter):
             return "***REDACTED***"
 
         # Mask emails
-        if 'email' in key_lower and '@' in value:
+        if "email" in key_lower and "@" in value:
             return mask_email(value)
 
         # Mask phones
-        if 'phone' in key_lower and any(c.isdigit() for c in value):
+        if "phone" in key_lower and any(c.isdigit() for c in value):
             return mask_phone(value)
 
         # Mask LinkedIn URLs
-        if 'linkedin' in key_lower and 'linkedin.com' in value:
+        if "linkedin" in key_lower and "linkedin.com" in value:
             return mask_linkedin(value)
 
         # Mask large payloads
@@ -1012,7 +1063,7 @@ class PIIMaskingFormatter(logging.Formatter):
             return f"{value[:100]}...***TRUNCATED***"
 
         # Mask provider payloads with headers/body
-        if key in ['headers', 'body'] or 'payload' in key_lower:
+        if key in ["headers", "body"] or "payload" in key_lower:
             return "***PROVIDER_PAYLOAD_REDACTED***"
 
         return value
@@ -1062,7 +1113,8 @@ def setup_logging(tool_name: str, level: int = logging.INFO) -> logging.Logger:
 # File Operations with Portalocker
 # ============================================================================
 
-def write_with_lock(file_path: str, data: Any, mode: str = 'w') -> None:
+
+def write_with_lock(file_path: str, data: Any, mode: str = "w") -> None:
     """
     Write data to file with portalocker write lock.
 
@@ -1071,7 +1123,6 @@ def write_with_lock(file_path: str, data: Any, mode: str = 'w') -> None:
         data: Data to write
         mode: File write mode
     """
-def write_with_lock(file_path: str, data: Any, mode: str = 'w') -> None:
     try:
         with portalocker.Lock(file_path, timeout=10):
             with open(file_path, mode) as f:
@@ -1081,25 +1132,29 @@ def write_with_lock(file_path: str, data: Any, mode: str = 'w') -> None:
                     json.dump(data, f, indent=2)
     except portalocker.exceptions.LockException as e:
         raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
+
+
 def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> None:
     """
-    Append records to JSONL file with portalocker write lock.
+    Append records to JSONL file with portallocker write lock.
 
     Args:
         file_path: Path to JSONL file
         records: List of records to append
     """
-    def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> None:
-        try:
-            with portalocker.Lock(file_path, timeout=10):
-                with open(file_path, 'a') as f:
-                    for record in records:
-                        f.write(json.dumps(record) + '\n')
-        except portalocker.exceptions.LockException as e:
-            raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
+    try:
+        with portalocker.Lock(file_path, timeout=10):
+            with open(file_path, "a") as f:
+                for record in records:
+                    f.write(json.dumps(record) + "\n")
+    except portalocker.exceptions.LockException as e:
+        raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
+
+
 # ============================================================================
 # Content Hash Deduplication
 # ============================================================================
+
 
 def compute_content_hash(data: Dict[str, Any]) -> str:
     """
@@ -1112,7 +1167,7 @@ def compute_content_hash(data: Dict[str, Any]) -> str:
         SHA256 hex digest
     """
     # Sort keys for deterministic hashing
-    sorted_json = json.dumps(data, sort_keys=True, separators=(',', ':'))
+    sorted_json = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(sorted_json.encode()).hexdigest()
 
 
@@ -1120,8 +1175,10 @@ def compute_content_hash(data: Dict[str, Any]) -> str:
 # Progressive SERP Pagination
 # ============================================================================
 
-def should_fetch_next_page(current_page: int, max_pages: int,
-                          cache_hit: bool, mode: str = "thorough") -> bool:
+
+def should_fetch_next_page(
+    current_page: int, max_pages: int, cache_hit: bool, mode: str = "thorough"
+) -> bool:
     """
     Determine if next SERP page should be fetched.
 
@@ -1150,8 +1207,10 @@ def should_fetch_next_page(current_page: int, max_pages: int,
 # Provider Configuration Validation
 # ============================================================================
 
-def validate_provider_config(required_providers: List[str],
-                           costs_config: Dict[str, float]) -> None:
+
+def validate_provider_config(
+    required_providers: List[str], costs_config: Dict[str, float]
+) -> None:
     """
     Validate that required providers are present in costs configuration.
 
@@ -1168,12 +1227,15 @@ def validate_provider_config(required_providers: List[str],
             missing_providers.append(provider)
 
     if missing_providers:
-        raise KeyError(f"Missing required providers in costs configuration: {missing_providers}")
+        raise KeyError(
+            f"Missing required providers in costs configuration: {missing_providers}"
+        )
 
 
 # ============================================================================
 # Testing Flags & Configuration
 # ============================================================================
+
 
 def validate_testing_flags(icp_config: Dict[str, Any]) -> None:
     """
@@ -1185,20 +1247,25 @@ def validate_testing_flags(icp_config: Dict[str, Any]) -> None:
     Raises:
         ValueError: If testing flags are invalid
     """
-    testing = icp_config.get('testing', {})
+    testing = icp_config.get("testing", {})
 
     # Validate process_rejected flag
-    if 'process_rejected' in testing and not isinstance(testing['process_rejected'], bool):
+    if "process_rejected" in testing and not isinstance(
+        testing["process_rejected"], bool
+    ):
         raise ValueError("testing.process_rejected must be boolean")
 
     # Validate process_low_crawl flag
-    if 'process_low_crawl' in testing and not isinstance(testing['process_low_crawl'], bool):
+    if "process_low_crawl" in testing and not isinstance(
+        testing["process_low_crawl"], bool
+    ):
         raise ValueError("testing.process_low_crawl must be boolean")
 
 
 # ============================================================================
 # Role Priority & Seniority
 # ============================================================================
+
 
 def get_role_priority(role: str, role_priority_config: Dict[str, int]) -> int:
     """
@@ -1212,7 +1279,7 @@ def get_role_priority(role: str, role_priority_config: Dict[str, int]) -> int:
         Priority value (lower = higher priority)
     """
     if not role:
-        return role_priority_config.get('default', 99)
+        return role_priority_config.get("default", 99)
 
     role_lower = normalize_text(role)
 
@@ -1222,10 +1289,10 @@ def get_role_priority(role: str, role_priority_config: Dict[str, int]) -> int:
 
     # Check partial matches
     for config_role, priority in role_priority_config.items():
-        if config_role != 'default' and config_role in role_lower:
+        if config_role != "default" and config_role in role_lower:
             return priority
 
-    return role_priority_config.get('default', 99)
+    return role_priority_config.get("default", 99)
 
 
 def get_seniority_rank(title: str) -> int:
@@ -1255,7 +1322,7 @@ def get_seniority_rank(title: str) -> int:
         "director": 3,
         "manager": 4,
         "lead": 5,
-        "ic": 6
+        "ic": 6,
     }
 
     # Check for matches
@@ -1270,6 +1337,7 @@ def get_seniority_rank(title: str) -> int:
 # Email Status Ranking
 # ============================================================================
 
+
 def get_email_status_rank(email_status: str) -> int:
     """
     Get email status rank for best contact selection.
@@ -1280,12 +1348,6 @@ def get_email_status_rank(email_status: str) -> int:
     Returns:
         Status rank (lower = higher priority)
     """
-    status_ranks = {
-        "valid": 0,
-        "risky": 1,
-        "catch_all": 2,
-        "unknown": 3,
-        "invalid": 4
-    }
+    status_ranks = {"valid": 0, "risky": 1, "catch_all": 2, "unknown": 3, "invalid": 4}
 
     return status_ranks.get(email_status, 4)

@@ -12,24 +12,35 @@ import hashlib
 import json
 import logging
 import os
-import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
 
 import httpx
 from openai import AsyncOpenAI
 
 from .common import (
-    AsyncSemaphorePool, ErrorCode, PermitManager, append_audit, append_status,
-    build_error, build_metrics, canonicalize_linkedin, compute_next_revisit,
-    enforce_field_ownership, generate_lead_id, load_costs_config,
-    load_schema_checksum, mask_email, mask_linkedin, mask_phone,
-    normalize_domain, normalize_text, now_z, round4, recompute_total_cost, setup_logging,
-    truncate_evidence_arrays, validate_envelope, validate_provider_config,
-    validate_template_placeholders, write_with_lock, append_jsonl_with_lock
+    AsyncSemaphorePool,
+    ErrorCode,
+    PermitManager,
+    append_audit,
+    append_status,
+    build_error,
+    build_metrics,
+    compute_next_revisit,
+    generate_lead_id,
+    load_costs_config,
+    load_schema_checksum,
+    normalize_domain,
+    now_z,
+    round4,
+    recompute_total_cost,
+    setup_logging,
+    validate_provider_config,
+    validate_template_placeholders,
+    write_with_lock,
+    append_jsonl_with_lock,
 )
 
 # ============================================================================
@@ -50,6 +61,7 @@ DEFAULT_MODE = "thorough"
 # ============================================================================
 # Google Search Engine (GSE) Integration
 # ============================================================================
+
 
 class GSESearchClient:
     """Client for Google Programmable Search Engine (GSE)."""
@@ -73,11 +85,11 @@ class GSESearchClient:
         """
         async with self.semaphore_pool:
             params = {
-                'key': self.api_key,
-                'cx': self.cx,
-                'q': query,
-                'start': (page - 1) * 10 + 1,  # GSE uses 1-based indexing
-                'num': 10
+                "key": self.api_key,
+                "cx": self.cx,
+                "q": query,
+                "start": (page - 1) * 10 + 1,  # GSE uses 1-based indexing
+                "num": 10,
             }
 
             async with httpx.AsyncClient(timeout=(3.0, 10.0)) as client:
@@ -85,22 +97,26 @@ class GSESearchClient:
                 response.raise_for_status()
                 return response.json()
 
+
 # ============================================================================
 # LLM Scoring
 # ============================================================================
+
 
 class LLMScorer:
     """LLM-based domain scoring using OpenRouter."""
 
     def __init__(self, api_key: str, semaphore_pool: AsyncSemaphorePool):
         self.client = AsyncOpenAI(
-            api_key=api_key,
-            base_url="https://openrouter.ai/api/v1"
+            api_key=api_key, base_url="https://openrouter.ai/api/v1"
         )
         self.semaphore_pool = semaphore_pool
         self.primary_model = "gpt-4o-mini"
         self.fallback_model = "gpt-3.5-turbo"
-    def _build_scoring_prompt(self, title: str, snippet: str, query: str, icp_text: str) -> str:
+
+    def _build_scoring_prompt(
+        self, title: str, snippet: str, query: str, icp_text: str
+    ) -> str:
         """
         Build scoring prompt for LLM.
 
@@ -140,7 +156,9 @@ Return only a JSON object with this exact format:
 
 Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, technology_mismatch"""
 
-    async def score_domain(self, title: str, snippet: str, query: str, icp_text: str) -> Tuple[float, str, List[str], str, str]:
+    async def score_domain(
+        self, title: str, snippet: str, query: str, icp_text: str
+    ) -> Tuple[float, str, List[str], str, str]:
         """
         Score a domain using LLM.
 
@@ -163,7 +181,7 @@ Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, t
                     model=self.primary_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
-                    max_tokens=500
+                    max_tokens=500,
                 )
                 model_used = self.primary_model
             except Exception:
@@ -172,7 +190,7 @@ Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, t
                     model=self.fallback_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
-                    max_tokens=500
+                    max_tokens=500,
                 )
                 model_used = self.fallback_model
 
@@ -181,9 +199,9 @@ Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, t
             # Parse JSON response
             try:
                 result = json.loads(content)
-                score = float(result.get('score', 0.0))
-                reason = result.get('reason', 'No reason provided')
-                flags = result.get('flags', [])
+                score = float(result.get("score", 0.0))
+                reason = result.get("reason", "No reason provided")
+                flags = result.get("flags", [])
 
                 # Validate score range
                 score = max(0.0, min(1.0, score))
@@ -192,11 +210,19 @@ Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, t
             except (json.JSONDecodeError, ValueError, KeyError) as e:
                 # Fallback to default values if parsing fails
                 logging.warning(f"Failed to parse LLM response: {e}")
-                return 0.0, "Failed to parse response", [], model_used, prompt_fingerprint
+                return (
+                    0.0,
+                    "Failed to parse response",
+                    [],
+                    model_used,
+                    prompt_fingerprint,
+                )
+
 
 # ============================================================================
 # Domain History Management
 # ============================================================================
+
 
 class DomainHistoryManager:
     """Manages domain history for cross-run deduplication and TTL enforcement."""
@@ -213,11 +239,11 @@ class DomainHistoryManager:
             return
 
         try:
-            with open(self.history_file, 'r') as f:
+            with open(self.history_file, "r") as f:
                 for line in f:
                     if line.strip():
                         record = json.loads(line)
-                        domain = record.get('domain')
+                        domain = record.get("domain")
                         if domain:
                             self.history_cache[domain] = record
         except Exception as e:
@@ -229,10 +255,12 @@ class DomainHistoryManager:
         expired_domains = []
 
         for domain, record in self.history_cache.items():
-            scored_at = record.get('provenance', {}).get('scored_at')
+            scored_at = record.get("provenance", {}).get("scored_at")
             if scored_at:
                 try:
-                    record_time = datetime.fromisoformat(scored_at.replace('Z', '+00:00'))
+                    record_time = datetime.fromisoformat(
+                        scored_at.replace("Z", "+00:00")
+                    )
                     # Make both timezone-aware for comparison
                     cutoff_time_aware = cutoff_time.replace(tzinfo=record_time.tzinfo)
                     if record_time < cutoff_time_aware:
@@ -263,7 +291,7 @@ class DomainHistoryManager:
         Args:
             record: Domain record to add/update
         """
-        domain = record.get('domain')
+        domain = record.get("domain")
         if domain:
             self.history_cache[domain] = record
 
@@ -280,15 +308,18 @@ class DomainHistoryManager:
         records = list(self.history_cache.values())
         if records:
             # Remove existing file if present to ensure clean JSONL format
-            import tempfile
+
             # Write to a temporary file first for atomic replacement
-            temp_file = self.history_file.with_suffix('.tmp')
+            temp_file = self.history_file.with_suffix(".tmp")
             append_jsonl_with_lock(str(temp_file), records)
             # Atomically replace the old file
             temp_file.replace(self.history_file)
+
+
 # ============================================================================
 # Search Cache Management
 # ============================================================================
+
 
 class SearchCache:
     """Manages SERP result caching with TTL."""
@@ -300,7 +331,9 @@ class SearchCache:
         """Generate cache key for query and page."""
         return f"{query}|{page}|google"
 
-    def get_cached_results(self, query: str, page: int, ttl_hours: int) -> Optional[Dict[str, Any]]:
+    def get_cached_results(
+        self, query: str, page: int, ttl_hours: int
+    ) -> Optional[Dict[str, Any]]:
         """
         Get cached search results if not expired.
 
@@ -319,11 +352,13 @@ class SearchCache:
             return None
 
         # Check TTL
-        fetched_at = cached.get('fetched_at')
+        fetched_at = cached.get("fetched_at")
         if fetched_at:
             try:
-                fetch_time = datetime.fromisoformat(fetched_at.replace('Z', '+00:00'))
-                if datetime.utcnow() - fetch_time.replace(tzinfo=None) < timedelta(hours=ttl_hours):
+                fetch_time = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
+                if datetime.utcnow() - fetch_time.replace(tzinfo=None) < timedelta(
+                    hours=ttl_hours
+                ):
                     return cached
             except ValueError:
                 pass
@@ -342,14 +377,13 @@ class SearchCache:
             results: Search results
         """
         cache_key = self._get_cache_key(query, page)
-        self.cache[cache_key] = {
-            'results': results,
-            'fetched_at': now_z()
-        }
+        self.cache[cache_key] = {"results": results, "fetched_at": now_z()}
+
 
 # ============================================================================
 # Main Domain Tool
 # ============================================================================
+
 
 class DomainTool:
     """Main Domain tool implementation."""
@@ -362,23 +396,24 @@ class DomainTool:
 
         # Load costs configuration
         self.costs_config = load_costs_config()
-        validate_provider_config(['gse', 'openrouter'], self.costs_config)
+        validate_provider_config(["gse", "openrouter"], self.costs_config)
 
         # Initialize components
         self.permit_manager = PermitManager(
-            max_permits=icp_config.get('concurrency', {}).get('max_concurrent_requests', 3)
+            max_permits=icp_config.get("concurrency", {}).get(
+                "max_concurrent_requests", 3
+            )
         )
         self.semaphore_pool = AsyncSemaphorePool(self.permit_manager)
 
         self.gse_client = GSESearchClient(
-            api_key=os.environ['GSE_API_KEY'],
-            cx=os.environ['GSE_CX'],
-            semaphore_pool=self.semaphore_pool
+            api_key=os.environ["GSE_API_KEY"],
+            cx=os.environ["GSE_CX"],
+            semaphore_pool=self.semaphore_pool,
         )
 
         self.llm_scorer = LLMScorer(
-            api_key=os.environ['OPENROUTER_KEY'],
-            semaphore_pool=self.semaphore_pool
+            api_key=os.environ["OPENROUTER_KEY"], semaphore_pool=self.semaphore_pool
         )
 
         self.domain_history = DomainHistoryManager(data_dir)
@@ -400,27 +435,31 @@ class DomainTool:
         errors = []
 
         # Check required fields
-        required_fields = ['name', 'icp_text', 'queries']
+        required_fields = ["name", "icp_text", "queries"]
         for field in required_fields:
             if field not in self.icp_config:
-                errors.append(build_error(
-                    ErrorCode.SCHEMA_VALIDATION,
-                    context={"missing_field": field, "stage": TOOL_NAME}
-                ))
+                errors.append(
+                    build_error(
+                        ErrorCode.SCHEMA_VALIDATION,
+                        context={"missing_field": field, "stage": TOOL_NAME},
+                    )
+                )
 
         # Validate template placeholders
-        if 'queries' in self.icp_config:
-            for query in self.icp_config['queries']:
+        if "queries" in self.icp_config:
+            for query in self.icp_config["queries"]:
                 missing_placeholders = validate_template_placeholders(query, {})
                 if missing_placeholders:
-                    errors.append(build_error(
-                        ErrorCode.SCHEMA_VALIDATION,
-                        context={
-                            "missing_placeholders": missing_placeholders,
-                            "query": query,
-                            "stage": TOOL_NAME
-                        }
-                    ))
+                    errors.append(
+                        build_error(
+                            ErrorCode.SCHEMA_VALIDATION,
+                            context={
+                                "missing_placeholders": missing_placeholders,
+                                "query": query,
+                                "stage": TOOL_NAME,
+                            },
+                        )
+                    )
 
         return errors
 
@@ -431,13 +470,15 @@ class DomainTool:
         Returns:
             Tuple of (max_pages, ttl_hours, mode)
         """
-        search_config = self.icp_config.get('search', {})
-        max_pages = search_config.get('max_pages', DEFAULT_MAX_PAGES)
+        search_config = self.icp_config.get("search", {})
+        max_pages = search_config.get("max_pages", DEFAULT_MAX_PAGES)
 
-        refresh_config = self.icp_config.get('refresh_policy', {})
-        ttl_hours = refresh_config.get('domain_serp_ttl_hours', DEFAULT_DOMAIN_SERP_TTL_HOURS)
+        refresh_config = self.icp_config.get("refresh_policy", {})
+        ttl_hours = refresh_config.get(
+            "domain_serp_ttl_hours", DEFAULT_DOMAIN_SERP_TTL_HOURS
+        )
 
-        mode = self.icp_config.get('mode', DEFAULT_MODE)
+        mode = self.icp_config.get("mode", DEFAULT_MODE)
         if mode == "fast":
             max_pages = min(1, max_pages)
 
@@ -450,10 +491,14 @@ class DomainTool:
         Returns:
             Tuple of (revisit_after_days, failure_revisit_days, domain_ttl_days)
         """
-        refresh_config = self.icp_config.get('refresh_policy', {})
-        revisit_after_days = refresh_config.get('revisit_after_days', DEFAULT_REVISIT_AFTER_DAYS)
-        failure_revisit_days = refresh_config.get('failure_revisit_days', DEFAULT_FAILURE_REVISIT_DAYS)
-        domain_ttl_days = refresh_config.get('domain_ttl_days', DEFAULT_DOMAIN_TTL_DAYS)
+        refresh_config = self.icp_config.get("refresh_policy", {})
+        revisit_after_days = refresh_config.get(
+            "revisit_after_days", DEFAULT_REVISIT_AFTER_DAYS
+        )
+        failure_revisit_days = refresh_config.get(
+            "failure_revisit_days", DEFAULT_FAILURE_REVISIT_DAYS
+        )
+        domain_ttl_days = refresh_config.get("domain_ttl_days", DEFAULT_DOMAIN_TTL_DAYS)
 
         return revisit_after_days, failure_revisit_days, domain_ttl_days
 
@@ -482,14 +527,17 @@ class DomainTool:
                 "locations": [],
                 "size_hint": None,
                 "socials": {
-                    "linkedin": None, "github": None, "twitter": None,
-                    "telegram": None, "instagram": None
+                    "linkedin": None,
+                    "github": None,
+                    "twitter": None,
+                    "telegram": None,
+                    "instagram": None,
                 },
                 "careers_url": None,
                 "blog_url": None,
                 "tech_stack": [],
                 "evidence_urls": [],
-                "ids": {"linkedin": None, "crunchbase": None}
+                "ids": {"linkedin": None, "crunchbase": None},
             },
             "contacts": [],
             "icp": {
@@ -501,12 +549,12 @@ class DomainTool:
                     "method": None,
                     "model": None,
                     "prompt_fingerprint": None,
-                    "temperature": None
+                    "temperature": None,
                 },
                 "crawl_score": None,
                 "crawl_reason": None,
-                "threshold": self.icp_config.get('threshold', 0.7),
-                "filtering_strict": self.icp_config.get('filtering_strict', True)
+                "threshold": self.icp_config.get("threshold", 0.7),
+                "filtering_strict": self.icp_config.get("filtering_strict", True),
             },
             "provenance": {
                 "queries": [query],
@@ -516,21 +564,31 @@ class DomainTool:
                 "enriched_at": None,
                 "next_revisit_at": None,
                 "tool_versions": {
-                    "domain": {"version": INTERNAL_VERSION, "schema_version": self.schema_checksum},
+                    "domain": {
+                        "version": INTERNAL_VERSION,
+                        "schema_version": self.schema_checksum,
+                    },
                     "crawl": {"version": None, "schema_version": None},
-                    "enrich": {"version": None, "schema_version": None}
+                    "enrich": {"version": None, "schema_version": None},
                 },
                 "cache": {"domain_cache_hit": None},
-                "evidence_paths": {"domain": None, "crawl": None, "enrich": None}
+                "evidence_paths": {"domain": None, "crawl": None, "enrich": None},
             },
             "best_contact_id": None,
             "status": "scored",
             "status_history": [],
             "audit": [],
-            "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0}
+            "cost": {
+                "domain_usd": 0.0,
+                "crawl_usd": 0.0,
+                "enrich_usd": 0.0,
+                "total_usd": 0.0,
+            },
         }
 
-    def _normalize_serp_result(self, item: Dict[str, Any], query: str, page_index: int) -> Dict[str, Any]:
+    def _normalize_serp_result(
+        self, item: Dict[str, Any], query: str, page_index: int
+    ) -> Dict[str, Any]:
         """
         Normalize SERP result item.
 
@@ -543,21 +601,23 @@ class DomainTool:
             Normalized result
         """
         # Extract domain from URL
-        url = item.get('link', '')
+        url = item.get("link", "")
         domain = normalize_domain(url)
 
         return {
             "url": url,
-            "title": item.get('title', ''),
-            "snippet": item.get('snippet', ''),
+            "title": item.get("title", ""),
+            "snippet": item.get("snippet", ""),
             "query": query,
             "page_index": page_index,
-            "rank_on_page": item.get('rank', 0),
+            "rank_on_page": item.get("rank", 0),
             "fetched_at": now_z(),
-            "domain": domain
+            "domain": domain,
         }
 
-    async def _search_and_score_domains(self, queries: List[str], max_pages: int, ttl_hours: int) -> List[Dict[str, Any]]:
+    async def _search_and_score_domains(
+        self, queries: List[str], max_pages: int, ttl_hours: int
+    ) -> List[Dict[str, Any]]:
         """
         Search and score domains for given queries.
 
@@ -576,11 +636,13 @@ class DomainTool:
         for query in queries:
             for page in range(1, max_pages + 1):
                 # Check cache first
-                cached_results = self.search_cache.get_cached_results(query, page, ttl_hours)
+                cached_results = self.search_cache.get_cached_results(
+                    query, page, ttl_hours
+                )
                 if cached_results:
                     cache_hits += 1
                     # Process cached results
-                    for item in cached_results['results'].get('items', []):
+                    for item in cached_results["results"].get("items", []):
                         normalized_item = self._normalize_serp_result(item, query, page)
                         all_results.append(normalized_item)
                     continue
@@ -595,12 +657,14 @@ class DomainTool:
                     self.search_cache.cache_results(query, page, results)
 
                     # Process results
-                    for item in results.get('items', []):
+                    for item in results.get("items", []):
                         normalized_item = self._normalize_serp_result(item, query, page)
                         all_results.append(normalized_item)
 
                 except Exception as e:
-                    self.logger.error(f"GSE search failed for query '{query}' page {page}: {e}")
+                    self.logger.error(
+                        f"GSE search failed for query '{query}' page {page}: {e}"
+                    )
                     continue
 
         # Score domains
@@ -608,7 +672,9 @@ class DomainTool:
 
         return scored_domains, cache_hits, cache_misses
 
-    async def _score_domains(self, serp_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _score_domains(
+        self, serp_results: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """
         Score domains using LLM.
 
@@ -622,91 +688,116 @@ class DomainTool:
         domain_map = {}  # Track unique domains
 
         for result in serp_results:
-            domain = result['domain']
+            domain = result["domain"]
 
             # Skip if we already processed this domain
             if domain in domain_map:
                 # Add to existing record's discovery evidence
                 existing_record = domain_map[domain]
-                if len(existing_record['provenance']['discovery_evidence']) < 3:
-                    existing_record['provenance']['discovery_evidence'].append(result)
+                if len(existing_record["provenance"]["discovery_evidence"]) < 3:
+                    existing_record["provenance"]["discovery_evidence"].append(result)
                 continue
 
             # Create new lead record
-            record = self._create_lead_record(domain, result['query'])
+            record = self._create_lead_record(domain, result["query"])
 
             # Score the domain
             try:
-                score, reason, flags, model_used, prompt_fingerprint = await self.llm_scorer.score_domain(
-                    result['title'], result['snippet'], result['query'], self.icp_config['icp_text']
+                (
+                    score,
+                    reason,
+                    flags,
+                    model_used,
+                    prompt_fingerprint,
+                ) = await self.llm_scorer.score_domain(
+                    result["title"],
+                    result["snippet"],
+                    result["query"],
+                    self.icp_config["icp_text"],
                 )
 
                 # Update record with scoring results
-                record['icp']['pre_score'] = round4(score)
-                record['icp']['pre_reason'] = reason
-                record['icp']['pre_flags'] = flags
-                record['icp']['scoring_meta'] = {
+                record["icp"]["pre_score"] = round4(score)
+                record["icp"]["pre_reason"] = reason
+                record["icp"]["pre_flags"] = flags
+                record["icp"]["scoring_meta"] = {
                     "method": "llm",
                     "model": model_used,
                     "prompt_fingerprint": prompt_fingerprint,
-                    "temperature": 0.0
+                    "temperature": 0.0,
                 }
 
                 # Set pre_pass based on threshold
-                threshold = record['icp']['threshold']
-                record['icp']['pre_pass'] = score >= threshold
+                threshold = record["icp"]["threshold"]
+                record["icp"]["pre_pass"] = score >= threshold
 
                 # Add discovery evidence
-                record['provenance']['discovery_evidence'].append(result)
+                record["provenance"]["discovery_evidence"].append(result)
 
                 # Set scored_at and next_revisit_at
-                record['provenance']['scored_at'] = now_z()
-                revisit_after_days, failure_revisit_days, _ = self._get_refresh_parameters()
-                record['provenance']['next_revisit_at'] = compute_next_revisit(
+                record["provenance"]["scored_at"] = now_z()
+                revisit_after_days, failure_revisit_days, _ = (
+                    self._get_refresh_parameters()
+                )
+                record["provenance"]["next_revisit_at"] = compute_next_revisit(
                     None, revisit_after_days, failure_revisit_days, False
                 )
 
                 # Add status history entry
-                append_status(record['status_history'], "scored", f"Scored with {model_used}")
+                append_status(
+                    record["status_history"], "scored", f"Scored with {model_used}"
+                )
 
                 # Add audit entry
-                append_audit(record, "Domain", f"Scored domain {domain} with score {score}")
+                append_audit(
+                    record, "Domain", f"Scored domain {domain} with score {score}"
+                )
 
                 # Calculate costs
-                gse_cost = self.costs_config['gse']
-                openrouter_cost = self.costs_config['openrouter']
+                gse_cost = self.costs_config["gse"]
+                openrouter_cost = self.costs_config["openrouter"]
 
                 # Estimate token usage (rough approximation)
-                prompt_tokens = len(result['title'] + result['snippet'] + result['query'] + self.icp_config['icp_text']) // 4
+                prompt_tokens = (
+                    len(
+                        result["title"]
+                        + result["snippet"]
+                        + result["query"]
+                        + self.icp_config["icp_text"]
+                    )
+                    // 4
+                )
                 response_tokens = 100  # Estimated response length
                 total_tokens = prompt_tokens + response_tokens
                 token_cost = (total_tokens / 1000) * openrouter_cost
 
-                record['cost']['domain_usd'] = round4(gse_cost + token_cost)
+                record["cost"]["domain_usd"] = round4(gse_cost + token_cost)
                 recompute_total_cost(record)
 
             except Exception as e:
                 self.logger.error(f"LLM scoring failed for domain {domain}: {e}")
                 # Set default values on scoring failure
-                record['icp']['pre_score'] = 0.0
-                record['icp']['pre_reason'] = f"Scoring failed: {str(e)}"
-                record['icp']['pre_pass'] = False
-                record['icp']['pre_flags'] = ['scoring_error']
+                record["icp"]["pre_score"] = 0.0
+                record["icp"]["pre_reason"] = f"Scoring failed: {str(e)}"
+                record["icp"]["pre_pass"] = False
+                record["icp"]["pre_flags"] = ["scoring_error"]
 
                 # Set failure revisit time
                 _, failure_revisit_days, _ = self._get_refresh_parameters()
-                record['provenance']['next_revisit_at'] = compute_next_revisit(
+                record["provenance"]["next_revisit_at"] = compute_next_revisit(
                     None, 0, failure_revisit_days, True
                 )
 
                 # Add status history entry
-                append_status(record['status_history'], "scored", "Scoring failed")
+                append_status(record["status_history"], "scored", "Scoring failed")
 
                 # Add audit entry
-                append_audit(record, "Domain", f"Scoring failed for domain {domain}: {e}")
+                append_audit(
+                    record, "Domain", f"Scoring failed for domain {domain}: {e}"
+                )
 
                 # Set minimal cost
-                record['cost']['domain_usd'] = round4(self.costs_config['gse'])
+                record["cost"]["domain_usd"] = round4(self.costs_config["gse"])
                 recompute_total_cost(record)
 
             # Store in domain map
@@ -722,19 +813,21 @@ class DomainTool:
         Args:
             record: Lead record
         """
-        domain = record['domain']
+        domain = record["domain"]
         evidence_file = self.evidence_dir / f"{domain}.json"
 
         evidence_data = {
             "domain": domain,
-            "queries": record['provenance']['queries'],
+            "queries": record["provenance"]["queries"],
             "fetched_at": now_z(),
-            "serp_results": record['provenance']['discovery_evidence'],
-            "scoring_prompt_fingerprint": record['icp']['scoring_meta']['prompt_fingerprint']
+            "serp_results": record["provenance"]["discovery_evidence"],
+            "scoring_prompt_fingerprint": record["icp"]["scoring_meta"][
+                "prompt_fingerprint"
+            ],
         }
 
         write_with_lock(str(evidence_file), evidence_data)
-        record['provenance']['evidence_paths']['domain'] = str(evidence_file)
+        record["provenance"]["evidence_paths"]["domain"] = str(evidence_file)
 
     async def run(self, icp_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -758,29 +851,38 @@ class DomainTool:
                 return {
                     "data": {"lead_records": []},
                     "errors": validation_errors,
-                    "metrics": build_metrics(0, 0, 0)
+                    "metrics": build_metrics(0, 0, 0),
                 }
 
             # Get search and refresh parameters
             max_pages, ttl_hours, mode = self._get_search_parameters()
-            revisit_after_days, failure_revisit_days, domain_ttl_days = self._get_refresh_parameters()
+            revisit_after_days, failure_revisit_days, domain_ttl_days = (
+                self._get_refresh_parameters()
+            )
 
             # Get queries and validate placeholders
-            queries = config.get('queries', [])
+            queries = config.get("queries", [])
             if not queries:
                 return {
                     "data": {"lead_records": []},
-                    "errors": [build_error(
-                        ErrorCode.SCHEMA_VALIDATION,
-                        context={"error": "No queries provided", "stage": TOOL_NAME}
-                    )],
-                    "metrics": build_metrics(0, 0, 0)
+                    "errors": [
+                        build_error(
+                            ErrorCode.SCHEMA_VALIDATION,
+                            context={
+                                "error": "No queries provided",
+                                "stage": TOOL_NAME,
+                            },
+                        )
+                    ],
+                    "metrics": build_metrics(0, 0, 0),
                 }
 
             # Search and score domains
-            scored_domains, cache_hits, cache_misses = await self._search_and_score_domains(
-                queries, max_pages, ttl_hours
-            )
+            (
+                scored_domains,
+                cache_hits,
+                cache_misses,
+            ) = await self._search_and_score_domains(queries, max_pages, ttl_hours)
 
             # Save evidence for each domain
             for record in scored_domains:
@@ -803,10 +905,10 @@ class DomainTool:
 
             pass_rate = None
             if count_out > 0:
-                pass_count = sum(1 for r in scored_domains if r['icp']['pre_pass'])
+                pass_count = sum(1 for r in scored_domains if r["icp"]["pre_pass"])
                 pass_rate = pass_count / count_out
 
-            total_cost = sum(r['cost']['domain_usd'] for r in scored_domains)
+            total_cost = sum(r["cost"]["domain_usd"] for r in scored_domains)
 
             metrics = build_metrics(
                 count_in=count_in,
@@ -814,25 +916,26 @@ class DomainTool:
                 duration_ms=duration_ms,
                 cache_hit_rate=cache_hit_rate,
                 pass_rate=pass_rate,
-                cost_usd={"domain": total_cost, "crawl": 0.0, "enrich": 0.0, "total": total_cost}
+                cost_usd={
+                    "domain": total_cost,
+                    "crawl": 0.0,
+                    "enrich": 0.0,
+                    "total": total_cost,
+                },
             )
 
             return {
                 "data": {"lead_records": scored_domains},
                 "errors": [],
-                "metrics": metrics
+                "metrics": metrics,
             }
 
         except Exception as e:
             self.logger.error(f"Domain tool failed: {e}")
             return {
                 "data": {"lead_records": []},
-                "errors": [build_error(
-                    ErrorCode.UNKNOWN,
-                    exc=e,
-                    tool=TOOL_NAME
-                )],
-                "metrics": build_metrics(0, 0, int((time.time() - start_time) * 1000))
+                "errors": [build_error(ErrorCode.UNKNOWN, exc=e, tool=TOOL_NAME)],
+                "metrics": build_metrics(0, 0, int((time.time() - start_time) * 1000)),
             }
 
     def truncate_evidence_arrays(self, record: Dict[str, Any]) -> None:
@@ -843,19 +946,23 @@ class DomainTool:
             record: Lead record to truncate
         """
         # Company evidence_urls ≤ 10
-        if 'company' in record and 'evidence_urls' in record['company']:
-            if len(record['company']['evidence_urls']) > 10:
-                record['company']['evidence_urls'] = record['company']['evidence_urls'][:10]
+        if "company" in record and "evidence_urls" in record["company"]:
+            if len(record["company"]["evidence_urls"]) > 10:
+                record["company"]["evidence_urls"] = record["company"]["evidence_urls"][
+                    :10
+                ]
 
         # Contacts evidence_urls ≤ 5
-        if 'contacts' in record:
-            for contact in record['contacts']:
-                if 'evidence_urls' in contact and len(contact['evidence_urls']) > 5:
-                    contact['evidence_urls'] = contact['evidence_urls'][:5]
+        if "contacts" in record:
+            for contact in record["contacts"]:
+                if "evidence_urls" in contact and len(contact["evidence_urls"]) > 5:
+                    contact["evidence_urls"] = contact["evidence_urls"][:5]
+
 
 # ============================================================================
 # CLI Interface
 # ============================================================================
+
 
 def main():
     """CLI entry point for Domain tool."""
@@ -866,8 +973,8 @@ def main():
         input_data = json.load(sys.stdin)
 
         # Extract icp_config
-        icp_config = input_data.get('icp_config', {})
-        data_dir = input_data.get('config', {}).get('data_dir', './data')
+        icp_config = input_data.get("icp_config", {})
+        data_dir = input_data.get("config", {}).get("data_dir", "./data")
 
         # Create tool instance
         tool = DomainTool(icp_config, data_dir)
@@ -879,24 +986,28 @@ def main():
         json.dump(result, sys.stdout, indent=2)
 
     except json.JSONDecodeError as e:
-        print(json.dumps({
-            "data": {"lead_records": []},
-            "errors": [build_error(
-                ErrorCode.SCHEMA_VALIDATION,
-                exc=e,
-                tool=TOOL_NAME
-            )],
-            "metrics": build_metrics(0, 0, 0)
-        }), file=sys.stderr)
+        print(
+            json.dumps(
+                {
+                    "data": {"lead_records": []},
+                    "errors": [
+                        build_error(ErrorCode.SCHEMA_VALIDATION, exc=e, tool=TOOL_NAME)
+                    ],
+                    "metrics": build_metrics(0, 0, 0),
+                }
+            ),
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as e:
-        print(json.dumps({
-            "data": {"lead_records": []},
-            "errors": [build_error(
-                ErrorCode.UNKNOWN,
-                exc=e,
-                tool=TOOL_NAME
-            )],
-            "metrics": build_metrics(0, 0, 0)
-        }), file=sys.stderr)
+        print(
+            json.dumps(
+                {
+                    "data": {"lead_records": []},
+                    "errors": [build_error(ErrorCode.UNKNOWN, exc=e, tool=TOOL_NAME)],
+                    "metrics": build_metrics(0, 0, 0),
+                }
+            ),
+            file=sys.stderr,
+        )
         sys.exit(1)
