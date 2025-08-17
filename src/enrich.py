@@ -24,7 +24,7 @@ import phonenumbers
 import portalocker
 import publicsuffix2
 
-from common import (
+from src.common import (
     AsyncSemaphorePool, ErrorCode, PermitManager, append_audit, append_status,
     build_error, build_metrics, canonicalize_linkedin, compute_next_revisit,
     enforce_field_ownership, get_email_status_rank, get_role_priority,
@@ -34,7 +34,6 @@ from common import (
     setup_logging, truncate_evidence_arrays, validate_envelope,
     validate_provider_config, validate_testing_flags, wrap_unknown_errors
 )
-
 
 # ============================================================================
 # Constants and Configuration
@@ -634,10 +633,16 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         contact_cost += single_contact_cost
 
                 # Update costs
+                # Update costs
+                if 'cost' not in record:
+                    record['cost'] = {
+                        'domain_usd': 0.0,
+                        'crawl_usd': 0.0,
+                        'enrich_usd': 0.0,
+                        'total_usd': 0.0
+                    }
                 record['cost']['enrich_usd'] = company_cost + contact_cost
-                recompute_total_cost(record)
-
-                # Update total cost
+                recompute_total_cost(record)                # Update total cost
                 total_cost += company_cost + contact_cost
 
                 # Update provenance

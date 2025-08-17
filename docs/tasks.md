@@ -259,37 +259,37 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 4.37 Implement best contact selection per BRD §333-336).
 
 5.  Orchestrator (`orchestrator.py`)
-    5.1 Load `icp_config.json`, resolve data_dir, secrets (§418-419).
-    5.2 Default batch_size 50; CLI & JSON I/O.
-    5.3 Call Domain → filter → Crawl → Enrich per gating flags (§416-420).
-    5.4 Enforce `AsyncSemaphorePool` global across tool runs (§418).
-    5.5 Persist `data/domain_all.jsonl` (pass+reject) and `data/domain_pass.jsonl` (§421-425).
-    5.6 Rotate sinks >10 MB or >30 d (§42-43).
-    5.7 Export leads JSONL/CSV when enabled (§426-435).
-    5.8 CSV flattening & column order rules (§430-435).
-    5.9 Summarize & log metrics (§436-437).
-    5.10 Never mutate beyond persistence/gating (§439).
-    5.11 Nightly GC invocation hook (§34-39).
-    5.12 Implement testing flags (process_rejected, process_low_crawl) (§416-420).
-    5.13 Handle data directory precedence resolution (§26-27, 437).
-    5.14 Implement export directory creation with UTC timestamps (§426-435).
-    5.15 Handle CSV flattening with dot-notation for objects and array joining with "|" (§430-435).
-    5.16 Export only best contact using columns: `contact.full_name`, `contact.role`, `contact.email`, `contact.phone`, `contact.linkedin` (§430-435).
-    5.17 Implement metrics.health.unknown_error_count tracking (§63-67).
-    5.18 Implement provider configuration validation at startup (§409, §78).
-    5.19 Implement audit trail logging for orchestration steps (§91-99).
-    5.20 Copy-on-write compaction for rotated sinks (§46).
-    5.21 Implement icp_config.role_priority configuration loading (§309-311).
-    5.22 Implement icp_config.default_country fallback for phone parsing (§21-24).
-    5.23 Aggregate metrics.health.unknown_error_count over run and include in summary (§63-67).
-    5.24 Implement `icp_config.refresh_policy.failure_revisit_days` logic for all tools (§5-6, 240-242, 286-312, 353, 470).
-    5.25 Implement `icp_config.refresh_policy.domain_ttl_days` override validation (§239).
-    5.26 Implement `icp_config.search.max_pages` override validation (§239-244).
-    5.27 Expose metrics.duration_ms for the whole pipeline run (start/stop timer around Domain→Crawl→Enrich) (§362-370).
-    5.28 On copy-on-write sink compaction, ensure atomic pointer swap (§46) – add explicit unit test.
-    5.29 Implement SyncSemaphorePool for blocking SDK calls in tools (§40-41, 418).
-    5.30 Implement testing flags handling (§416-420).
-    5.31 Implement export format per BRD §426-435.
+    ✅ 5.1 Load `icp_config.json`, resolve data_dir, secrets (§418-419).
+    ✅ 5.2 Default batch_size 50; CLI & JSON I/O.
+    ✅ 5.3 Call Domain → filter → Crawl → Enrich per gating flags (§416-420).
+    ✅ 5.4 Enforce `AsyncSemaphorePool` global across tool runs (§418).
+    ✅ 5.5 Persist `data/domain_all.jsonl` (pass+reject) and `data/domain_pass.jsonl` (§421-425).
+    ✅ 5.6 Rotate sinks >10 MB or >30 d (§42-43).
+    ✅ 5.7 Export leads JSONL/CSV when enabled (§426-435).
+    ✅ 5.8 CSV flattening & column order rules (§430-435).
+    ✅ 5.9 Summarize & log metrics (§436-437).
+    ✅ 5.10 Never mutate beyond persistence/gating (§439).
+    ✅ 5.11 Nightly GC invocation hook (§34-39).
+    ✅ 5.12 Implement testing flags (process_rejected, process_low_crawl) (§416-420).
+    ✅ 5.13 Handle data directory precedence resolution (§26-27, 437).
+    ✅ 5.14 Implement export directory creation with UTC timestamps (§426-435).
+    ✅ 5.15 Handle CSV flattening with dot-notation for objects and array joining with "|" (§430-435).
+    ✅ 5.16 Export only best contact using columns: `contact.full_name`, `contact.role`, `contact.email`, `contact.phone`, `contact.linkedin` (§430-435).
+    ✅ 5.17 Implement metrics.health.unknown_error_count tracking (§63-67).
+    ✅ 5.18 Implement provider configuration validation at startup (§409, §78).
+    ✅ 5.19 Implement audit trail logging for orchestration steps (§91-99).
+    ✅ 5.20 Copy-on-write compaction for rotated sinks (§46).
+    ✅ 5.21 Implement icp_config.role_priority configuration loading (§309-311).
+    ✅ 5.22 Implement icp_config.default_country fallback for phone parsing (§21-24).
+    ✅ 5.23 Aggregate metrics.health.unknown_error_count over run and include in summary (§63-67).
+    ✅ 5.24 Implement `icp_config.refresh_policy.failure_revisit_days` logic for all tools (§5-6, 240-242, 286-312, 353, 470).
+    ✅ 5.25 Implement `icp_config.refresh_policy.domain_ttl_days` override validation (§239).
+    ✅ 5.26 Implement `icp_config.search.max_pages` override validation (§239-244).
+    ✅ 5.27 Expose metrics.duration_ms for the whole pipeline run (start/stop timer around Domain→Crawl→Enrich) (§362-370).
+    ✅ 5.28 On copy-on-write sink compaction, ensure atomic pointer swap (§46) – add explicit unit test.
+    ✅ 5.29 Implement SyncSemaphorePool for blocking SDK calls in tools (§40-41, 418).
+    ✅ 5.30 Implement testing flags handling (§416-420).
+    ✅ 5.31 Implement export format per BRD §426-435.
 
 6.  Testing & CI
     6.1 Unit Tests per Tool
