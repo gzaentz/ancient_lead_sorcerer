@@ -105,16 +105,15 @@ from src.enrich import run_enrich
             MockRunEnrich.assert_called_once()
 
             # Verify data flow
-            domain_result = await mock_domain.run()
+            # Verify data flow without changing call counts
+            domain_result = mock_domain.run.return_value
             assert domain_result["data"]["lead_records"][0]["status"] == "scored"
 
-            crawl_result = await mock_crawl.run()
+            crawl_result = mock_crawl.run.return_value
             assert crawl_result["data"]["lead_records"][0]["status"] == "enrich_ready"
 
             enrich_result = MockRunEnrich.return_value
-            assert enrich_result["data"]["lead_records"][0]["status"] == "enriched"        # This test will verify failure handling
-        # Implementation depends on failure logic
-        pass
+            assert enrich_result["data"]["lead_records"][0]["status"] == "enriched"        pass
 
     @pytest.mark.asyncio
     async def test_crawl_tool_failure(self):

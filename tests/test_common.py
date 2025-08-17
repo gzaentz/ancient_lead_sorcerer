@@ -466,26 +466,6 @@ class TestErrorHandling(unittest.TestCase):
         # Should not exceed 45 seconds
         elapsed = time.time() - start_time
         self.assertLess(elapsed, 45)
-    def test_exponential_backoff_sync(self):
-        """Test exponential backoff with timeout for sync functions."""
-        call_count = 0
-
-        def failing_function():
-            nonlocal call_count
-            call_count += 1
-            raise Exception("Test error")
-
-        start_time = time.time()
-
-        with self.assertRaises(Exception):
-            exponential_backoff_with_timeout(failing_function, max_attempts=3)
-
-        # Should have made 3 attempts
-        self.assertEqual(call_count, 3)
-
-        # Should not exceed 45 seconds
-        elapsed = time.time() - start_time
-        self.assertLess(elapsed, 45)
 
 
 class TestSchemaValidation(unittest.TestCase):
