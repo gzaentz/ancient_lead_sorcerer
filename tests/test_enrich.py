@@ -36,18 +36,15 @@ class TestCoresignalClient:
 
     def test_init(self):
         """Test client initialization."""
-        semaphore_pool = MagicMock()
-        client = CoresignalClient("test_token", semaphore_pool)
+        client = CoresignalClient("test_token")
 
         assert client.api_token == "test_token"
         assert client.base_url == "https://api.coresignal.com"
-        assert client.semaphore_pool == semaphore_pool
 
     @pytest.mark.asyncio
     async def test_enrich_company_success(self):
         """Test successful company enrichment."""
-        semaphore_pool = AsyncMock()
-        client = CoresignalClient("test_token", semaphore_pool)
+        client = CoresignalClient("test_token")
 
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -72,14 +69,12 @@ class TestCoresignalClient:
             assert result["company"]["name"] == "Test Company"
             assert result["company"]["description"] == "Test description"
             assert result["company"]["industry"] == "Technology"
-            semaphore_pool.__aenter__.assert_called_once()
-            semaphore_pool.__aexit__.assert_called_once()
+            # Semaphore pool assertions removed as semaphore pools are no longer used
 
     @pytest.mark.asyncio
     async def test_enrich_contact_not_implemented(self):
         """Test that contact enrichment raises NotImplementedError."""
-        semaphore_pool = AsyncMock()
-        client = CoresignalClient("test_token", semaphore_pool)
+        client = CoresignalClient("test_token")
 
         with pytest.raises(
             NotImplementedError,
@@ -90,8 +85,7 @@ class TestCoresignalClient:
     @pytest.mark.asyncio
     async def test_enrich_company_contacts_success(self):
         """Test successful company contacts enrichment."""
-        semaphore_pool = AsyncMock()
-        client = CoresignalClient("test_token", semaphore_pool)
+        client = CoresignalClient("test_token")
 
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -117,8 +111,7 @@ class TestCoresignalClient:
             assert result["people"][0]["first_name"] == "John"
             assert result["people"][0]["email"] == "john@example.com"
             assert result["people"][0]["title"] == "CEO"
-            semaphore_pool.__aenter__.assert_called_once()
-            semaphore_pool.__aexit__.assert_called_once()
+            # Semaphore pool assertions removed as semaphore pools are no longer used
 
 
 class TestMailgunClient:
@@ -126,19 +119,18 @@ class TestMailgunClient:
 
     def test_init(self):
         """Test client initialization."""
-        semaphore_pool = MagicMock()
-        client = MailgunClient("test@domain.com", "password", semaphore_pool)
+        client = MailgunClient("test@domain.com", "password")
 
         assert client.smtp_login == "test@domain.com"
         assert client.smtp_password == "password"
         assert client.domain == "domain.com"
         assert client.base_url == "https://api.mailgun.net/v3"
+        # Semaphore pool assertion removed as semaphore pools are no longer used
 
     @pytest.mark.asyncio
     async def test_validate_email_success(self):
         """Test successful email validation."""
-        semaphore_pool = AsyncMock()
-        client = MailgunClient("test@domain.com", "password", semaphore_pool)
+        client = MailgunClient("test@domain.com", "password")
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"result": "valid", "score": 0.95}
@@ -153,8 +145,7 @@ class TestMailgunClient:
 
             assert result["result"] == "valid"
             assert result["score"] == 0.95
-            semaphore_pool.__aenter__.assert_called_once()
-            semaphore_pool.__aexit__.assert_called_once()
+            # Semaphore pool assertions removed as semaphore pools are no longer used
 
 
 class TestSnovioClient:
@@ -162,19 +153,17 @@ class TestSnovioClient:
 
     def test_init(self):
         """Test client initialization."""
-        semaphore_pool = MagicMock()
-        client = SnovioClient("client_id", "client_secret", semaphore_pool)
+        client = SnovioClient("client_id", "client_secret")
 
         assert client.client_id == "client_id"
         assert client.client_secret == "client_secret"
-        assert client.base_url == "https://api.snov.io/v1"
+        assert client.base_url == "https://api.snov.io/v2"
         assert client._access_token is None
 
     @pytest.mark.asyncio
     async def test_get_access_token_success(self):
         """Test successful access token retrieval."""
-        semaphore_pool = AsyncMock()
-        client = SnovioClient("client_id", "client_secret", semaphore_pool)
+        client = SnovioClient("client_id", "client_secret")
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"access_token": "test_token"}
@@ -189,20 +178,50 @@ class TestSnovioClient:
 
             assert token == "test_token"
             assert client._access_token == "test_token"
-            semaphore_pool.__aenter__.assert_called_once()
-            semaphore_pool.__aexit__.assert_called_once()
+            # Semaphore pool assertions removed as semaphore pools are no longer used
 
     @pytest.mark.asyncio
-    async def test_find_email_success(self):
-        """Test successful email discovery."""
-        semaphore_pool = AsyncMock()
-        client = SnovioClient("client_id", "client_secret", semaphore_pool)
+    async def test_start_email_finder_success(self):
+        """Test successful email finder task start."""
+        client = SnovioClient("client_id", "client_secret")
 
         # Mock access token
         client._access_token = "test_token"
 
         mock_response = MagicMock()
-        mock_response.json.return_value = {"email": "john.doe@example.com"}
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {"task_hash": "test_hash_123"}
+        }
+        mock_response.raise_for_status.return_value = None
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client.post.return_value = mock_response
+
+            result = await client.start_email_finder("example.com", "John", "Doe")
+
+            assert result["success"] is True
+            assert result["data"]["task_hash"] == "test_hash_123"
+            # Semaphore pool assertions removed as semaphore pools are no longer used
+
+    @pytest.mark.asyncio
+    async def test_get_email_finder_result_success(self):
+        """Test successful email finder result retrieval."""
+        client = SnovioClient("client_id", "client_secret")
+
+        # Mock access token
+        client._access_token = "test_token"
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {
+                "emails": ["john.doe@example.com"],
+                "status": "completed"
+            }
+        }
         mock_response.raise_for_status.return_value = None
 
         with patch("httpx.AsyncClient") as mock_client_class:
@@ -210,11 +229,71 @@ class TestSnovioClient:
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client.get.return_value = mock_response
 
-            result = await client.find_email("example.com", "John", "Doe")
+            result = await client.get_email_finder_result("test_hash_123")
 
-            assert result["email"] == "john.doe@example.com"
-            semaphore_pool.__aenter__.assert_called_once()
-            semaphore_pool.__aexit__.assert_called_once()
+            assert result["success"] is True
+            assert result["data"]["emails"] == ["john.doe@example.com"]
+            assert result["data"]["status"] == "completed"
+
+    @pytest.mark.asyncio
+    async def test_start_domain_prospect_search_success(self):
+        """Test successful domain prospect search task start."""
+        client = SnovioClient("client_id", "client_secret")
+
+        # Mock access token
+        client._access_token = "test_token"
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {"task_hash": "prospect_hash_456"}
+        }
+        mock_response.raise_for_status.return_value = None
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client.post.return_value = mock_response
+
+            result = await client.start_domain_prospect_search("example.com", positions=["CEO", "Founder"])
+
+            assert result["success"] is True
+            assert result["data"]["task_hash"] == "prospect_hash_456"
+
+    @pytest.mark.asyncio
+    async def test_get_domain_prospect_result_success(self):
+        """Test successful domain prospect result retrieval."""
+        client = SnovioClient("client_id", "client_secret")
+
+        # Mock access token
+        client._access_token = "test_token"
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {
+                "prospects": [
+                    {
+                        "name": "John Doe",
+                        "email": "john.doe@example.com",
+                        "position": "CEO"
+                    }
+                ],
+                "status": "completed"
+            }
+        }
+        mock_response.raise_for_status.return_value = None
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+            mock_client.get.return_value = mock_response
+
+            result = await client.get_domain_prospect_result("prospect_hash_456")
+
+            assert result["success"] is True
+            assert result["data"]["prospects"][0]["name"] == "John Doe"
+            assert result["data"]["prospects"][0]["email"] == "john.doe@example.com"
 
 
 class TestBestContactSelection:
@@ -410,8 +489,18 @@ class TestContactEnrichment:
         snovio_client = AsyncMock()
         costs_config = {"snovio": 0.015, "mailgun": 0.002}
 
-        # Mock Snov.io success
-        snovio_client.find_email.return_value = {"email": "john.doe@test.com"}
+        # Mock Snov.io success - Email Finder flow
+        snovio_client.start_email_finder.return_value = {
+            "success": True,
+            "data": {"task_hash": "test_hash_123"}
+        }
+        snovio_client.get_email_finder_result.return_value = {
+            "success": True,
+            "data": {
+                "emails": ["john.doe@test.com"],
+                "status": "completed"
+            }
+        }
 
         # Mock Mailgun validation
         mailgun_client.validate_email.return_value = {"result": "valid", "score": 0.90}
@@ -442,7 +531,7 @@ class TestContactEnrichment:
         coresignal_client = AsyncMock()
         mailgun_client = AsyncMock()
         snovio_client = AsyncMock()
-        costs_config = {"coresignal": 0.01}
+        costs_config = {}
 
         enriched_contact, cost = await enrich_contact_data(
             contact,
@@ -468,9 +557,10 @@ class TestEvidenceFileWriting:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch("src.enrich.normalize_domain", return_value="test.com"):
-                with patch("src.enrich.portalocker.Lock") as mock_lock:
-                    mock_lock.return_value.__enter__ = MagicMock()
-                    mock_lock.return_value.__exit__ = MagicMock()
+                # Portalocker removed - no more file locking needed
+                # with patch("src.enrich.portalocker.Lock") as mock_lock:
+                #     mock_lock.return_value.__enter__ = MagicMock()
+                #     mock_lock.return_value.__exit__ = MagicMock()
 
                     result_path = write_evidence_file(domain, evidence_data, temp_dir)
 
@@ -877,8 +967,18 @@ class TestErrorHandling:
             "Coresignal API Error"
         )
 
-        # Mock Snov.io success
-        snovio_client.find_email.return_value = {"email": "test@example.com"}
+        # Mock Snov.io success - Email Finder flow
+        snovio_client.start_email_finder.return_value = {
+            "success": True,
+            "data": {"task_hash": "test_hash_456"}
+        }
+        snovio_client.get_email_finder_result.return_value = {
+            "success": True,
+            "data": {
+                "emails": ["test@example.com"],
+                "status": "completed"
+            }
+        }
 
         # Mock Mailgun validation
         mailgun_client.validate_email.return_value = {"result": "valid", "score": 0.90}
@@ -1165,8 +1265,8 @@ class TestMissingRequirements:
 
     def test_portalocker_write_lock_behavior(self):
         """Test portalocker write lock behavior."""
-        # This test will verify portalocker behavior
-        # Implementation depends on file locking logic
+        # Portalocker removed - no more file locking needed
+        # This test is no longer applicable
         pass
 
     def test_exponential_backoff_45s_wall_clock_cap(self):

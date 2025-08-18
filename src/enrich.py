@@ -189,7 +189,7 @@ class SnovioClient:
     def __init__(self, client_id: str, client_secret: str):
         self.client_id = client_id
         self.client_secret = client_secret
-        self.base_url = "https://api.snov.io/v1"
+        self.base_url = "https://api.snov.io/v2"
         self._access_token = None
 
     async def _get_access_token(self) -> str:
@@ -197,7 +197,7 @@ class SnovioClient:
         if self._access_token:
             return self._access_token
 
-        url = f"{self.base_url}/oauth/access_token"
+        url = "https://api.snov.io/v1/oauth/access_token"
         data = {
             "grant_type": "client_credentials",
             "client_id": self.client_id,
@@ -259,7 +259,7 @@ class SnovioClient:
         self, domain: str, job_title: str = None
     ) -> Dict[str, Any]:
         """
-        Search for profiles in a domain using Snov.io.
+        Search for profiles in a domain using Snov.io v2 API.
 
         Args:
             domain: Company domain
@@ -269,15 +269,44 @@ class SnovioClient:
             Search results with profile data
         """
         token = await self._get_access_token()
-        url = f"{self.base_url}/search-profiles"
-        params = {
+        url = f"{self.base_url}/domain-search/prospects/start"
+
+        # Based on our testing, v2 API accepts 'position' (singular) not 'positions' array
+        data = {
             "access_token": token,
             "domain": domain,
-            "limit": 10,  # Get up to 10 profiles
         }
 
         if job_title:
-            params["jobTitle"] = job_title
+            # Use 'position' (singular) as the v2 API expects this format
+            data["position"] = job_title
+
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
+            )
+        ) as client:
+            response = await client.post(url, data=data)
+            response.raise_for_status()
+            return response.json()
+
+    async def get_prospect_results(self, task_hash: str) -> Dict[str, Any]:
+        """
+        Get results from a domain prospect search task using Snov.io v2 API.
+
+        Args:
+            task_hash: Task hash from search_profiles
+
+        Returns:
+            Domain prospect search results
+        """
+        token = await self._get_access_token()
+        url = f"{self.base_url}/domain-search/prospects/result/{task_hash}"
+        params = {"access_token": token}
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
@@ -291,6 +320,75 @@ class SnovioClient:
             response = await client.get(url, params=params)
             response.raise_for_status()
             return response.json()
+
+    async def get_all_domain_prospects(
+        self, domain: str, max_retries: int = 10, poll_delay_seconds: float = 2.0
+    ) -> Dict[str, Any]:
+        """
+        Start a domain prospect search task without role filtering and poll for results.
+
+        Args:
+            domain: Company domain
+            max_retries: Maximum number of polling attempts
+            poll_delay_seconds: Delay between polling attempts
+
+        Returns:
+            The raw API response from the result endpoint when available, or an
+            empty result structure if not available within retry budget.
+        """
+        token = await self._get_access_token()
+        start_url = f"{self.base_url}/domain-search/prospects/start"
+        start_data = {
+            "access_token": token,
+            "domain": domain,
+        }
+
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
+            )
+        ) as client:
+            # Kick off the async task
+            start_response = await client.post(start_url, data=start_data)
+            start_response.raise_for_status()
+            start_payload = start_response.json() or {}
+
+        # Extract task hash from either meta.task_hash or data.task_hash
+        task_hash = None
+        if isinstance(start_payload.get("meta"), dict):
+            task_hash = start_payload["meta"].get("task_hash")
+        if not task_hash and isinstance(start_payload.get("data"), dict):
+            task_hash = start_payload["data"].get("task_hash")
+
+        if not task_hash:
+            return {"data": [], "meta": {"domain": domain}, "error": "no_task_hash"}
+
+        # Poll for results
+        for _ in range(max_retries):
+            try:
+                result = await self.get_prospect_results(task_hash)
+                # When ready, the result typically contains a populated data list
+                data_field = result.get("data")
+                if isinstance(data_field, list) and len(data_field) > 0:
+                    return result
+                # Some variants may nest prospects differently; if success flag exists, still return
+                if result.get("success") and data_field is not None:
+                    return result
+            except Exception:
+                # Ignore transient errors while polling
+                pass
+            await asyncio.sleep(poll_delay_seconds)
+
+        # Timed out; return the latest known empty-style structure
+        return {
+            "data": [],
+            "meta": {"domain": domain, "task_hash": task_hash},
+            "error": "timeout",
+        }
 
 
 # ============================================================================
@@ -742,8 +840,22 @@ async def discover_contacts_for_domain(
     try:
         logging.info(f"🔍 Discovering contacts for domain: {domain}")
 
-        # Use Snov.io to search for profiles in the domain
-        # We'll look for common job titles that would be decision makers
+        # 1) Start by fetching all prospects Snov.io has for the domain (no role filtering)
+        discovered_contacts = []
+        try:
+            all_prospects_result = await snovio_client.get_all_domain_prospects(domain)
+        except Exception as exc:
+            logging.warning(f"⚠️ Failed to fetch Snov.io prospects for {domain}: {exc}")
+            all_prospects_result = {"data": []}
+
+        raw_profiles = []
+        data_field = all_prospects_result.get("data")
+        if isinstance(data_field, list):
+            raw_profiles = data_field
+        elif isinstance(data_field, dict) and "prospects" in data_field:
+            raw_profiles = data_field.get("prospects") or []
+
+        # 2) Filter locally for decision-maker titles
         decision_maker_titles = [
             "CEO",
             "Chief Executive Officer",
@@ -758,64 +870,52 @@ async def discover_contacts_for_domain(
             "Operations Manager",
         ]
 
-        discovered_contacts = []
+        # Lower-cased set for matching
+        decision_set = {t.lower() for t in decision_maker_titles}
+
         total_cost = 0.0
         snovio_cost_per_search = costs_config.get("snovio", 0.0)
 
-        for title in decision_maker_titles:
-            # Check if we're within budget
-            if total_cost >= contact_usd_cap:
-                logging.info(f"💰 Contact discovery budget reached for {domain}")
+        for profile in raw_profiles:
+            if len(discovered_contacts) >= 5:
                 break
 
-            try:
-                # Search for profiles with this title at the domain
-                search_result = await snovio_client.search_profiles(
-                    domain=domain, job_title=title
-                )
+            # Title fields vary by endpoint; check several candidates
+            title_value = (
+                profile.get("jobTitle")
+                or profile.get("position")
+                or profile.get("title")
+                or ""
+            )
 
-                if search_result and search_result.get("data"):
-                    profiles = search_result["data"]
-
-                    for profile in profiles[:3]:  # Limit to top 3 results per title
-                        if len(discovered_contacts) >= 5:  # Limit total contacts
-                            break
-
-                        # Create contact record
-                        contact = {
-                            "contact_id": f"discovered_{len(discovered_contacts)}",
-                            "first_name": profile.get("firstName", ""),
-                            "last_name": profile.get("lastName", ""),
-                            "email": profile.get("email", ""),
-                            "job_title": profile.get("jobTitle", title),
-                            "company": profile.get("company", ""),
-                            "linkedin_url": profile.get("linkedinUrl", ""),
-                            "location": profile.get("location", ""),
-                            "discovery_source": "snovio",
-                            "discovery_method": "title_search",
-                        }
-
-                        # Only add if we don't already have this person
-                        if not any(
-                            c.get("email") == contact["email"]
-                            and c.get("first_name") == contact["first_name"]
-                            and c.get("last_name") == contact["last_name"]
-                            for c in discovered_contacts
-                        ):
-                            discovered_contacts.append(contact)
-                            total_cost += snovio_cost_per_search
-                            logging.info(
-                                f"✅ Discovered contact: {contact['first_name']} {contact['last_name']} - {contact['job_title']}"
-                            )
-
-                # Small delay to avoid rate limiting
-                await asyncio.sleep(0.1)
-
-            except Exception as e:
-                logging.warning(
-                    f"⚠️ Failed to search for title '{title}' in {domain}: {e}"
-                )
+            if title_value and title_value.lower() not in decision_set:
                 continue
+
+            contact = {
+                "contact_id": f"discovered_{len(discovered_contacts)}",
+                "first_name": profile.get("firstName", ""),
+                "last_name": profile.get("lastName", ""),
+                "email": profile.get("email", ""),
+                "job_title": title_value,
+                "company": profile.get("company", ""),
+                "linkedin_url": profile.get("linkedinUrl", ""),
+                "location": profile.get("location", ""),
+                "discovery_source": "snovio",
+                "discovery_method": "domain_prospects",
+            }
+
+            # Only add if unique by name/email
+            if not any(
+                c.get("email") == contact["email"]
+                and c.get("first_name") == contact["first_name"]
+                and c.get("last_name") == contact["last_name"]
+                for c in discovered_contacts
+            ):
+                discovered_contacts.append(contact)
+                total_cost += snovio_cost_per_search
+                logging.info(
+                    f"✅ Discovered contact: {contact['first_name']} {contact['last_name']} - {contact['job_title']}"
+                )
 
         if discovered_contacts:
             logging.info(

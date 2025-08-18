@@ -17,17 +17,18 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 
-from .common import (
+from src.common import (
     PermitManager,
     setup_logging,
     validate_provider_config,
     load_costs_config,
     round4,
 )
-from .domain import DomainTool
-from .crawl import CrawlTool
-from .enrich import run_enrich
+from src.domain import DomainTool
+from src.crawl import CrawlTool
+from src.enrich import run_enrich
 
 # ============================================================================
 # Constants and Configuration
@@ -691,6 +692,9 @@ class LeadSorcererOrchestrator:
 
 async def main():
     """Main CLI entry point."""
+    # Load environment variables from .env file
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="Lead Sorcerer Orchestrator")
     parser.add_argument("--config", required=True, help="Path to icp_config.json")
     parser.add_argument(

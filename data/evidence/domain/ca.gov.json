@@ -3,7 +3,7 @@
   "queries": [
     "dental practice multiple locations California"
   ],
-  "fetched_at": "2025-08-18T02:41:31.040450Z",
+  "fetched_at": "2025-08-18T16:51:54.985827Z",
   "serp_results": [
     {
       "url": "https://www.dbc.ca.gov/licensees/dds/permits/additional_office.shtml",
@@ -12,7 +12,7 @@
       "query": "dental practice multiple locations California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:41:10.331522Z",
+      "fetched_at": "2025-08-18T16:51:30.866608Z",
       "domain": "ca.gov"
     }
   ],

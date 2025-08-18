@@ -163,7 +163,29 @@ def mock_snovio_email_response():
 def mock_snovio_client():
     """Mock Snovio client."""
     client = AsyncMock()
-    client.find_email.return_value = mock_snovio_email_response()
+    client.start_email_finder.return_value = {
+        "success": True,
+        "data": {"task_hash": "test_hash"},
+    }
+    client.get_email_finder_result.return_value = {
+        "success": True,
+        "data": {"email": "test@example.com"},
+    }
+    client.start_domain_prospect_search.return_value = {
+        "success": True,
+        "data": {"task_hash": "test_hash"},
+    }
+    client.get_domain_prospect_result.return_value = {
+        "success": True,
+        "data": [
+            {
+                "firstName": "John",
+                "lastName": "Doe",
+                "email": "john@example.com",
+                "jobTitle": "CEO",
+            }
+        ],
+    }
     return client
 
 
