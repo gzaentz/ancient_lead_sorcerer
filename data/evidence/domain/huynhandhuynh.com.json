@@ -1,0 +1,20 @@
+{
+  "domain": "huynhandhuynh.com",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.221873Z",
+  "serp_results": [
+    {
+      "url": "https://www.huynhandhuynh.com/dental-service-organizations-dso",
+      "title": "Dental Service Organizations (DSO's) \u2013 Huynh Law Houston",
+      "snippet": "Feb 14, 2019 ... ... site practices increased from five percent in 2008 to six percent in 2010. These practices are primarily concentrated in the South Atlantic\u00a0...",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.442731Z",
+      "domain": "huynhandhuynh.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "3e902a7d95e6b1fb3660acedfbc2dac0e16c4df3b08f7900417d99245d94c366"
+}

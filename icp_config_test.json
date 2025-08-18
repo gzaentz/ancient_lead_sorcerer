@@ -1,0 +1,51 @@
+{
+  "name": "Dentist Practices Test - Quick 10 Domains",
+  "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that are not private equity backed and not part of large national franchises",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "required_fields": {
+    "company": ["name", "hq_location", "number_of_locations", "ownership_type"],
+    "contact": ["email", "role"]
+  },
+  "optional_fields": {
+    "company": ["tech_stack", "revenue_range", "employee_count", "specialties", "founded_year"],
+    "contact": ["phone", "linkedin", "decision_maker"]
+  },
+  "threshold": 0.7,
+  "filtering_strict": true,
+  "mode": "fast",
+  "refresh_policy": {
+    "revisit_after_days": 90,
+    "failure_revisit_days": 1,
+    "domain_serp_ttl_hours": 24,
+    "crawl_ttl_days": 14
+  },
+  "concurrency": {
+    "max_concurrent_requests": 3
+  },
+  "search": {
+    "max_pages": 1
+  },
+  "testing": {
+    "process_rejected": false,
+    "process_low_crawl": false
+  },
+  "caps": {
+    "company_usd": 0.02,
+    "contact_usd": 0.03,
+    "run_usd_max": 5.0
+  },
+  "role_priority": {
+    "ceo": 1,
+    "vp operations": 2,
+    "practice administrator": 3,
+    "office manager": 4,
+    "director": 5,
+    "default": 99
+  },
+  "exports": {
+    "enabled": true
+  },
+  "default_country": "US"
+}

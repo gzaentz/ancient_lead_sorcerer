@@ -310,9 +310,9 @@ def map_coresignal_company_fields(coresignal_response: Dict[str, Any]) -> Dict[s
     if linkedin_id:
         mapped_data["linkedin_company_id"] = linkedin_id
 
-    # Map additional fields that Coresignal provides    if company_data.get("founded_year"):
+    # Map additional fields that Coresignal provides
+    if company_data.get("founded_year"):
         mapped_data["founded_year"] = company_data["founded_year"]
-
     if company_data.get("revenue"):
         mapped_data["revenue"] = company_data["revenue"]
 

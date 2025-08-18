@@ -1,0 +1,20 @@
+{
+  "domain": "cdc.gov",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.223446Z",
+  "serp_results": [
+    {
+      "url": "https://www.cdc.gov/nchs/data/hus/hus16.pdf",
+      "title": "Health United States Report 2016",
+      "snippet": "The report also contains 114 Trend Tables organized around four major subject areas: health status and determinants, health care utilization, health care\u00a0...",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.486552Z",
+      "domain": "cdc.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "a64607875dc381f251c783d101c7380550dd7a2d50f352662a8b516e6369a938"
+}

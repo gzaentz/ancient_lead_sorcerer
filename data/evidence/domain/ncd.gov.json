@@ -1,0 +1,20 @@
+{
+  "domain": "ncd.gov",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.219852Z",
+  "serp_results": [
+    {
+      "url": "https://www.ncd.gov/assets/uploads/reports/2023/ncd-medicaid-oral-health-incentives-2023.pdf",
+      "title": "Incentivizing Oral Health Care Providers to Treat Patients with ...",
+      "snippet": "Apr 5, 2023 ... Dental Care\u2014 in the second focus group session. These specific ... Chapter 5: Promising Practices. State Medicaid dental program.",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.317456Z",
+      "domain": "ncd.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "ac6834684222aade61cbe74ce2ee868e1b09e9bb1f636b7e86692b1e4e3ce78c"
+}

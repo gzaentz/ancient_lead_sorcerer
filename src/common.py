@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import phonenumbers
-import portalocker
+# portalocker removed - using direct file I/O for Windows compatibility
 import publicsuffix2
 from jsonschema import Draft202012Validator, ValidationError
 
@@ -1119,7 +1119,7 @@ def setup_logging(tool_name: str, level: int = logging.INFO) -> logging.Logger:
 
 def write_with_lock(file_path: str, data: Any, mode: str = "w") -> None:
     """
-    Write data to file with portalocker write lock.
+    Write data to file with simple error handling.
 
     Args:
         file_path: Path to file
@@ -1127,31 +1127,37 @@ def write_with_lock(file_path: str, data: Any, mode: str = "w") -> None:
         mode: File write mode
     """
     try:
-        with portalocker.Lock(file_path, timeout=10):
-            with open(file_path, mode) as f:
-                if isinstance(data, str):
-                    f.write(data)
-                else:
-                    json.dump(data, f, indent=2)
-    except portalocker.exceptions.LockException as e:
-        raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
+        # Ensure directory exists
+        import os
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        with open(file_path, mode) as f:
+            if isinstance(data, str):
+                f.write(data)
+            else:
+                json.dump(data, f, indent=2)
+    except Exception as e:
+        raise RuntimeError(f"Failed to write to {file_path}: {e}")
 
 
 def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> None:
     """
-    Append records to JSONL file with portallocker write lock.
+    Append records to JSONL file with simple error handling.
 
     Args:
         file_path: Path to JSONL file
         records: List of records to append
     """
     try:
-        with portalocker.Lock(file_path, timeout=10):
-            with open(file_path, "a") as f:
-                for record in records:
-                    f.write(json.dumps(record) + "\n")
-    except portalocker.exceptions.LockException as e:
-        raise RuntimeError(f"Failed to acquire lock for {file_path}: {e}")
+        # Ensure directory exists
+        import os
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        with open(file_path, "a") as f:
+            for record in records:
+                f.write(json.dumps(record) + "\n")
+    except Exception as e:
+        raise RuntimeError(f"Failed to append to {file_path}: {e}")
 
 
 # ============================================================================

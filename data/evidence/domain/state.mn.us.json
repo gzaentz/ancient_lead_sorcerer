@@ -1,0 +1,20 @@
+{
+  "domain": "state.mn.us",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.215838Z",
+  "serp_results": [
+    {
+      "url": "https://www.health.state.mn.us/data/workforce/oral/docs/2019dt.pdf",
+      "title": "Minnesota's Dental Therapy Workforce 2019",
+      "snippet": "Sep 10, 2019 ... Large group private practice (5+ dentists). 12%. Academic (Teaching ... RUCAs define areas of the state based on population density and commuting\u00a0...",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.124575Z",
+      "domain": "state.mn.us"
+    }
+  ],
+  "scoring_prompt_fingerprint": "14cfcadada60689068a343e09830bcc337fd9dff541794f013a5b75d576d9f08"
+}

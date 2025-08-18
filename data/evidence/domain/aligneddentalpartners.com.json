@@ -1,0 +1,20 @@
+{
+  "domain": "aligneddentalpartners.com",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.217843Z",
+  "serp_results": [
+    {
+      "url": "https://aligneddentalpartners.com/",
+      "title": "Aligned Dental Partners: Dental Consulting",
+      "snippet": "As a leader in dental consulting, Aligned Dental Partners works with emerging DSOs, group practices, and entrepreneurial dentists.",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.233198Z",
+      "domain": "aligneddentalpartners.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "6fc8aa2cfe92b00c21840500a604eb776205314db53e648216b95d16881be92e"
+}

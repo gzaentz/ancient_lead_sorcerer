@@ -1,0 +1,20 @@
+{
+  "domain": "illinois.gov",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.217843Z",
+  "serp_results": [
+    {
+      "url": "https://dph.illinois.gov/content/dam/soi/en/web/idph/publications/idph/topics-and-services/prevention-wellness/oral-health/survey-reports/idph-oral-health-workforce-survey-report-08-2022.pdf",
+      "title": "Oral Health Workforce Survey Report",
+      "snippet": "... dental professionals considering new practice locations and ... * A higher proportion of large group practices (5+ FTE dentists) indicated seeing Medicaid.",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.191280Z",
+      "domain": "illinois.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "9a9cc3fa256f4bfd41194895ef54121e06c366b567b2f9db06b2fddaf2f1d480"
+}

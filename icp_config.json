@@ -1,16 +1,25 @@
 {
-  "name": "<icp_name>",
-  "icp_text": "<one-sentence ICP description>",
+  "name": "Dentist Practices in US with over 5 locations, non PE backed and non large franchise",
+  "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that are not private equity backed and not part of large national franchises",
   "queries": [
-    "${industry} companies in ${region}"
+    "dental practice groups with 5+ locations in United States",
+    "regional dental practices multiple locations independent",
+    "dental practice management companies 5+ offices",
+    "multi-location dental practices not franchise",
+    "independent dental groups 5+ locations United States",
+    "regional dental practice chains non-PE backed",
+    "dental practice networks 5+ locations independent ownership",
+    "multi-office dental practices family owned",
+    "dental practice groups 5+ locations non-corporate",
+    "regional dental chains independent operators"
   ],
   "required_fields": {
-    "company": ["name", "hq_location"],
-    "contact": ["email"]
+    "company": ["name", "hq_location", "number_of_locations", "ownership_type"],
+    "contact": ["email", "role"]
   },
   "optional_fields": {
-    "company": ["tech_stack"],
-    "contact": ["phone"]
+    "company": ["tech_stack", "revenue_range", "employee_count", "specialties", "founded_year"],
+    "contact": ["phone", "linkedin", "decision_maker"]
   },
   "threshold": 0.7,
   "filtering_strict": true,
@@ -38,12 +47,24 @@
   },
   "role_priority": {
     "ceo": 1,
-    "vp sales": 2,
-    "director": 3,
+    "vp operations": 2,
+    "practice administrator": 3,
+    "office manager": 4,
+    "director": 5,
     "default": 99
   },
   "exports": {
     "enabled": true
   },
-  "default_country": "US"
+  "default_country": "US",
+  "exclusion_criteria": {
+    "ownership_types": ["private_equity", "large_franchise", "corporate_chain"],
+    "max_locations": 50,
+    "excluded_keywords": ["franchise", "corporate", "private equity", "investor backed"]
+  },
+  "targeting": {
+    "location_types": ["multi_location", "regional", "independent"],
+    "practice_sizes": ["5-20 locations", "20-50 locations"],
+    "ownership_models": ["family_owned", "partnership", "independent_group"]
+  }
 }

@@ -1,0 +1,20 @@
+{
+  "domain": "wa.gov",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.224453Z",
+  "serp_results": [
+    {
+      "url": "https://doh.wa.gov/sites/default/files/legacy/Documents/Pubs//160-001_ImpactOralDisease.pdf",
+      "title": "The impact of oral disease on the lives of Washingtonians",
+      "snippet": "Of these, 4,473 dentists and 4,271 dental hygienists practiced in the state (i.e., had an ... of the racial and ethnic groups in the United States. African\u00a0...",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.528110Z",
+      "domain": "wa.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "8a7250eb026cfaa624dd38a7df380b5dc0dacbc554fe7a9150721761c5707dc1"
+}

@@ -629,17 +629,24 @@ class DomainTool:
         Returns:
             List of scored domain records
         """
+        self.logger.info(f"🔍 _search_and_score_domains: {len(queries)} queries, {max_pages} pages, {ttl_hours}h TTL")
         all_results = []
         cache_hits = 0
         cache_misses = 0
 
-        for query in queries:
+        for query_idx, query in enumerate(queries, 1):
+            self.logger.info(f"🔍 Processing query {query_idx}/{len(queries)}: '{query}'")
+
             for page in range(1, max_pages + 1):
+                self.logger.info(f"📄 Processing page {page}/{max_pages} for query: '{query}'")
+
                 # Check cache first
+                self.logger.info(f"🔍 Checking cache for query '{query}' page {page}")
                 cached_results = self.search_cache.get_cached_results(
                     query, page, ttl_hours
                 )
                 if cached_results:
+                    self.logger.info(f"✅ Cache hit for query '{query}' page {page}")
                     cache_hits += 1
                     # Process cached results
                     for item in cached_results["results"].get("items", []):
@@ -647,28 +654,38 @@ class DomainTool:
                         all_results.append(normalized_item)
                     continue
 
+                self.logger.info(f"❌ Cache miss for query '{query}' page {page}, fetching from GSE...")
                 cache_misses += 1
 
                 try:
                     # Fetch from GSE
+                    self.logger.info(f"📡 Making GSE API call for query '{query}' page {page}")
                     results = await self.gse_client.search(query, page)
+                    self.logger.info(f"✅ GSE API call successful for query '{query}' page {page}")
 
                     # Cache results
+                    self.logger.info(f"💾 Caching results for query '{query}' page {page}")
                     self.search_cache.cache_results(query, page, results)
 
                     # Process results
-                    for item in results.get("items", []):
+                    items = results.get("items", [])
+                    self.logger.info(f"📋 Processing {len(items)} items from GSE results")
+                    for item in items:
                         normalized_item = self._normalize_serp_result(item, query, page)
                         all_results.append(normalized_item)
 
                 except Exception as e:
                     self.logger.error(
-                        f"GSE search failed for query '{query}' page {page}: {e}"
+                        f"❌ GSE search failed for query '{query}' page {page}: {e}"
                     )
                     continue
 
+        self.logger.info(f"📊 Search completed: {len(all_results)} total results, {cache_hits} cache hits, {cache_misses} cache misses")
+
         # Score domains
+        self.logger.info(f"🤖 Starting LLM scoring for {len(all_results)} domains...")
         scored_domains = await self._score_domains(all_results)
+        self.logger.info(f"✅ LLM scoring completed: {len(scored_domains)} scored domains")
 
         return scored_domains, cache_hits, cache_misses
 
@@ -684,14 +701,17 @@ class DomainTool:
         Returns:
             List of scored domain records
         """
+        self.logger.info(f"🤖 _score_domains: Processing {len(serp_results)} SERP results")
         scored_domains = []
         domain_map = {}  # Track unique domains
 
-        for result in serp_results:
+        for idx, result in enumerate(serp_results, 1):
             domain = result["domain"]
+            self.logger.info(f"🤖 Processing domain {idx}/{len(serp_results)}: {domain}")
 
             # Skip if we already processed this domain
             if domain in domain_map:
+                self.logger.info(f"🔄 Domain {domain} already processed, adding to evidence")
                 # Add to existing record's discovery evidence
                 existing_record = domain_map[domain]
                 if len(existing_record["provenance"]["discovery_evidence"]) < 3:
@@ -699,9 +719,11 @@ class DomainTool:
                 continue
 
             # Create new lead record
+            self.logger.info(f"📝 Creating new lead record for domain: {domain}")
             record = self._create_lead_record(domain, result["query"])
 
             # Score the domain
+            self.logger.info(f"🤖 Scoring domain {domain} with LLM...")
             try:
                 (
                     score,
@@ -840,29 +862,38 @@ class DomainTool:
             Tool output envelope
         """
         start_time = time.time()
+        self.logger.info(f"🚀 Domain tool run() started at {start_time}")
 
         try:
             # Use provided config or instance config
             config = icp_config or self.icp_config
+            self.logger.info(f"📋 Using config: {config.get('name', 'Unknown')}")
 
             # Validate configuration
+            self.logger.info("🔍 Validating ICP configuration...")
             validation_errors = self._validate_icp_config()
             if validation_errors:
+                self.logger.error(f"❌ Configuration validation failed: {validation_errors}")
                 return {
                     "data": {"lead_records": []},
                     "errors": validation_errors,
                     "metrics": build_metrics(0, 0, 0),
                 }
+            self.logger.info("✅ Configuration validation passed")
 
             # Get search and refresh parameters
+            self.logger.info("⚙️ Getting search and refresh parameters...")
             max_pages, ttl_hours, mode = self._get_search_parameters()
             revisit_after_days, failure_revisit_days, domain_ttl_days = (
                 self._get_refresh_parameters()
             )
+            self.logger.info(f"📊 Search params: max_pages={max_pages}, ttl_hours={ttl_hours}, mode={mode}")
 
             # Get queries and validate placeholders
             queries = config.get("queries", [])
+            self.logger.info(f"🔍 Found {len(queries)} queries to process")
             if not queries:
+                self.logger.error("❌ No queries provided")
                 return {
                     "data": {"lead_records": []},
                     "errors": [
@@ -878,6 +909,7 @@ class DomainTool:
                 }
 
             # Search and score domains
+            self.logger.info("🔍 Starting search and score domains...")
             (
                 scored_domains,
                 cache_hits,

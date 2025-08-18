@@ -1,0 +1,49 @@
+{
+  "name": "<icp_name>",
+  "icp_text": "<one-sentence ICP description>",
+  "queries": [
+    "${industry} companies in ${region}"
+  ],
+  "required_fields": {
+    "company": ["name", "hq_location"],
+    "contact": ["email"]
+  },
+  "optional_fields": {
+    "company": ["tech_stack"],
+    "contact": ["phone"]
+  },
+  "threshold": 0.7,
+  "filtering_strict": true,
+  "mode": "fast",
+  "refresh_policy": {
+    "revisit_after_days": 90,
+    "failure_revisit_days": 1,
+    "domain_serp_ttl_hours": 24,
+    "crawl_ttl_days": 14
+  },
+  "concurrency": {
+    "max_concurrent_requests": 3
+  },
+  "search": {
+    "max_pages": 5
+  },
+  "testing": {
+    "process_rejected": false,
+    "process_low_crawl": false
+  },
+  "caps": {
+    "company_usd": 0.02,
+    "contact_usd": 0.03,
+    "run_usd_max": 5.0
+  },
+  "role_priority": {
+    "ceo": 1,
+    "vp sales": 2,
+    "director": 3,
+    "default": 99
+  },
+  "exports": {
+    "enabled": true
+  },
+  "default_country": "US"
+}

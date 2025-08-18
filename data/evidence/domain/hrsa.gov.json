@@ -1,0 +1,20 @@
+{
+  "domain": "hrsa.gov",
+  "queries": [
+    "dental practice groups 5+ locations United States"
+  ],
+  "fetched_at": "2025-08-18T01:12:01.219852Z",
+  "serp_results": [
+    {
+      "url": "https://bhw.hrsa.gov/sites/default/files/bureau-health-workforce/state-of-the-health-workforce-report-2024.pdf",
+      "title": "State of the U.S. Health Care Workforce, 2024",
+      "snippet": "Nov 7, 2024 ... In 2022, there were 157,604 residents. Page 5. National Center for Health Workforce Analysis. November 2024. 5.",
+      "query": "dental practice groups 5+ locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:11:43.276221Z",
+      "domain": "hrsa.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "8c9795bd92da9109708bec5af4d4522926ac14dba7968368fcd3175213b50a00"
+}
