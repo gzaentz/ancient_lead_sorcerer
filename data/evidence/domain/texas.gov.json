@@ -1,0 +1,40 @@
+{
+  "domain": "texas.gov",
+  "queries": [
+    "dental practice locations Texas"
+  ],
+  "fetched_at": "2025-08-18T02:02:07.851354Z",
+  "serp_results": [
+    {
+      "url": "https://www.dshs.texas.gov/dental-health/find-a-dentist",
+      "title": "Find a Dentist | Texas DSHS",
+      "snippet": "Jan 29, 2025 ... Finding affordable dental care can be a challenge. There are free and low-cost dental options in Texas. Dental options vary based on things\u00a0...",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.313275Z",
+      "domain": "texas.gov"
+    },
+    {
+      "url": "https://tsbde.texas.gov/laws-rules/dental-practice-act-tsbde-rules/",
+      "title": "Dental Practice Act & TSBDE Rules \u2013 Texas State Board of Dental ...",
+      "snippet": "The Dental Practice Act is found in Chapters 251 through 267 of the Texas Occupations Code. You may click on the links below to see each chapter.",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.427190Z",
+      "domain": "texas.gov"
+    },
+    {
+      "url": "https://statutes.capitol.texas.gov/Docs/OC/htm/OC.251.htm",
+      "title": "OCCUPATIONS CODE CHAPTER 251. GENERAL PROVISIONS ...",
+      "snippet": "... Texas Non-Profit Corporation Act (Article 1396-2.01 ... (C) who practices in strict conformity with state law regulating the practice of dental hygiene;.",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.599564Z",
+      "domain": "texas.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "37bd7233c5bde7f58e28959d92c42d55b614ab871fc4a77c267d1bb20c43da95"
+}

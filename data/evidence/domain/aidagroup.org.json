@@ -1,0 +1,20 @@
+{
+  "domain": "aidagroup.org",
+  "queries": [
+    "regional dental group practices United States"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.542837Z",
+  "serp_results": [
+    {
+      "url": "https://aidagroup.org/event/the-4th-annual-west-texas-regional-dental-symposium/",
+      "title": "The 4th Annual West Texas Regional Dental Symposium \u2013 AIDA ...",
+      "snippet": "Jun 13, 2025 ... 2521 17th St., Lubbock, TX, 79409, United States, ... dental implant maintenance Lynn has founded her company \u201cPractice at your Best\u201d.",
+      "query": "regional dental group practices United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:21.138111Z",
+      "domain": "aidagroup.org"
+    }
+  ],
+  "scoring_prompt_fingerprint": "3a3da80af94cec6b21084a9685a8c6420d70ca02138a24a08a11511bb16f5729"
+}

@@ -1,0 +1,20 @@
+{
+  "domain": "dentalclaimsupport.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.538827Z",
+  "serp_results": [
+    {
+      "url": "https://www.dentalclaimsupport.com/blog/top-management-tips-multi-location-dental-practice",
+      "title": "3 top management tips for your multi-location dental practice",
+      "snippet": "When you manage multiple dental practices, you're managing multiple dental teams, billing systems, and dentists. The best thing you can do is stay consistent in\u00a0...",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.156027Z",
+      "domain": "dentalclaimsupport.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "8f3bc328cc3805cfec72af685d749d5a9836c605992986d2ba7a53d3a143850e"
+}

@@ -57,7 +57,7 @@ class TestCoresignalClient:
                 "industry": "Technology",
                 "size": "51-200",
                 "location": {"city": "San Francisco"},
-                "linkedin_id": "12345"
+                "linkedin_id": "12345",
             }
         }
         mock_response.raise_for_status.return_value = None
@@ -81,7 +81,10 @@ class TestCoresignalClient:
         semaphore_pool = AsyncMock()
         client = CoresignalClient("test_token", semaphore_pool)
 
-        with pytest.raises(NotImplementedError, match="Coresignal doesn't support direct LinkedIn URL enrichment"):
+        with pytest.raises(
+            NotImplementedError,
+            match="Coresignal doesn't support direct LinkedIn URL enrichment",
+        ):
             await client.enrich_contact("https://linkedin.com/in/test")
 
     @pytest.mark.asyncio
@@ -98,7 +101,7 @@ class TestCoresignalClient:
                     "last_name": "Doe",
                     "full_name": "John Doe",
                     "email": "john@example.com",
-                    "title": "CEO"
+                    "title": "CEO",
                 }
             ]
         }
@@ -316,7 +319,7 @@ class TestCompanyEnrichment:
                 "industry": "Technology",
                 "size": "50-100 employees",
                 "location": {"city": "San Francisco"},
-                "linkedin_id": "12345"
+                "linkedin_id": "12345",
             }
         }
 
@@ -372,7 +375,7 @@ class TestContactEnrichment:
                     "full_name": "Test User",
                     "email": "test@example.com",
                     "phone": "+1234567890",
-                    "title": "Software Engineer"
+                    "title": "Software Engineer",
                 }
             ]
         }
@@ -469,9 +472,7 @@ class TestEvidenceFileWriting:
                     mock_lock.return_value.__enter__ = MagicMock()
                     mock_lock.return_value.__exit__ = MagicMock()
 
-                    result_path = write_evidence_file(
-                        domain, evidence_data, temp_dir
-                    )
+                    result_path = write_evidence_file(domain, evidence_data, temp_dir)
 
                     # Check that file was created
                     expected_path = os.path.join(
@@ -524,12 +525,12 @@ class TestMainEnrichmentLogic:
                             "method": "test",
                             "model": "test",
                             "prompt_fingerprint": "test",
-                            "temperature": 0.1
+                            "temperature": 0.1,
                         },
                         "crawl_score": 0.8,
                         "crawl_reason": "Test reason",
                         "threshold": 0.7,
-                        "filtering_strict": True
+                        "filtering_strict": True,
                     },
                     "provenance": {
                         "queries": ["test query"],
@@ -541,11 +542,11 @@ class TestMainEnrichmentLogic:
                         "tool_versions": {
                             "domain": {"version": "1.0", "schema_version": "test"},
                             "crawl": {"version": "1.0", "schema_version": "test"},
-                            "enrich": {"version": "1.0", "schema_version": "test"}
+                            "enrich": {"version": "1.0", "schema_version": "test"},
                         },
                         "cache": {},
-                        "evidence_paths": []
-                    }
+                        "evidence_paths": [],
+                    },
                 }
             ],
             "icp_config": {
@@ -603,9 +604,7 @@ class TestMainEnrichmentLogic:
 
                                     # Mock company enrichment
                                     mock_coresignal.enrich_company.return_value = {
-                                        "company": {
-                                            "name": "Test Company"
-                                        }
+                                        "company": {"name": "Test Company"}
                                     }
 
                                     # Mock evidence file writing
@@ -652,12 +651,12 @@ class TestMainEnrichmentLogic:
                             "method": "test",
                             "model": "test",
                             "prompt_fingerprint": "test",
-                            "temperature": 0.1
+                            "temperature": 0.1,
                         },
                         "crawl_score": 0.8,
                         "crawl_reason": "Test reason",
                         "threshold": 0.7,
-                        "filtering_strict": True
+                        "filtering_strict": True,
                     },
                     "provenance": {
                         "queries": ["test query"],
@@ -669,11 +668,11 @@ class TestMainEnrichmentLogic:
                         "tool_versions": {
                             "domain": {"version": "1.0", "schema_version": "test"},
                             "crawl": {"version": "1.0", "schema_version": "test"},
-                            "enrich": {"version": "1.0", "schema_version": "test"}
+                            "enrich": {"version": "1.0", "schema_version": "test"},
                         },
                         "cache": {},
-                        "evidence_paths": []
-                    }
+                        "evidence_paths": [],
+                    },
                 }
             ],
             "icp_config": {
@@ -770,12 +769,12 @@ class TestMainEnrichmentLogic:
                             "method": "test",
                             "model": "test",
                             "prompt_fingerprint": "test",
-                            "temperature": 0.1
+                            "temperature": 0.1,
                         },
                         "crawl_score": 0.8,
                         "crawl_reason": "Test reason",
                         "threshold": 0.7,
-                        "filtering_strict": True
+                        "filtering_strict": True,
                     },
                     "provenance": {
                         "queries": ["test query"],
@@ -787,11 +786,11 @@ class TestMainEnrichmentLogic:
                         "tool_versions": {
                             "domain": {"version": "1.0", "schema_version": "test"},
                             "crawl": {"version": "1.0", "schema_version": "test"},
-                            "enrich": {"version": "1.0", "schema_version": "test"}
+                            "enrich": {"version": "1.0", "schema_version": "test"},
                         },
                         "cache": {},
-                        "evidence_paths": []
-                    }
+                        "evidence_paths": [],
+                    },
                 }
             ],
             "icp_config": {
@@ -874,7 +873,9 @@ class TestErrorHandling:
         costs_config = {"coresignal": 0.01, "snovio": 0.015, "mailgun": 0.002}
 
         # Mock Coresignal company contacts failure
-        coresignal_client.enrich_company_contacts.side_effect = Exception("Coresignal API Error")
+        coresignal_client.enrich_company_contacts.side_effect = Exception(
+            "Coresignal API Error"
+        )
 
         # Mock Snov.io success
         snovio_client.find_email.return_value = {"email": "test@example.com"}
@@ -923,12 +924,12 @@ class TestErrorHandling:
                             "method": "test",
                             "model": "test",
                             "prompt_fingerprint": "test",
-                            "temperature": 0.1
+                            "temperature": 0.1,
                         },
                         "crawl_score": 0.8,
                         "crawl_reason": "Test reason",
                         "threshold": 0.7,
-                        "filtering_strict": True
+                        "filtering_strict": True,
                     },
                     "provenance": {
                         "queries": ["test query"],
@@ -940,11 +941,11 @@ class TestErrorHandling:
                         "tool_versions": {
                             "domain": {"version": "1.0", "schema_version": "test"},
                             "crawl": {"version": "1.0", "schema_version": "test"},
-                            "enrich": {"version": "1.0", "schema_version": "test"}
+                            "enrich": {"version": "1.0", "schema_version": "test"},
                         },
                         "cache": {},
-                        "evidence_paths": []
-                    }
+                        "evidence_paths": [],
+                    },
                 }
             ],
             "icp_config": {
@@ -1061,12 +1062,12 @@ class TestMissingRequirements:
                             "method": "test",
                             "model": "test",
                             "prompt_fingerprint": "test",
-                            "temperature": 0.1
+                            "temperature": 0.1,
                         },
                         "crawl_score": 0.8,
                         "crawl_reason": "Test reason",
                         "threshold": 0.7,
-                        "filtering_strict": True
+                        "filtering_strict": True,
                     },
                     "provenance": {
                         "queries": ["test query"],
@@ -1078,11 +1079,11 @@ class TestMissingRequirements:
                         "tool_versions": {
                             "domain": {"version": "1.0", "schema_version": "test"},
                             "crawl": {"version": "1.0", "schema_version": "test"},
-                            "enrich": {"version": "1.0", "schema_version": "test"}
+                            "enrich": {"version": "1.0", "schema_version": "test"},
                         },
                         "cache": {},
-                        "evidence_paths": []
-                    }
+                        "evidence_paths": [],
+                    },
                 }
             ],
             "icp_config": {

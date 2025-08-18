@@ -1,0 +1,20 @@
+{
+  "domain": "va.gov",
+  "queries": [
+    "dental practice locations Texas"
+  ],
+  "fetched_at": "2025-08-18T02:02:07.853100Z",
+  "serp_results": [
+    {
+      "url": "https://www.va.gov/find-locations/",
+      "title": "Find VA Locations | Veterans Affairs",
+      "snippet": "Find VA locations. Facility Locator is down for maintenance. We're making ... Visit a medical center or regional office. Find a VA location. Talk to the\u00a0...",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.383857Z",
+      "domain": "va.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "d77348b7621fd552ea025d25ab4657ae798e81aabbc80a2556483eeb1f0abc3f"
+}

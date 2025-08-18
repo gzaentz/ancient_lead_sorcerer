@@ -1,0 +1,20 @@
+{
+  "domain": "sabaldental.com",
+  "queries": [
+    "dental practice locations Texas"
+  ],
+  "fetched_at": "2025-08-18T02:02:07.855106Z",
+  "serp_results": [
+    {
+      "url": "https://sabaldental.com/",
+      "title": "Sabal Dental: North, Central, or South Texas Dentist",
+      "snippet": "We provide high-tech, comprehensive care in nine locations, including five in Corpus Christi. Whether you see us for an exam or dental implants, we'll ensure\u00a0...",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.643347Z",
+      "domain": "sabaldental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "69d39174e6a486bb8bba159ba0adc4d674876b8802791586cc7e785852eb3007"
+}

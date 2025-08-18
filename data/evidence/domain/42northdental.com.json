@@ -1,0 +1,20 @@
+{
+  "domain": "42northdental.com",
+  "queries": [
+    "regional dental group practices United States"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.542837Z",
+  "serp_results": [
+    {
+      "url": "https://www.42northdental.com/42-north-dental-surpasses-pivotal-100-practice-mark/",
+      "title": "42 North Dental Surpasses Pivotal 100 Practice Mark",
+      "snippet": "Nov 11, 2021 ... GLFDG is a highly regarded, award-winning regional group dental practice that is well known in the communities it serves. The affiliation\u00a0...",
+      "query": "regional dental group practices United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:21.051410Z",
+      "domain": "42northdental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "ff9b4db3092c22dda8d6e26616327fb582bfaaa092e1f70d9fa734de56178d48"
+}

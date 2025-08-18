@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T01:49:20.547773Z",
+  "content_hash": "82fda911d2e70d3afdcfbb9849de839e5ff1ed176282d327cb161dc2d67bc8b1",
+  "extracted_data": {
+    "company": {
+      "name": "Select Dental Management",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "",
+      "industry": "Dental Management",
+      "careers_url": "https://selectdentalmanagement.com/careers/",
+      "description": "Select Dental Management was founded with the idea of building a better dental partnership model. By partnering with dental practices across eight states and Washington D.C., we provide tools, technology, training and tailored strategies to drive exceptional patient care and practice growth. Our mission is to make the teams, patients and practices we support healthier and happier.",
+      "hq_location": ""
+    },
+    "employees": []
+  }
+}

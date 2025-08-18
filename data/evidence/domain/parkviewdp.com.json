@@ -1,0 +1,20 @@
+{
+  "domain": "parkviewdp.com",
+  "queries": [
+    "dental practice group multiple locations United States"
+  ],
+  "fetched_at": "2025-08-18T02:00:23.512522Z",
+  "serp_results": [
+    {
+      "url": "https://parkviewdp.com/multi-location-dental-practice-owners/",
+      "title": "Multi Unit Dental Practice Owners - Parkview Dental Partners",
+      "snippet": "Let's Talk Growth. We work with multi-location groups across the U.S. who are ready to scale smarter\u2014not harder.",
+      "query": "dental practice group multiple locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:00:09.319826Z",
+      "domain": "parkviewdp.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "8142950e6841acd23257db6bf3a77271cd7b60291ce71867aab28fb5b676b065"
+}

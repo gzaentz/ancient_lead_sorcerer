@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T01:44:38.868799Z",
+  "content_hash": "ecad7846daa0eb9596f57d6667bea6fefb5cd6ffd59c05032557c41288f30f5d",
+  "extracted_data": {
+    "company": {
+      "name": "Aspen Dental",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "",
+      "industry": "Dental Services",
+      "careers_url": "",
+      "description": "Aspen Dental dentists provide comprehensive & affordable dental services including dentures, dental implants, and dental checkups. Schedule an appointment!",
+      "hq_location": ""
+    },
+    "employees": []
+  }
+}

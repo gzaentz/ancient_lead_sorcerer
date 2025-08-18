@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T01:47:42.035998Z",
+  "content_hash": "9f61071f11d377ed83bec89d0cbe068bac01783ffc0f595205e23b1ab6224a78",
+  "extracted_data": {
+    "company": {
+      "name": "Dental Care Associates",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "",
+      "industry": "Dental Care",
+      "careers_url": "",
+      "description": "Dental Care Associates offers a variety of dental services all over Pennsylvania. Click here to learn more about our general, specialty, and cosmetic dentistry.",
+      "hq_location": "Pennsylvania"
+    },
+    "employees": []
+  }
+}

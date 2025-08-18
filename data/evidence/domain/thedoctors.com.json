@@ -1,0 +1,20 @@
+{
+  "domain": "thedoctors.com",
+  "queries": [
+    "regional dental group practices United States"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.545172Z",
+  "serp_results": [
+    {
+      "url": "https://www.thedoctors.com/",
+      "title": "The Doctors Company | Medical Malpractice Insurance",
+      "snippet": "The Doctors Company is the nation's largest physician-owned medical malpractice insurer. Apply for malpractice insurance coverage today.",
+      "query": "regional dental group practices United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:21.209276Z",
+      "domain": "thedoctors.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "eff771c9537e6c05c8efb048d3bb189b5fffaf27514d24840345ddd320d212e3"
+}

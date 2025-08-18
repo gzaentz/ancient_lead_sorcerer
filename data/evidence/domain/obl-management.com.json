@@ -1,0 +1,20 @@
+{
+  "domain": "obl-management.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.540833Z",
+  "serp_results": [
+    {
+      "url": "https://obl-management.com/",
+      "title": "Dental Management Company | A Dental Service Organization",
+      "snippet": "Dental Management Services that Create the Best Life for Our Clinicians and Their Patients ... blue map of Our Best Life locations- dental practice management\u00a0...",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.333395Z",
+      "domain": "obl-management.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "ba7e8422f0331699451feff8f8347481bf10415b9968154271d69d29cf225d4a"
+}

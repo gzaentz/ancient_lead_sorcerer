@@ -19,8 +19,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .common import (
-    PermitManager, setup_logging,
-    validate_provider_config, load_costs_config, round4
+    PermitManager,
+    setup_logging,
+    validate_provider_config,
+    load_costs_config,
+    round4,
 )
 from .domain import DomainTool
 from .crawl import CrawlTool
@@ -37,6 +40,7 @@ DEFAULT_MAX_CONCURRENT_REQUESTS = 3
 # ============================================================================
 # Orchestrator Class
 # ============================================================================
+
 
 class LeadSorcererOrchestrator:
     """
@@ -69,7 +73,9 @@ class LeadSorcererOrchestrator:
         self.data_dir = self._resolve_data_dir()
 
         # Initialize permit manager for global concurrency control
-        max_concurrent = self.icp_config.get("concurrency", {}).get("max_concurrent_requests", DEFAULT_MAX_CONCURRENT_REQUESTS)
+        max_concurrent = self.icp_config.get("concurrency", {}).get(
+            "max_concurrent_requests", DEFAULT_MAX_CONCURRENT_REQUESTS
+        )
         self.permit_manager = PermitManager(max_concurrent)
 
         # Initialize tools
@@ -84,11 +90,17 @@ class LeadSorcererOrchestrator:
     def _load_icp_config(self) -> Dict[str, Any]:
         """Load and validate ICP configuration."""
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, "r") as f:
                 config = json.load(f)
 
             # Validate required fields
-            required_fields = ['name', 'icp_text', 'queries', 'required_fields', 'threshold']
+            required_fields = [
+                "name",
+                "icp_text",
+                "queries",
+                "required_fields",
+                "threshold",
+            ]
             for field in required_fields:
                 if field not in config:
                     raise ValueError(f"Missing required field: {field}")
@@ -101,7 +113,7 @@ class LeadSorcererOrchestrator:
     def _resolve_data_dir(self) -> str:
         """Resolve data directory with precedence."""
         # Check environment variable first
-        env_data_dir = os.environ.get('LEADPOET_DATA_DIR')
+        env_data_dir = os.environ.get("LEADPOET_DATA_DIR")
         if env_data_dir:
             return env_data_dir
 
@@ -112,7 +124,14 @@ class LeadSorcererOrchestrator:
         """Validate that all required providers are configured."""
         try:
             costs_config = load_costs_config()
-            required_providers = ['gse', 'openrouter', 'firecrawl', 'coresignal', 'mailgun', 'snovio']
+            required_providers = [
+                "gse",
+                "openrouter",
+                "firecrawl",
+                "coresignal",
+                "mailgun",
+                "snovio",
+            ]
             validate_provider_config(required_providers, costs_config)
         except Exception as e:
             self.logger.error(f"Provider configuration validation failed: {e}")
@@ -130,7 +149,9 @@ class LeadSorcererOrchestrator:
         if not isinstance(testing.get("process_low_crawl", False), bool):
             raise ValueError("testing.process_low_crawl must be a boolean")
 
-        self.logger.info(f"Testing flags: process_rejected={testing.get('process_rejected', False)}, process_low_crawl={testing.get('process_low_crawl', False)}")
+        self.logger.info(
+            f"Testing flags: process_rejected={testing.get('process_rejected', False)}, process_low_crawl={testing.get('process_low_crawl', False)}"
+        )
 
     def _validate_refresh_policy(self) -> None:
         """Validate refresh policy configuration."""
@@ -157,7 +178,9 @@ class LeadSorcererOrchestrator:
         if not isinstance(role_priority, dict):
             raise ValueError("role_priority must be a dictionary")
 
-        self.logger.info(f"Refresh policy validated: domain_ttl_days={domain_ttl_days}, max_pages={max_pages}, default_country={default_country}")
+        self.logger.info(
+            f"Refresh policy validated: domain_ttl_days={domain_ttl_days}, max_pages={max_pages}, default_country={default_country}"
+        )
 
     async def run_pipeline(self) -> Dict[str, Any]:
         """
@@ -167,7 +190,9 @@ class LeadSorcererOrchestrator:
             Pipeline results with metrics and summary
         """
         self.start_time = time.time()
-        self.logger.info(f"Starting Lead Sorcerer pipeline with config: {self.icp_config['name']}")
+        self.logger.info(
+            f"Starting Lead Sorcerer pipeline with config: {self.icp_config['name']}"
+        )
 
         try:
             # Validate provider configuration
@@ -191,7 +216,9 @@ class LeadSorcererOrchestrator:
             self._persist_domain_results(lead_records)
 
             # Filter to passing leads for next stage
-            passing_leads = [r for r in lead_records if r.get("icp", {}).get("pre_pass")]
+            passing_leads = [
+                r for r in lead_records if r.get("icp", {}).get("pre_pass")
+            ]
             self.logger.info(f"Filtered to {len(passing_leads)} passing leads")
 
             # Check testing flags for additional processing
@@ -205,7 +232,7 @@ class LeadSorcererOrchestrator:
                 self.logger.info("Running Crawl tool...")
                 crawl_payload = {
                     "lead_records": passing_leads,
-                    "icp_config": self.icp_config
+                    "icp_config": self.icp_config,
                 }
                 crawl_result = await self.crawl_tool.run(crawl_payload)
 
@@ -215,36 +242,58 @@ class LeadSorcererOrchestrator:
                 crawled_leads = crawl_result.get("data", {}).get("lead_records", [])
                 self.logger.info(f"Crawl tool processed {len(crawled_leads)} leads")
 
+                # Add detailed logging for pipeline flow
+                self.logger.info(f"🔍 Pipeline Debug: Found {len(crawled_leads)} crawled leads")
+                status_counts = {}
+                for lead in crawled_leads:
+                    status = lead.get("status", "unknown")
+                    status_counts[status] = status_counts.get(status, 0) + 1
+                self.logger.info(f"📊 Crawled leads status breakdown: {status_counts}")
+
                 # Filter to enrich_ready leads
-                enrich_ready_leads = [r for r in crawled_leads if r.get("status") == "enrich_ready"]
+                enrich_ready_leads = [
+                    r for r in crawled_leads if r.get("status") == "enrich_ready"
+                ]
+                self.logger.info(f"🔍 Pipeline Debug: Found {len(enrich_ready_leads)} enrich_ready leads")
 
                 # Check testing flags for additional processing
                 process_low_crawl = testing.get("process_low_crawl", False)
 
                 if process_low_crawl:
                     # Include crawled leads that don't meet threshold
-                    low_crawl_leads = [r for r in crawled_leads if r.get("status") == "crawled"]
+                    low_crawl_leads = [
+                        r for r in crawled_leads if r.get("status") == "crawled"
+                    ]
                     enrich_ready_leads.extend(low_crawl_leads)
-                    self.logger.info(f"Including {len(low_crawl_leads)} low-crawl leads due to testing flag")
+                    self.logger.info(
+                        f"Including {len(low_crawl_leads)} low-crawl leads due to testing flag"
+                    )
 
                 # Step 3: Enrich tool - fill missing data and verify contacts
                 if enrich_ready_leads:
-                    self.logger.info("Running Enrich tool...")
+                    self.logger.info(f"🚀 Running Enrich tool with {len(enrich_ready_leads)} leads...")
                     enrich_payload = {
                         "lead_records": enrich_ready_leads,
                         "icp_config": self.icp_config,
-                        "caps": self.icp_config.get("caps", {})
+                        "caps": self.icp_config.get("caps", {}),
                     }
+                    self.logger.info(f"🔍 Enrich payload structure: {len(enrich_payload.get('lead_records', []))} leads, {len(enrich_payload.get('icp_config', {}))} config items")
                     enrich_result = await run_enrich(enrich_payload)
 
                     if enrich_result.get("errors"):
                         self.total_errors.extend(enrich_result["errors"])
 
-                    enriched_leads = enrich_result.get("data", {}).get("lead_records", [])
-                    self.logger.info(f"Enrich tool processed {len(enriched_leads)} leads")
+                    enriched_leads = enrich_result.get("data", {}).get(
+                        "lead_records", []
+                    )
+                    self.logger.info(
+                        f"Enrich tool processed {len(enriched_leads)} leads"
+                    )
 
                     # Update the main lead records with enriched data
-                    self._update_lead_records_with_enriched_data(lead_records, enriched_leads)
+                    self._update_lead_records_with_enriched_data(
+                        lead_records, enriched_leads
+                    )
                 else:
                     self.logger.info("No leads ready for enrichment")
             else:
@@ -255,7 +304,9 @@ class LeadSorcererOrchestrator:
                 self._export_leads(lead_records)
 
             # Calculate final metrics
-            final_metrics = self._calculate_final_metrics(domain_result, crawl_result, enrich_result)
+            final_metrics = self._calculate_final_metrics(
+                domain_result, crawl_result, enrich_result
+            )
 
             # Log summary
             self._log_pipeline_summary(final_metrics)
@@ -264,7 +315,7 @@ class LeadSorcererOrchestrator:
                 "success": True,
                 "metrics": final_metrics,
                 "total_errors": len(self.total_errors),
-                "unknown_error_count": self.total_unknown_errors
+                "unknown_error_count": self.total_unknown_errors,
             }
 
         except Exception as e:
@@ -272,7 +323,7 @@ class LeadSorcererOrchestrator:
             return {
                 "success": False,
                 "error": str(e),
-                "metrics": self._build_error_metrics()
+                "metrics": self._build_error_metrics(),
             }
 
     def _persist_domain_results(self, lead_records: List[Dict[str, Any]]) -> None:
@@ -283,18 +334,22 @@ class LeadSorcererOrchestrator:
 
             # Write all results (pass + rejects)
             all_file = Path(self.data_dir) / "domain_all.jsonl"
-            with open(all_file, 'a', encoding='utf-8') as f:
+            with open(all_file, "a", encoding="utf-8") as f:
                 for record in lead_records:
-                    f.write(json.dumps(record) + '\n')
+                    f.write(json.dumps(record) + "\n")
 
             # Write only passing results
             pass_file = Path(self.data_dir) / "domain_pass.jsonl"
-            passing_records = [r for r in lead_records if r.get("icp", {}).get("pre_pass")]
-            with open(pass_file, 'a', encoding='utf-8') as f:
+            passing_records = [
+                r for r in lead_records if r.get("icp", {}).get("pre_pass")
+            ]
+            with open(pass_file, "a", encoding="utf-8") as f:
                 for record in passing_records:
-                    f.write(json.dumps(record) + '\n')
+                    f.write(json.dumps(record) + "\n")
 
-            self.logger.info(f"Persisted {len(lead_records)} total leads, {len(passing_records)} passing leads")
+            self.logger.info(
+                f"Persisted {len(lead_records)} total leads, {len(passing_records)} passing leads"
+            )
 
             # Check if rotation is needed
             self._check_and_rotate_sinks(all_file, pass_file)
@@ -322,7 +377,9 @@ class LeadSorcererOrchestrator:
         except Exception as e:
             self.logger.error(f"Failed to check/rotate sinks: {e}")
 
-    def _rotate_sink_if_needed(self, sink_file: Path, current_time: datetime, sink_name: str) -> None:
+    def _rotate_sink_if_needed(
+        self, sink_file: Path, current_time: datetime, sink_name: str
+    ) -> None:
         """
         Rotate a sink file if it exceeds size or time limits.
 
@@ -342,7 +399,9 @@ class LeadSorcererOrchestrator:
             age_exceeded = age_days > 30
 
             if size_exceeded or age_exceeded:
-                self.logger.info(f"Rotating {sink_name}: size={file_size_mb:.1f}MB, age={age_days} days")
+                self.logger.info(
+                    f"Rotating {sink_name}: size={file_size_mb:.1f}MB, age={age_days} days"
+                )
                 self._rotate_sink_with_compaction(sink_file, sink_name)
 
         except Exception as e:
@@ -364,21 +423,25 @@ class LeadSorcererOrchestrator:
 
             # Copy current content to archive (copy-on-write)
             if sink_file.exists():
-                with open(sink_file, 'r', encoding='utf-8') as src, \
-                     open(archive_path, 'w', encoding='utf-8') as dst:
+                with (
+                    open(sink_file, "r", encoding="utf-8") as src,
+                    open(archive_path, "w", encoding="utf-8") as dst,
+                ):
                     dst.write(src.read())
 
                 self.logger.info(f"Archived {sink_name} to {archive_name}")
 
             # Truncate the original file (atomic operation)
-            sink_file.write_text("", encoding='utf-8')
+            sink_file.write_text("", encoding="utf-8")
 
             self.logger.info(f"Rotated {sink_name} - file truncated")
 
         except Exception as e:
             self.logger.error(f"Failed to rotate {sink_name}: {e}")
 
-    def _update_lead_records_with_enriched_data(self, lead_records: List[Dict[str, Any]], enriched_leads: List[Dict[str, Any]]) -> None:
+    def _update_lead_records_with_enriched_data(
+        self, lead_records: List[Dict[str, Any]], enriched_leads: List[Dict[str, Any]]
+    ) -> None:
         """Update lead records with enriched data from the enrich tool."""
         enriched_by_id = {r.get("lead_id"): r for r in enriched_leads}
 
@@ -387,13 +450,15 @@ class LeadSorcererOrchestrator:
             if lead_id in enriched_by_id:
                 enriched_record = enriched_by_id[lead_id]
                 # Update only the fields that Enrich tool is allowed to modify
-                record.update({
-                    "best_contact_id": enriched_record.get("best_contact_id"),
-                    "status": enriched_record.get("status"),
-                    "provenance": enriched_record.get("provenance", {}),
-                    "cost": enriched_record.get("cost", {}),
-                    "audit": enriched_record.get("audit", [])
-                })
+                record.update(
+                    {
+                        "best_contact_id": enriched_record.get("best_contact_id"),
+                        "status": enriched_record.get("status"),
+                        "provenance": enriched_record.get("provenance", {}),
+                        "cost": enriched_record.get("cost", {}),
+                        "audit": enriched_record.get("audit", []),
+                    }
+                )
 
                 # Update contacts with enriched data
                 if "contacts" in enriched_record:
@@ -408,14 +473,16 @@ class LeadSorcererOrchestrator:
 
             # Create export directory with UTC timestamp
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
-            export_dir = Path(self.data_dir) / "exports" / self.icp_config["name"] / timestamp
+            export_dir = (
+                Path(self.data_dir) / "exports" / self.icp_config["name"] / timestamp
+            )
             export_dir.mkdir(parents=True, exist_ok=True)
 
             # Export to JSONL
             jsonl_file = export_dir / "leads.jsonl"
-            with open(jsonl_file, 'w', encoding='utf-8') as f:
+            with open(jsonl_file, "w", encoding="utf-8") as f:
                 for record in lead_records:
-                    f.write(json.dumps(record) + '\n')
+                    f.write(json.dumps(record) + "\n")
 
             # Export to CSV
             csv_file = export_dir / "leads.csv"
@@ -426,7 +493,9 @@ class LeadSorcererOrchestrator:
         except Exception as e:
             self.logger.error(f"Failed to export leads: {e}")
 
-    def _export_to_csv(self, lead_records: List[Dict[str, Any]], csv_file: Path) -> None:
+    def _export_to_csv(
+        self, lead_records: List[Dict[str, Any]], csv_file: Path
+    ) -> None:
         """Export leads to CSV format with proper flattening rules."""
         if not lead_records:
             return
@@ -440,8 +509,8 @@ class LeadSorcererOrchestrator:
         sorted_fields = sorted(all_fields)
 
         # Write CSV header
-        with open(csv_file, 'w', encoding='utf-8', newline='') as f:
-            f.write(','.join(f'"{field}"' for field in sorted_fields) + '\n')
+        with open(csv_file, "w", encoding="utf-8", newline="") as f:
+            f.write(",".join(f'"{field}"' for field in sorted_fields) + "\n")
 
             # Write data rows
             for record in lead_records:
@@ -449,7 +518,7 @@ class LeadSorcererOrchestrator:
                 for field in sorted_fields:
                     value = self._get_field_value(record, field)
                     row_data.append(f'"{value}"')
-                f.write(','.join(row_data) + '\n')
+                f.write(",".join(row_data) + "\n")
 
     def _collect_fields(self, obj: Any, prefix: str, fields: set) -> None:
         """Recursively collect all field paths for CSV flattening."""
@@ -469,7 +538,7 @@ class LeadSorcererOrchestrator:
     def _get_field_value(self, record: Dict[str, Any], field_path: str) -> str:
         """Get field value from record using dot notation."""
         try:
-            keys = field_path.split('.')
+            keys = field_path.split(".")
             value = record
             for key in keys:
                 if isinstance(value, dict) and key in value:
@@ -483,7 +552,11 @@ class LeadSorcererOrchestrator:
                 return str(value).lower()
             elif isinstance(value, list):
                 # Join arrays with "|" separator
-                if value and isinstance(value[0], (str, int, float, bool)) or value[0] is None:
+                if (
+                    value
+                    and isinstance(value[0], (str, int, float, bool))
+                    or value[0] is None
+                ):
                     return "|".join(str(v) if v is not None else "" for v in value)
                 else:
                     return ""  # Skip arrays of objects
@@ -492,87 +565,139 @@ class LeadSorcererOrchestrator:
         except Exception:
             return ""
 
-    def _calculate_final_metrics(self, domain_result: Dict[str, Any], crawl_result: Optional[Dict[str, Any]], enrich_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    def _calculate_final_metrics(
+        self,
+        domain_result: Dict[str, Any],
+        crawl_result: Optional[Dict[str, Any]],
+        enrich_result: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
         """Calculate final pipeline metrics."""
-        duration_ms = int((time.time() - self.start_time) * 1000) if self.start_time else 0
+        duration_ms = (
+            int((time.time() - self.start_time) * 1000) if self.start_time else 0
+        )
 
         # Aggregate cost metrics
-        total_domain_cost = domain_result.get("metrics", {}).get("cost_usd", {}).get("domain", 0.0)
-        total_crawl_cost = crawl_result.get("metrics", {}).get("cost_usd", {}).get("crawl", 0.0) if crawl_result else 0.0
-        total_enrich_cost = enrich_result.get("metrics", {}).get("cost_usd", {}).get("enrich", 0.0) if enrich_result else 0.0
+        total_domain_cost = (
+            domain_result.get("metrics", {}).get("cost_usd", {}).get("domain", 0.0)
+        )
+        total_crawl_cost = (
+            crawl_result.get("metrics", {}).get("cost_usd", {}).get("crawl", 0.0)
+            if crawl_result
+            else 0.0
+        )
+        total_enrich_cost = (
+            enrich_result.get("metrics", {}).get("cost_usd", {}).get("enrich", 0.0)
+            if enrich_result
+            else 0.0
+        )
 
         # Count leads at each stage
         domain_count = len(domain_result.get("data", {}).get("lead_records", []))
-        crawl_count = len(crawl_result.get("data", {}).get("lead_records", [])) if crawl_result else 0
-        enrich_count = len(enrich_result.get("data", {}).get("lead_records", [])) if enrich_result else 0
+        crawl_count = (
+            len(crawl_result.get("data", {}).get("lead_records", []))
+            if crawl_result
+            else 0
+        )
+        enrich_count = (
+            len(enrich_result.get("data", {}).get("lead_records", []))
+            if enrich_result
+            else 0
+        )
 
         # Calculate pass rates
         domain_pass_rate = domain_result.get("metrics", {}).get("pass_rate")
-        crawl_pass_rate = crawl_result.get("metrics", {}).get("pass_rate") if crawl_result else None
-        enrich_pass_rate = enrich_result.get("metrics", {}).get("pass_rate") if enrich_result else None
+        crawl_pass_rate = (
+            crawl_result.get("metrics", {}).get("pass_rate") if crawl_result else None
+        )
+        enrich_pass_rate = (
+            enrich_result.get("metrics", {}).get("pass_rate") if enrich_result else None
+        )
 
         return {
             "duration_ms": duration_ms,
             "lead_counts": {
                 "domain": domain_count,
                 "crawl": crawl_count,
-                "enrich": enrich_count
+                "enrich": enrich_count,
             },
             "pass_rates": {
                 "domain": domain_pass_rate,
                 "crawl": crawl_pass_rate,
-                "enrich": enrich_pass_rate
+                "enrich": enrich_pass_rate,
             },
             "cost_usd": {
                 "domain": round4(total_domain_cost),
                 "crawl": round4(total_crawl_cost),
                 "enrich": round4(total_enrich_cost),
-                "total": round4(total_domain_cost + total_crawl_cost + total_enrich_cost)
+                "total": round4(
+                    total_domain_cost + total_crawl_cost + total_enrich_cost
+                ),
             },
-            "health": {
-                "unknown_error_count": self.total_unknown_errors
-            }
+            "health": {"unknown_error_count": self.total_unknown_errors},
         }
 
     def _build_error_metrics(self) -> Dict[str, Any]:
         """Build metrics for error cases."""
-        duration_ms = int((time.time() - self.start_time) * 1000) if self.start_time else 0
+        duration_ms = (
+            int((time.time() - self.start_time) * 1000) if self.start_time else 0
+        )
         return {
             "duration_ms": duration_ms,
             "lead_counts": {"domain": 0, "crawl": 0, "enrich": 0},
             "pass_rates": {"domain": None, "crawl": None, "enrich": None},
             "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0},
-            "health": {"unknown_error_count": self.total_unknown_errors}
+            "health": {"unknown_error_count": self.total_unknown_errors},
         }
 
     def _log_pipeline_summary(self, metrics: Dict[str, Any]) -> None:
         """Log pipeline completion summary."""
         duration_seconds = metrics["duration_ms"] / 1000
-        domains_per_hour = (metrics["lead_counts"]["domain"] / duration_seconds * 3600) if duration_seconds > 0 else 0
-        cost_per_qualified = (metrics["cost_usd"]["total"] / metrics["lead_counts"]["enrich"]) if metrics["lead_counts"]["enrich"] > 0 else 0
+        domains_per_hour = (
+            (metrics["lead_counts"]["domain"] / duration_seconds * 3600)
+            if duration_seconds > 0
+            else 0
+        )
+        cost_per_qualified = (
+            (metrics["cost_usd"]["total"] / metrics["lead_counts"]["enrich"])
+            if metrics["lead_counts"]["enrich"] > 0
+            else 0
+        )
 
         self.logger.info(f"Pipeline completed in {duration_seconds:.2f}s")
-        self.logger.info(f"Processed {metrics['lead_counts']['domain']} domains, {metrics['lead_counts']['enrich']} enriched")
+        self.logger.info(
+            f"Processed {metrics['lead_counts']['domain']} domains, {metrics['lead_counts']['enrich']} enriched"
+        )
         self.logger.info(f"Performance: {domains_per_hour:.1f} domains/hour")
-        self.logger.info(f"Cost: ${metrics['cost_usd']['total']:.4f} (${cost_per_qualified:.4f}/qualified lead)")
-        self.logger.info(f"Errors: {len(self.total_errors)} total, {self.total_unknown_errors} unknown")
+        self.logger.info(
+            f"Cost: ${metrics['cost_usd']['total']:.4f} (${cost_per_qualified:.4f}/qualified lead)"
+        )
+        self.logger.info(
+            f"Errors: {len(self.total_errors)} total, {self.total_unknown_errors} unknown"
+        )
+
 
 # ============================================================================
 # CLI Interface
 # ============================================================================
 
+
 async def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="Lead Sorcerer Orchestrator")
     parser.add_argument("--config", required=True, help="Path to icp_config.json")
-    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE, help="Batch size for processing")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=DEFAULT_BATCH_SIZE,
+        help="Batch size for processing",
+    )
     parser.add_argument("--data-dir", help="Override data directory")
 
     args = parser.parse_args()
 
     # Set data directory if provided
     if args.data_dir:
-        os.environ['LEADPOET_DATA_DIR'] = args.data_dir
+        os.environ["LEADPOET_DATA_DIR"] = args.data_dir
 
     try:
         # Initialize and run orchestrator
@@ -586,10 +711,13 @@ async def main():
             print(json.dumps(result, indent=2))
             return 1
     except Exception as e:
-        print(json.dumps({"error": str(e), "success": False}, indent=2), file=sys.stderr)
+        print(
+            json.dumps({"error": str(e), "success": False}, indent=2), file=sys.stderr
+        )
         return 1
 
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(asyncio.run(main()))

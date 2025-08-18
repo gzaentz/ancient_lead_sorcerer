@@ -1,0 +1,20 @@
+{
+  "domain": "yelp.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.917122Z",
+  "serp_results": [
+    {
+      "url": "https://www.yelp.com/search?find_desc=Dental+Clinic&find_loc=New+York%2C+NY",
+      "title": "TOP 10 BEST Dental Clinic in New York, NY - Updated 2025 - Yelp",
+      "snippet": "Zen Dentistry - Midtown (388 reviews). 209 NYC Dental (321 reviews). Lumia Dental (230 reviews). Zen Dentistry - East Village (225 reviews)",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.471139Z",
+      "domain": "yelp.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "19916446abce58a01168f4a2a32b9f247907313556816b0d63eaec23a0919bc5"
+}

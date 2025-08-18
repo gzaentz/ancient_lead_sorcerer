@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import phonenumbers
+
 # portalocker removed - using direct file I/O for Windows compatibility
 import publicsuffix2
 from jsonschema import Draft202012Validator, ValidationError
@@ -712,7 +713,9 @@ def wrap_unknown_errors(tool_name=None):
             except Exception as exc:
                 # Create UNKNOWN error
                 error = build_error(
-                    code=ErrorCode.UNKNOWN, exc=exc, tool=tool_name or func.__module__ or "unknown"
+                    code=ErrorCode.UNKNOWN,
+                    exc=exc,
+                    tool=tool_name or func.__module__ or "unknown",
                 )
 
                 # Return partial results with error
@@ -1129,6 +1132,7 @@ def write_with_lock(file_path: str, data: Any, mode: str = "w") -> None:
     try:
         # Ensure directory exists
         import os
+
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         with open(file_path, mode) as f:
@@ -1151,6 +1155,7 @@ def append_jsonl_with_lock(file_path: str, records: List[Dict[str, Any]]) -> Non
     try:
         # Ensure directory exists
         import os
+
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         with open(file_path, "a") as f:

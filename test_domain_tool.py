@@ -40,10 +40,9 @@ async def test_domain_tool():
         import subprocess
         result = subprocess.run([
             sys.executable, "-m", "src.domain",
-            "--config", "icp_config.json",
+            "--config", temp_config_path,
             "--test-mode"
         ], capture_output=True, text=True, timeout=30)
-
         if result.returncode == 0:
             print("✅ Domain tool completed!")
             print(f"📤 Output: {result.stdout}")
@@ -53,11 +52,18 @@ async def test_domain_tool():
             print(f"❌ Error: {result.stderr}")
 
     except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired:
         print("⏰ Domain tool timed out after 30 seconds - it's hanging!")
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
-
-if __name__ == "__main__":
+    finally:
+        # Clean up temporary config file
+        import os
+        if 'temp_config_path' in locals():
+            try:
+                os.unlink(temp_config_path)
+            except:
+                pass  # Ignore cleanup errorsif __name__ == "__main__":
     asyncio.run(test_domain_tool())

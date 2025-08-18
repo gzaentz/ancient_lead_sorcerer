@@ -1,0 +1,20 @@
+{
+  "domain": "toprateddentist.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.922267Z",
+  "serp_results": [
+    {
+      "url": "https://www.toprateddentist.com/dentists/new-york-nyc/",
+      "title": "10 Best Dentists in New York NYC - TopRatedDentist.com",
+      "snippet": "Best dentists in New York City \u00b7 The Exchange Dental Group \u00b7 Smile Arts of NY \u00b7 Sachar Dental NYC \u00b7 Manhattan Dental Spa \u00b7 Sky Dental \u00b7 Smile Design Manhattan.",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.753124Z",
+      "domain": "toprateddentist.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "fb6e6c40ab64167fd567e0c6a507b85d0f8181bbb4a210bb8fc1413dabbd5aa9"
+}

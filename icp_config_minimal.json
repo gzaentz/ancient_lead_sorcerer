@@ -2,23 +2,23 @@
   "name": "Dentist Practices Test - Minimal",
   "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that are not private equity backed and not part of large national franchises",
   "queries": [
-    "dental practice groups with 5+ locations in United States"
+    "dental practice multiple locations California"
   ],
   "required_fields": {
-    "company": ["name", "hq_location", "number_of_locations", "ownership_type"],
+    "company": ["name", "hq_location", "number_of_locations"],
     "contact": ["email", "role"]
   },
   "optional_fields": {
     "company": ["tech_stack", "revenue_range", "employee_count", "specialties", "founded_year"],
     "contact": ["phone", "linkedin", "decision_maker"]
   },
-  "threshold": 0.7,
+  "threshold": 0.3,
   "filtering_strict": true,
   "mode": "fast",
   "refresh_policy": {
     "revisit_after_days": 90,
     "failure_revisit_days": 1,
-    "domain_serp_ttl_hours": 24,
+    "domain_serp_ttl_hours": 168,
     "crawl_ttl_days": 14
   },
   "concurrency": {
@@ -37,9 +37,9 @@
     "run_usd_max": 5.0
   },
   "role_priority": {
-    "ceo": 1,
-    "vp operations": 2,
-    "practice administrator": 3,
+    "owner": 1,
+    "CEO": 2,
+    "Founder": 3,
     "office manager": 4,
     "director": 5,
     "default": 99

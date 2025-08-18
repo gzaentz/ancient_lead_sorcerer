@@ -1,0 +1,30 @@
+{
+  "domain": "heropracticeservices.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.538827Z",
+  "serp_results": [
+    {
+      "url": "https://heropracticeservices.com/",
+      "title": "Hero Practice Services: Home",
+      "snippet": "Hero is a healthcare practice management company focused on managing and supporting high-quality dental, vision and orthodontic practices that specialize in\u00a0...",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.242897Z",
+      "domain": "heropracticeservices.com"
+    },
+    {
+      "url": "https://heropracticeservices.com/",
+      "title": "Hero Practice Services: Home",
+      "snippet": "Hero is a healthcare practice management company focused on managing and supporting high-quality dental, vision and orthodontic practices that specialize in\u00a0...",
+      "query": "regional dental group practices United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:21.094752Z",
+      "domain": "heropracticeservices.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "c47b430ccad1d9d6f3ce90e87fc0c28940f9f51508155075a190eba3d176124b"
+}

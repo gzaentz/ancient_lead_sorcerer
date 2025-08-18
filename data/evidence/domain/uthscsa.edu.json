@@ -1,0 +1,20 @@
+{
+  "domain": "uthscsa.edu",
+  "queries": [
+    "dental practice locations Texas"
+  ],
+  "fetched_at": "2025-08-18T02:02:07.853100Z",
+  "serp_results": [
+    {
+      "url": "https://uthscsa.edu/utdentistry/",
+      "title": "UT Dentistry home | UT Dentistry",
+      "snippet": "... care needs, time constraints and price point. Services. We offer the region's most comprehensive dental services in one location with faculty, resident and\u00a0...",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.470512Z",
+      "domain": "uthscsa.edu"
+    }
+  ],
+  "scoring_prompt_fingerprint": "26e76812fc43ce4f684a853bd674e30d482696cc10b9153eadd983b9ada0fc06"
+}

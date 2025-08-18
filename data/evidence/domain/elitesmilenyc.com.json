@@ -1,0 +1,20 @@
+{
+  "domain": "elitesmilenyc.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.920391Z",
+  "serp_results": [
+    {
+      "url": "https://elitesmilenyc.com/dental-clinic-new-york-nyc/",
+      "title": "Best Dental Clinic NYC | Top Dental Care in New York",
+      "snippet": "Elite Smile NYC is a leading dental clinic in New York, offering personalized care, advanced technology, and expert dentists for the best results in NYC.",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.624800Z",
+      "domain": "elitesmilenyc.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "3d0eb4eac17ec745fe40ca4563f0cd67610eed9af7ca3cc79ad27e979e1e2640"
+}

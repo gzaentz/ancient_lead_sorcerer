@@ -1,0 +1,20 @@
+{
+  "domain": "tiftregionaldentalgroup.com",
+  "queries": [
+    "regional dental group practices United States"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.540833Z",
+  "serp_results": [
+    {
+      "url": "https://www.tiftregionaldentalgroup.com/",
+      "title": "Tifton, GA Dentist - Tift Regional Dental Group - General Dentist",
+      "snippet": "Tifton dentist, Tift Regional Dental Group is a local, trusted dental practice offering general and cosmetic dentistry, teeth whitening, implants,\u00a0...",
+      "query": "regional dental group practices United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.769989Z",
+      "domain": "tiftregionaldentalgroup.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "a608bfe45a363a395b6f524375507c3588b038bd5c2fb176143451ecbae345e2"
+}

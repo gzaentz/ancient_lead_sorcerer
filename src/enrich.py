@@ -97,7 +97,9 @@ class CoresignalClient:
             headers = {"Authorization": f"Bearer {self.api_token}"}
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
+                timeout=httpx.Timeout(
+                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                )
             ) as client:
                 response = await client.get(url, params=params, headers=headers)
                 response.raise_for_status()
@@ -137,7 +139,9 @@ class CoresignalClient:
             headers = {"Authorization": f"Bearer {self.api_token}"}
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
+                timeout=httpx.Timeout(
+                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                )
             ) as client:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
@@ -171,7 +175,9 @@ class MailgunClient:
             params = {"address": email, "api_key": self.smtp_password}
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
+                timeout=httpx.Timeout(
+                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                )
             ) as client:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
@@ -204,7 +210,9 @@ class SnovioClient:
             }
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
+                timeout=httpx.Timeout(
+                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                )
             ) as client:
                 response = await client.post(url, data=data)
                 response.raise_for_status()
@@ -237,7 +245,9 @@ class SnovioClient:
             }
 
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None)
+                timeout=httpx.Timeout(
+                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                )
             ) as client:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
@@ -248,7 +258,10 @@ class SnovioClient:
 # Field Mapping Functions
 # ============================================================================
 
-def map_coresignal_company_fields(coresignal_response: Dict[str, Any]) -> Dict[str, Any]:
+
+def map_coresignal_company_fields(
+    coresignal_response: Dict[str, Any],
+) -> Dict[str, Any]:
     """
     Map Coresignal company response to unified schema.
 
@@ -327,7 +340,10 @@ def map_coresignal_company_fields(coresignal_response: Dict[str, Any]) -> Dict[s
 
     return mapped_data
 
-def map_coresignal_contact_fields(coresignal_response: Dict[str, Any]) -> Dict[str, Any]:
+
+def map_coresignal_contact_fields(
+    coresignal_response: Dict[str, Any],
+) -> Dict[str, Any]:
     """
     Map Coresignal contact response to unified schema.
 
@@ -395,6 +411,7 @@ def map_coresignal_contact_fields(coresignal_response: Dict[str, Any]) -> Dict[s
         mapped_data["skills"] = person["skills"]
 
     return mapped_data
+
 
 # ============================================================================
 # Core Enrichment Logic
@@ -559,19 +576,26 @@ async def enrich_contact_data(
         if not contact.get("email"):
             try:
                 # Try to get company contacts from Coresignal
-                company_contacts = await coresignal_client.enrich_company_contacts(domain)
+                company_contacts = await coresignal_client.enrich_company_contacts(
+                    domain
+                )
 
                 # Map Coresignal response to unified schema
                 mapped_contact = map_coresignal_contact_fields(company_contacts)
 
                 # Try to find a matching contact by name
                 if mapped_contact.get("full_name") and contact.get("full_name"):
-                    if mapped_contact["full_name"].lower() == contact["full_name"].lower():
+                    if (
+                        mapped_contact["full_name"].lower()
+                        == contact["full_name"].lower()
+                    ):
                         # Update contact fields
                         if mapped_contact.get("email") and not contact.get("email"):
                             contact["email"] = mapped_contact["email"]
                             contact["email_source"] = "provider"
-                            contact["email_status"] = "unknown"  # Will be validated by Mailgun
+                            contact["email_status"] = (
+                                "unknown"  # Will be validated by Mailgun
+                            )
 
                         if mapped_contact.get("phone") and not contact.get("phone"):
                             contact["phone"] = mapped_contact["phone"]
@@ -582,7 +606,9 @@ async def enrich_contact_data(
                         total_cost += costs_config.get("coresignal", 0.0)
 
             except Exception as exc:
-                logging.warning(f"Failed to enrich contact via Coresignal company contacts: {exc}")
+                logging.warning(
+                    f"Failed to enrich contact via Coresignal company contacts: {exc}"
+                )
 
         # Try Snov.io for email discovery if no email
         if not contact.get("email"):
@@ -783,7 +809,13 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         snovio_secret = os.environ.get("SNOV_IO_SECRET")
 
         if not all(
-            [coresignal_token, mailgun_login, mailgun_password, snovio_id, snovio_secret]
+            [
+                coresignal_token,
+                mailgun_login,
+                mailgun_password,
+                snovio_id,
+                snovio_secret,
+            ]
         ):
             return {
                 "data": {"lead_records": []},

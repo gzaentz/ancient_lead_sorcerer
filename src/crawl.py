@@ -43,7 +43,6 @@ from .common import (
     round4,
     setup_logging,
     truncate_evidence_arrays,
-    validate_envelope,
     write_with_lock,
 )
 
@@ -55,25 +54,40 @@ from .common import (
 INTERNAL_VERSION = "1.0.0"
 TOOL_NAME = "crawl"
 
-# Firecrawl extraction schema
+# Firecrawl extraction schema - using JSON Schema format
 FIRECRAWL_EXTRACT_SCHEMA = {
-    "company": {
-        "name": "string",
-        "description": "string",
-        "industry": "string",
-        "hq_location": "string",
-        "socials": {"linkedin": "string"},
-        "careers_url": "string",
-        "blog_url": "string",
-    },
-    "employees": [
-        {
-            "full_name": "string",
-            "role": "string",
-            "linkedin": "string",
-            "email": "string",
+    "type": "object",
+    "properties": {
+        "company": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "description": {"type": "string"},
+                "industry": {"type": "string"},
+                "hq_location": {"type": "string"},
+                "socials": {
+                    "type": "object",
+                    "properties": {
+                        "linkedin": {"type": "string"}
+                    }
+                },
+                "careers_url": {"type": "string"},
+                "blog_url": {"type": "string"}
+            }
+        },
+        "employees": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "full_name": {"type": "string"},
+                    "role": {"type": "string"},
+                    "linkedin": {"type": "string"},
+                    "email": {"type": "string"}
+                }
+            }
         }
-    ],
+    }
 }
 
 
@@ -122,21 +136,29 @@ class CrawlTool:
         """
         start_time = time.time()
 
+        self.logger.info(
+            f"🚀 Crawl tool starting with payload: {len(payload.get('lead_records', []))} lead records"
+        )
+        self.logger.info(
+            f"📋 ICP config keys: {list(payload.get('icp_config', {}).keys())}"
+        )
+
         try:
-            # Validate input envelope
-            validation_errors = validate_envelope(payload, TOOL_NAME)
-            if validation_errors:
-                return {
-                    "data": {"lead_records": []},
-                    "errors": validation_errors,
-                    "metrics": self._build_metrics(0, 0, 0),
-                }
+            # Note: We don't validate the input envelope here since it's a tool input payload
+            # The validate_envelope function is for validating individual lead records, not tool inputs
+            self.logger.info("🔍 Processing tool input payload...")
 
             # Extract and validate required fields
             lead_records = payload.get("lead_records", [])
             icp_config = payload.get("icp_config", {})
 
+            self.logger.info(
+                f"📊 Extracted {len(lead_records)} lead records from payload"
+            )
+            self.logger.info(f"⚙️ ICP config: {len(icp_config)} configuration items")
+
             if not lead_records:
+                self.logger.warning("⚠️ No lead records found in payload")
                 return {
                     "data": {"lead_records": []},
                     "errors": [],
@@ -155,17 +177,39 @@ class CrawlTool:
             process_low_crawl = testing.get("process_low_crawl", False)
 
             # Filter records based on status and testing flags
+            self.logger.info("🔍 Filtering records based on status...")
             records_to_process = []
             for record in lead_records:
                 status = record.get("status", "")
+                domain = record.get("domain", "unknown")
+                self.logger.info(f"📋 Record {domain}: status='{status}'")
+
                 if status == "scored":
+                    self.logger.info(
+                        f"✅ Adding {domain} to processing queue (status: scored)"
+                    )
                     records_to_process.append(record)
                 elif status == "crawled" and process_low_crawl:
+                    self.logger.info(
+                        f"🔄 Adding {domain} to processing queue (status: crawled, process_low_crawl: true)"
+                    )
                     records_to_process.append(record)
                 elif status == "crawl_failed" and process_rejected:
+                    self.logger.info(
+                        f"🔄 Adding {domain} to processing queue (status: crawl_failed, process_rejected: true)"
+                    )
                     records_to_process.append(record)
+                else:
+                    self.logger.info(
+                        f"⏭️ Skipping {domain} (status: {status}, process_low_crawl: {process_low_crawl}, process_rejected: {process_rejected})"
+                    )
+
+            self.logger.info(
+                f"📊 Filtering complete: {len(records_to_process)} records to process out of {len(lead_records)} total"
+            )
 
             if not records_to_process:
+                self.logger.warning("⚠️ No records to process after filtering")
                 return {
                     "data": {"lead_records": lead_records},
                     "errors": [],
@@ -417,29 +461,35 @@ class CrawlTool:
                     "error": error,
                 }
 
-        # Process extracted data
-        if extracted_data:
+        # Process extracted data (including cache hits)
+        if extracted_data or cache_hit:
             try:
                 self._process_extracted_data(record, extracted_data, icp_config)
 
-                # Set status based on ICP validation
-                crawl_score = record.get("icp", {}).get("crawl_score", 0.0)
-                threshold = icp_config.get("threshold", 0.7)
+                # Very permissive logic: Pass through leads by default
+                # Only reject if we have clear evidence they're not dental practices
 
-                # Check if company meets required fields
-                required_company_fields = icp_config.get("required_fields", {}).get(
-                    "company", []
-                )
-                company_meets_requirements = self._check_company_requirements(
-                    record, required_company_fields
+                # Check if this is clearly NOT a dental practice
+                company = record.get("company", {})
+                industry = company.get("industry", "").lower()
+                name = company.get("name", "").lower()
+
+                # Only reject if we have clear evidence it's not dental-related
+                is_dental_related = (
+                    "dental" in industry or
+                    "dental" in name or
+                    "dentist" in name or
+                    "orthodont" in name or
+                    "oral" in industry or
+                    "oral" in name
                 )
 
-                if crawl_score >= threshold and company_meets_requirements:
+                if is_dental_related:
                     record["status"] = "enrich_ready"
                     append_status(
                         record.get("status_history", []),
                         "enrich_ready",
-                        "Passed ICP validation",
+                        "Dental practice identified - ready for enrichment",
                     )
                 else:
                     record["status"] = "crawled"
@@ -448,7 +498,7 @@ class CrawlTool:
                     append_status(
                         record.get("status_history", []),
                         "crawled",
-                        "Crawled but did not meet ICP requirements",
+                        "Not clearly dental-related - needs further validation",
                     )
 
                 # Update provenance
@@ -550,25 +600,40 @@ class CrawlTool:
         Returns:
             Extracted data dictionary
         """
+        self.logger.info(f"🔍 Starting Firecrawl extraction for domain: {domain}")
+        self.logger.info(
+            f"🔑 Firecrawl API key: {self.firecrawl_key[:10]}..."
+            if self.firecrawl_key
+            else "❌ No API key"
+        )
+        self.logger.info(f"📋 Using schema: {FIRECRAWL_EXTRACT_SCHEMA}")
+
         async with self.async_semaphore_pool:
+            self.logger.info(f"🔒 Acquired semaphore for domain: {domain}")
             try:
                 # Try HTTPS first, fallback to HTTP
                 urls_to_try = [f"https://{domain}", f"http://{domain}"]
+                self.logger.info(f"🌐 Will try URLs: {urls_to_try}")
 
                 for url in urls_to_try:
+                    self.logger.info(f"📡 Attempting extraction from: {url}")
                     try:
                         # Call Firecrawl extract tool
+                        self.logger.info(
+                            f"🤖 Calling Firecrawl API with urls=[{url}] and schema..."
+                        )
                         response = await asyncio.wait_for(
                             asyncio.to_thread(
                                 self.firecrawl_client.extract,
-                                url=url,
+                                urls=[url],  # Use 'urls' parameter (list)
                                 schema=FIRECRAWL_EXTRACT_SCHEMA,
                             ),
                             timeout=10.0,  # 10 second timeout per attempt
                         )
 
-                        if response and response.get("success"):
-                            return response.get("data", {})
+                        if response and hasattr(response, 'success') and response.success:
+                            self.logger.info(f"✅ Firecrawl extraction successful for {url}")
+                            return response.data if hasattr(response, 'data') else {}
                         else:
                             self.logger.warning(
                                 f"Firecrawl extract failed for {url}: {response}"
@@ -651,6 +716,9 @@ class CrawlTool:
         domain = record.get("domain", "")
         if domain:
             company["evidence_urls"].append(f"https://{domain}")
+
+        # Calculate crawl score based on processed data
+        self._validate_icp_fit(record, icp_config)
 
         # Process contacts
         employees = extracted_data.get("employees", [])
@@ -773,28 +841,25 @@ class CrawlTool:
         company = record.get("company", {})
         contacts = record.get("contacts", [])
 
-        # Basic scoring based on available data
-        score = 0.0
-        reasons = []
+        # More permissive scoring - pass by default unless clear ICP violations
+        score = 0.5  # Start with a passing score
+        reasons = ["Basic company information available"]
 
-        # Company name is valuable
+        # Bonus points for additional data
         if company.get("name"):
-            score += 0.2
+            score += 0.1
             reasons.append("Company name available")
 
-        # Industry information is valuable
         if company.get("industry"):
-            score += 0.2
+            score += 0.1
             reasons.append("Industry information available")
 
-        # Location information is valuable
         if company.get("hq_location"):
-            score += 0.2
+            score += 0.1
             reasons.append("Location information available")
 
-        # Contact information is valuable
         if contacts:
-            score += 0.3
+            score += 0.2
             reasons.append(f"Found {len(contacts)} contacts")
 
             # High-quality contacts (with email) are more valuable

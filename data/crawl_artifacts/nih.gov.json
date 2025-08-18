@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T01:47:23.026197Z",
+  "content_hash": "3ec936a2215f14a594caccfe09ea48783249ef794f42c177cc05c4db7aac6d9a",
+  "extracted_data": {
+    "company": {
+      "name": "National Institutes of Health (NIH)",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "",
+      "industry": "Medical Research",
+      "careers_url": "https://www.jobs.nih.gov/",
+      "description": "The National Institutes of Health (NIH), a part of the U.S. Department of Health and Human Services, is the nation\u2019s medical research agency \u2014 making important discoveries that improve health and save lives.",
+      "hq_location": ""
+    },
+    "employees": []
+  }
+}

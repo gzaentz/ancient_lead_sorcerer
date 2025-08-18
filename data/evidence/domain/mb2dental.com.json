@@ -1,0 +1,20 @@
+{
+  "domain": "mb2dental.com",
+  "queries": [
+    "dental practice locations Texas"
+  ],
+  "fetched_at": "2025-08-18T02:02:07.855106Z",
+  "serp_results": [
+    {
+      "url": "https://mb2dental.com/",
+      "title": "MB2 Dental | Power to the Partners | Dental Partnership Organization",
+      "snippet": "Freedom to Practice Your Way. Support to Do It Better. When you partner with the largest Dental Partnership Organization in the country, you'll\u00a0...",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.730186Z",
+      "domain": "mb2dental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "5574df184db200f84826784fbfab0fdc60e93fccd1e95a4d257ecaffb2fe2145"
+}

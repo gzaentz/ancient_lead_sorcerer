@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T01:49:02.698701Z",
+  "content_hash": "69117eb71b759dbde62eb803777a373dc51113d15c648a7115d6f60ed4fe0d20",
+  "extracted_data": {
+    "company": {
+      "name": "Lightwave Dental",
+      "socials": {
+        "linkedin": "https://www.linkedin.com/company/light-wave-dental/"
+      },
+      "blog_url": "",
+      "industry": "Dental Practice Management",
+      "careers_url": "https://www.lightwavedental.com/contact/",
+      "description": "Lightwave isn't like other dental service organizations (DSOs), we're a Dental Leadership Organization that collaborates with dental leaders.",
+      "hq_location": ""
+    },
+    "employees": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "domain": "selectdentalmanagement.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.538827Z",
+  "serp_results": [
+    {
+      "url": "https://selectdentalmanagement.com/",
+      "title": "Select Dental Management",
+      "snippet": "Join a company that offers comprehensive benefits, including competitive compensation, health insurance, PTO, 401(k) and more. Focus on Remarkable Patient Care",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.199096Z",
+      "domain": "selectdentalmanagement.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "61adae67dee1195196400b6b7da6e742fbbcc28b786578dcbc0a15617c27178b"
+}

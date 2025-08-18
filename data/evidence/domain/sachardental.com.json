@@ -1,0 +1,20 @@
+{
+  "domain": "sachardental.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.918172Z",
+  "serp_results": [
+    {
+      "url": "https://www.sachardental.com/",
+      "title": "Dentist NYC - New York City's Top Dentist",
+      "snippet": "Sachar Dental NYC is a premier NYC dental practice located in Midtown Manhattan, New York City, renowned for its high-quality dentistry and exceptional\u00a0...",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.537789Z",
+      "domain": "sachardental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "d0d8ba06e721a0311628da43144055cfa0782b8aa7012130d7d12b60ba685a8d"
+}

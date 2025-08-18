@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T01:48:00.774459Z",
+  "content_hash": "0483554bbfe22358ee7f0bb964d685902fac36da577690376a5614d42669a283",
+  "extracted_data": {
+    "company": {
+      "name": "Parkview Dental Partners",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "",
+      "industry": "Dental",
+      "careers_url": "",
+      "description": "Parkview is a dental growth and management partnership committed to helping our partner dentists grow and thrive by lifting the daily burdens such as practice management, marketing, HR, billing and collections, insurance relations, and other administration.",
+      "hq_location": ""
+    },
+    "employees": []
+  }
+}

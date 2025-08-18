@@ -1,0 +1,20 @@
+{
+  "domain": "benevis.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.535965Z",
+  "serp_results": [
+    {
+      "url": "https://benevis.com/",
+      "title": "Benevis: Dental Practice Management Services & Dental Careers",
+      "snippet": "We seek to improve dental care access & outcomes in underserved communities throughout the US and provide dental practice management services.",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:19.979810Z",
+      "domain": "benevis.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "3ce98f1425d0acca925551349f03084dfebc68012734e35080659be9ab79c6bd"
+}

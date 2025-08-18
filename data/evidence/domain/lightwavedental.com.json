@@ -1,0 +1,20 @@
+{
+  "domain": "lightwavedental.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.535965Z",
+  "serp_results": [
+    {
+      "url": "https://www.lightwavedental.com/",
+      "title": "Lightwave Dental | Dental Leadership Organization",
+      "snippet": "By partnering with premier dentists to provide non-clinical dental practice management services ... areas of dental practice operations. Our dental\u00a0...",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.067037Z",
+      "domain": "lightwavedental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "b5a407b6d43d98bde994d09609d7688653be47b4b2d0e42e13eea1be75acecd8"
+}

@@ -1,0 +1,20 @@
+{
+  "domain": "zocdoc.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.925159Z",
+  "serp_results": [
+    {
+      "url": "https://www.zocdoc.com/dentists/manhattan-26605pm",
+      "title": "Best Dentists Near Me in Manhattan, New York, NY | Zocdoc",
+      "snippet": "With Zocdoc, you can easily find Manhattan's best and most experienced board-certified dentists. The process is simple: Create a free account on Zocdoc. Next,\u00a0...",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.839354Z",
+      "domain": "zocdoc.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "5ed51361236ca8e119870677e44915ad2080a96de9942886f77ce254e8d7e960"
+}

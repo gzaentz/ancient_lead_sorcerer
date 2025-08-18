@@ -1,20 +1,20 @@
 {
   "domain": "nih.gov",
   "queries": [
-    "dental practice groups 5+ locations United States"
+    "dental practice group multiple locations United States"
   ],
-  "fetched_at": "2025-08-18T01:12:01.221873Z",
+  "fetched_at": "2025-08-18T02:00:23.511520Z",
   "serp_results": [
     {
-      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2362117/",
-      "title": "An ethnographic study of Latino preschool children's oral health in ...",
-      "snippet": "... dental practice in rural areas. These practices can deleteriously affect ... Dental visits among Hispanics in the United States, 1999. J Am Dent Assoc\u00a0...",
-      "query": "dental practice groups 5+ locations United States",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/2724036/",
+      "title": "Early career experiences of young periodontists",
+      "snippet": "Group Practice, Dental; Humans; Job Satisfaction; Partnership Practice, Dental; Periodontics*; Professional Practice Location; Professional Practice*; United\u00a0...",
+      "query": "dental practice group multiple locations United States",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:11:43.401062Z",
+      "fetched_at": "2025-08-18T02:00:09.232926Z",
       "domain": "nih.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "deb6e72773c9d45dc19152b878260bfb38a241756b0b9b51f07a3b5fbc03b9c3"
+  "scoring_prompt_fingerprint": "473d88c46eb447147c14eb3514f1b09810b6aea3e6062be7689a8c45b41cb006"
 }

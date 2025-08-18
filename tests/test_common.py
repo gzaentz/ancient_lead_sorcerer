@@ -11,7 +11,7 @@ import tempfile
 import time
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import patch, mock_open
 
 import pytest
 
@@ -291,7 +291,7 @@ class TestDataFileConventions(unittest.TestCase):
         self.assertAlmostEqual(
             datetime.fromisoformat(result.replace("Z", "+00:00")).timestamp(),
             datetime.fromisoformat(expected.replace("Z", "+00:00")).timestamp(),
-            delta=1.0
+            delta=1.0,
         )
 
         # Test max-rule: existing should win if later
@@ -307,7 +307,7 @@ class TestDataFileConventions(unittest.TestCase):
         self.assertAlmostEqual(
             datetime.fromisoformat(result.replace("Z", "+00:00")).timestamp(),
             datetime.fromisoformat(expected.replace("Z", "+00:00")).timestamp(),
-            delta=1.0
+            delta=1.0,
         )
 
     def test_append_status(self):
@@ -403,10 +403,10 @@ class TestConcurrencyControl(unittest.TestCase):
         manager = PermitManager(2)
 
         # Acquire permits
-        permit1 = manager.blocking_acquire()
+        manager.blocking_acquire()
         self.assertEqual(manager._available_permits, 1)
 
-        permit2 = manager.blocking_acquire()
+        manager.blocking_acquire()
         self.assertEqual(manager._available_permits, 0)
 
         # Release permits
@@ -513,7 +513,9 @@ class TestErrorHandling(unittest.TestCase):
             raise Exception("Test error")
 
         # Decorate the function
-        decorated_function = exponential_backoff_with_timeout(max_attempts=3)(failing_function)
+        decorated_function = exponential_backoff_with_timeout(max_attempts=3)(
+            failing_function
+        )
 
         start_time = time.time()
 
@@ -593,7 +595,9 @@ class TestCosts(unittest.TestCase):
             self.skipTest("PyYAML not available")
 
         # Create a temporary costs file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False
+        ) as temp_file:
             temp_file.write("""
 provider1:
   unit: 'request'
@@ -622,7 +626,7 @@ class TestLogging(unittest.TestCase):
         formatter = PIIMaskingFormatter()
 
         # Test JSON masking (the formatter only masks JSON data)
-        record = logging.LogRecord('test', 10, 'test.py', 1, 'test', (), None)
+        record = logging.LogRecord("test", 10, "test.py", 1, "test", (), None)
         record.msg = '{"email": "john@example.com", "phone": "+1234567890"}'
         record.getMessage = lambda: record.msg
         formatted = formatter.format(record)
@@ -668,7 +672,7 @@ class TestFileLocking(unittest.TestCase):
             self.skipTest("portalocker not available")
 
         # Skip this test on Windows due to permission issues
-        if os.name == 'nt':
+        if os.name == "nt":
             self.skipTest("Skipping on Windows due to permission issues")
 
         # Use a temporary directory to avoid permission issues
@@ -691,7 +695,7 @@ class TestFileLocking(unittest.TestCase):
             self.skipTest("portalocker not available")
 
         # Skip this test on Windows due to permission issues
-        if os.name == 'nt':
+        if os.name == "nt":
             self.skipTest("Skipping on Windows due to permission issues")
 
         # Use a temporary directory to avoid permission issues

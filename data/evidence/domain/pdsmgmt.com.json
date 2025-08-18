@@ -1,0 +1,20 @@
+{
+  "domain": "pdsmgmt.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.538340Z",
+  "serp_results": [
+    {
+      "url": "https://www.pdsmgmt.com/",
+      "title": "Pediatric Dental Solutions New York: Pediatric Dentistry New Jersey",
+      "snippet": "We provide all of the management and administrative services to pediatric dental practices located throughout the Northeast, including many areas with\u00a0...",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.112087Z",
+      "domain": "pdsmgmt.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "68311dead0df833b399baf2f94d32948ae99a73d6b10a127708f1317129912b6"
+}

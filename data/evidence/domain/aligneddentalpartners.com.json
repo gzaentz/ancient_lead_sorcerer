@@ -1,20 +1,20 @@
 {
   "domain": "aligneddentalpartners.com",
   "queries": [
-    "dental practice groups 5+ locations United States"
+    "dental practice management company many locations"
   ],
-  "fetched_at": "2025-08-18T01:12:01.217843Z",
+  "fetched_at": "2025-08-18T01:46:57.540833Z",
   "serp_results": [
     {
-      "url": "https://aligneddentalpartners.com/",
-      "title": "Aligned Dental Partners: Dental Consulting",
-      "snippet": "As a leader in dental consulting, Aligned Dental Partners works with emerging DSOs, group practices, and entrepreneurial dentists.",
-      "query": "dental practice groups 5+ locations United States",
+      "url": "https://aligneddentalpartners.com/dental-practice-management-services/",
+      "title": "Dental Practice Consulting Services",
+      "snippet": "As a leading dental practice management company, ADP offers extensive services ... Many dental practices struggle to determine the best ROI for their\u00a0...",
+      "query": "dental practice management company many locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:11:43.233198Z",
+      "fetched_at": "2025-08-18T01:46:20.378094Z",
       "domain": "aligneddentalpartners.com"
     }
   ],
-  "scoring_prompt_fingerprint": "6fc8aa2cfe92b00c21840500a604eb776205314db53e648216b95d16881be92e"
+  "scoring_prompt_fingerprint": "a5a8dc41a5aeb0e25315dc3df2a3442d4bb0321bff54678bb41a0a16c67d34d7"
 }

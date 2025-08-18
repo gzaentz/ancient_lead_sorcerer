@@ -1,0 +1,20 @@
+{
+  "domain": "pearldentalnyc.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.921474Z",
+  "serp_results": [
+    {
+      "url": "https://www.pearldentalnyc.com/",
+      "title": "Pearl Dental NYC / Financial District Dentist, Tribeca Dental Office",
+      "snippet": "Using the latest advances in chemistry, biomaterials, and 3D technology, we can practice a better way of dentistry that extends your teeth's lifespan, saves you\u00a0...",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.708950Z",
+      "domain": "pearldentalnyc.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "50343ac1f87c2520da26b5c7a5e2c9d31299c8bff871c5c80c48ff9f2462d75e"
+}

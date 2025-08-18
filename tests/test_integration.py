@@ -24,71 +24,80 @@ class TestEndToEndPipeline:
             "threshold": 0.7,
             "required_fields": {"company": ["name"], "contact": ["email"]},
             "concurrency": {"max_concurrent_requests": 3},
-            "refresh_policy": {
-                "revisit_after_days": 90,
-                "failure_revisit_days": 1
-            },
+            "refresh_policy": {"revisit_after_days": 90, "failure_revisit_days": 1},
             "testing": {"process_rejected": False, "process_low_crawl": False},
             "exports": {"enabled": True},
             "default_country": "US",
-            "role_priority": {"ceo": 1, "vp": 2}
+            "role_priority": {"ceo": 1, "vp": 2},
         }
 
         config_file = tmp_path / "test_icp.json"
         config_file.write_text(json.dumps(config_data))
 
         # Mock tools
-        with patch('src.orchestrator.DomainTool') as MockDomainTool, \
-             patch('src.orchestrator.CrawlTool') as MockCrawlTool, \
-             patch('src.orchestrator.run_enrich') as MockRunEnrich:
-
+        with (
+            patch("src.orchestrator.DomainTool") as MockDomainTool,
+            patch("src.orchestrator.CrawlTool") as MockCrawlTool,
+            patch("src.orchestrator.run_enrich") as MockRunEnrich,
+        ):
             # Mock domain tool
             mock_domain = MockDomainTool.return_value
-            mock_domain.run = AsyncMock(return_value={
-                "data": {
-                    "lead_records": [{
-                        "lead_id": "test-lead-1",
-                        "domain": "testcompany.com",
-                        "status": "scored",
-                        "icp": {"pre_pass": True}
-                    }]
-                },
-                "errors": [],
-                "metrics": {"count_out": 1}
-            })
+            mock_domain.run = AsyncMock(
+                return_value={
+                    "data": {
+                        "lead_records": [
+                            {
+                                "lead_id": "test-lead-1",
+                                "domain": "testcompany.com",
+                                "status": "scored",
+                                "icp": {"pre_pass": True},
+                            }
+                        ]
+                    },
+                    "errors": [],
+                    "metrics": {"count_out": 1},
+                }
+            )
 
             # Mock crawl tool
             mock_crawl = MockCrawlTool.return_value
-            mock_crawl.run = AsyncMock(return_value={
-                "data": {
-                    "lead_records": [{
-                        "lead_id": "test-lead-1",
-                        "domain": "testcompany.com",
-                        "status": "enrich_ready",
-                        "company": {"name": "Test Company"},
-                        "contacts": [{"contact_id": "contact-1"}]
-                    }]
-                },
-                "errors": [],
-                "metrics": {"count_out": 1}
-            })
+            mock_crawl.run = AsyncMock(
+                return_value={
+                    "data": {
+                        "lead_records": [
+                            {
+                                "lead_id": "test-lead-1",
+                                "domain": "testcompany.com",
+                                "status": "enrich_ready",
+                                "company": {"name": "Test Company"},
+                                "contacts": [{"contact_id": "contact-1"}],
+                            }
+                        ]
+                    },
+                    "errors": [],
+                    "metrics": {"count_out": 1},
+                }
+            )
 
             # Mock enrich tool
             MockRunEnrich.return_value = {
                 "data": {
-                    "lead_records": [{
-                        "lead_id": "test-lead-1",
-                        "domain": "testcompany.com",
-                        "status": "enriched",
-                        "best_contact_id": "contact-1"
-                    }]
+                    "lead_records": [
+                        {
+                            "lead_id": "test-lead-1",
+                            "domain": "testcompany.com",
+                            "status": "enriched",
+                            "best_contact_id": "contact-1",
+                        }
+                    ]
                 },
                 "errors": [],
-                "metrics": {"count_out": 1}
+                "metrics": {"count_out": 1},
             }
 
             # Create and run orchestrator
             from src.orchestrator import LeadSorcererOrchestrator
+
             orchestrator = LeadSorcererOrchestrator(str(config_file))
 
             # Run the pipeline

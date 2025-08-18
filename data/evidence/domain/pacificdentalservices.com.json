@@ -1,0 +1,20 @@
+{
+  "domain": "pacificdentalservices.com",
+  "queries": [
+    "regional dental group practices United States"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.542837Z",
+  "serp_results": [
+    {
+      "url": "https://www.pacificdentalservices.com/",
+      "title": "Pacific Dental Services: Transforming the Dental Industry",
+      "snippet": "Practices in 24 states, serving major cities coast to coast. USA map. 15,000 Team Members. Over 15,000 clinical\u00a0...",
+      "query": "regional dental group practices United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.866681Z",
+      "domain": "pacificdentalservices.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "b046daa32103ee296f49b352890557fe6ea2edfa212cca2621332e405e71ca2e"
+}

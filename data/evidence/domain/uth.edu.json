@@ -1,0 +1,20 @@
+{
+  "domain": "uth.edu",
+  "queries": [
+    "dental practice locations Texas"
+  ],
+  "fetched_at": "2025-08-18T02:02:07.853100Z",
+  "serp_results": [
+    {
+      "url": "https://dentistry.uth.edu/",
+      "title": "UTHealth Houston School of Dentistry",
+      "snippet": "As part of The University of Texas Health Science Center at Houston (UTHealth), the School of Dentistry's three-part mission of education, patient care and\u00a0...",
+      "query": "dental practice locations Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:01:55.513660Z",
+      "domain": "uth.edu"
+    }
+  ],
+  "scoring_prompt_fingerprint": "3e3847f57c5b66cac3f575da9aadd472bbc3168e64b9feb7f5a362f77548ad24"
+}

@@ -1,0 +1,20 @@
+{
+  "domain": "affinitydm.com",
+  "queries": [
+    "dental practice management company many locations"
+  ],
+  "fetched_at": "2025-08-18T01:46:57.535965Z",
+  "serp_results": [
+    {
+      "url": "https://affinitydm.com/",
+      "title": "Affinity Dental Management: Dentist-Run Practice Management",
+      "snippet": "\"We are very proud to have made the Inc 5000 list for the 4th year in a row! Over the past couple of years, we have continued to grow in locations, geography,\u00a0...",
+      "query": "dental practice management company many locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:46:20.023794Z",
+      "domain": "affinitydm.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "595bae913f535bbfcd7c54878fa276948eff9c65248a2b09d3169b0c82da0a13"
+}

@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T02:01:24.124218Z",
+  "content_hash": "66231e1f9dedac151674aa37328834de0fae9b28d378b16a7e7fe0f9e634fb87",
+  "extracted_data": {
+    "company": {
+      "name": "Sabal Dental",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "https://sabaldental.com/blog/",
+      "industry": "Dental Services",
+      "careers_url": "",
+      "description": "For simple and stress-free dentistry from a North, Central, and South Texas dentist, visit one of Sabal Dental\u2019s nine convenient locations.",
+      "hq_location": "Texas"
+    },
+    "employees": []
+  }
+}

@@ -8,6 +8,7 @@ error contracts, and schema validation.
 import pytest
 from src.common import ErrorCode, validate_envelope
 
+
 class TestContractTests:
     """Test contract requirements from Task 6.2."""
 
@@ -15,9 +16,7 @@ class TestContractTests:
         """Test envelope shape & schema validation (§69-74, 443-447)."""
         # Test that all tools return proper envelope structure
         valid_envelope = {
-            "data": {
-                "lead_records": []
-            },
+            "data": {"lead_records": []},
             "errors": [],
             "metrics": {
                 "count_in": 0,
@@ -25,13 +24,8 @@ class TestContractTests:
                 "duration_ms": 0,
                 "cache_hit_rate": None,
                 "pass_rate": None,
-                "cost_usd": {
-                    "domain": 0.0,
-                    "crawl": 0.0,
-                    "enrich": 0.0,
-                    "total": 0.0
-                }
-            }
+                "cost_usd": {"domain": 0.0, "crawl": 0.0, "enrich": 0.0, "total": 0.0},
+            },
         }
 
         # Validate envelope structure
@@ -41,7 +35,7 @@ class TestContractTests:
         # Test invalid envelope
         invalid_envelope = {
             "data": {},
-            "errors": []
+            "errors": [],
             # Missing metrics
         }
 
@@ -59,23 +53,25 @@ class TestContractTests:
             ("scored", "crawl_failed"),
             ("crawled", "enrich_ready"),
             ("crawled", "enrich_partial"),
-            ("enrich_ready", "enriched")
+            ("enrich_ready", "enriched"),
         ]
 
         for from_status, to_status in valid_transitions:
-            assert is_valid_transition(from_status, to_status), \
+            assert is_valid_transition(from_status, to_status), (
                 f"Valid transition {from_status} -> {to_status} was rejected"
+            )
 
         # Test invalid transitions
         invalid_transitions = [
             ("new", "crawled"),  # Skip scored
             ("scored", "enriched"),  # Skip crawled
-            ("enriched", "scored")  # Cannot go backwards
+            ("enriched", "scored"),  # Cannot go backwards
         ]
 
         for from_status, to_status in invalid_transitions:
-            assert not is_valid_transition(from_status, to_status), \
+            assert not is_valid_transition(from_status, to_status), (
                 f"Invalid transition {from_status} -> {to_status} was allowed"
+            )
 
     def test_error_contract_pii_masking(self):
         """Test error contract & PII masking (§454-456, 481-485)."""
@@ -167,9 +163,17 @@ class TestErrorContractTests:
     def test_error_code_enum_completeness(self):
         """Test that all error codes from BRD are present."""
         expected_codes = [
-            "SCHEMA_VALIDATION", "HTTP_429", "HTTP_TIMEOUT", "SMTP_TIMEOUT",
-            "DNS_FAILURE", "PROVIDER_ERROR", "EXTRACT_ERROR", "BUDGET_EXCEEDED",
-            "PARSE_ERROR", "UNKNOWN", "NO_RESULTS"
+            "SCHEMA_VALIDATION",
+            "HTTP_429",
+            "HTTP_TIMEOUT",
+            "SMTP_TIMEOUT",
+            "DNS_FAILURE",
+            "PROVIDER_ERROR",
+            "EXTRACT_ERROR",
+            "BUDGET_EXCEEDED",
+            "PARSE_ERROR",
+            "UNKNOWN",
+            "NO_RESULTS",
         ]
 
         for code in expected_codes:

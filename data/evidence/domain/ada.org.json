@@ -1,0 +1,30 @@
+{
+  "domain": "ada.org",
+  "queries": [
+    "dental practice group multiple locations United States"
+  ],
+  "fetched_at": "2025-08-18T02:00:23.510523Z",
+  "serp_results": [
+    {
+      "url": "https://www.ada.org/resources/research/health-policy-institute/dental-practice-research",
+      "title": "Dental Practice Research | American Dental Association",
+      "snippet": "Economic impact of dental offices in the United States (PDF) (February 2024); Practice ownership among dentists continues to decline (PDF) (November 2023)\u00a0...",
+      "query": "dental practice group multiple locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:00:09.104120Z",
+      "domain": "ada.org"
+    },
+    {
+      "url": "https://adanews.ada.org/ada-news/2023/june/more-dentists-affiliating-with-dsos/",
+      "title": "More dentists affiliating with DSOs | American Dental Association",
+      "snippet": "Jun 1, 2023 ... ... more in groups ... practice location address. This includes 191,669 dentists out of 202,401 practicing dentists in the United States.",
+      "query": "dental practice group multiple locations United States",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:00:09.190339Z",
+      "domain": "ada.org"
+    }
+  ],
+  "scoring_prompt_fingerprint": "8dcbc246adfb469adf9a366565881be50f583c07bef10a3a39ce30990a949b96"
+}

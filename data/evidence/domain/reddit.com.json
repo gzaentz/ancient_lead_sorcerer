@@ -1,0 +1,20 @@
+{
+  "domain": "reddit.com",
+  "queries": [
+    "best dental practices NYC"
+  ],
+  "fetched_at": "2025-08-18T01:16:53.919555Z",
+  "serp_results": [
+    {
+      "url": "https://www.reddit.com/r/AskNYC/comments/1cr7c7v/whatre_the_best_dental_officesdentists_i_can_go/",
+      "title": "What're the best dental offices/dentists i can go to in Manhattan or ...",
+      "snippet": "May 13, 2024 ... I have been going to Dr. Amy David on Park, near 79th for a little over 20 years. She's been great and I couldn't recommend her enough.",
+      "query": "best dental practices NYC",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T01:16:36.581104Z",
+      "domain": "reddit.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "c8cb9e41ccda2e94de26027231d0c49d82ca3793b90ddae47d1b3f17fff26fcb"
+}
