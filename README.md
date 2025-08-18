@@ -19,22 +19,6 @@ The orchestrator coordinates these tools, ensuring data flows seamlessly from on
 - **Schema-driven**: All tools validate against `schemas/unified_lead_record.json`
 - **Deterministic IDs**: Uses UUID5 with NAMESPACE_DNS/NAMESPACE_URL for consistency
 
-## Development Status
-
-### Phase 0: Infrastructure Setup ✅ COMPLETED
-
-Phase 0 has been completed with all infrastructure components in place:
-
-- ✅ Poetry-based Python repository with CI/CD pipeline
-- ✅ Pre-commit hooks for code quality
-- ✅ JSON Schema (draft 2020-12) for unified lead records
-- ✅ Configuration files (costs, ICP, environment)
-- ✅ Data directory structure
-- ✅ GitHub Actions with nightly garbage collection
-- ✅ All required third-party dependencies (except Snov.io - see note below)
-
-**Note on Snov.io**: The official `snovio` Python package is not available on PyPI. A custom Snov.io client will be implemented in the Enrich tool using httpx for direct API calls.
-
 ## Installation
 
 1. Install Poetry:
