@@ -1,14 +1,14 @@
 {
   "domain": "phddental.com",
-  "enriched_at": "2025-08-18T16:52:01.608110Z",
+  "enriched_at": "2025-08-18T19:55:43.554087Z",
   "company_enrichment": {
     "name": "PhD Dental",
     "description": "At PhD Dental Group, we offer the most comprehensive and compassionate approach to dentistry. Our mission is to promote excellent oral health care, prevent dental disease, and provide comprehensive dental care to all members of the family in all the communities we serve.",
     "industry": "Dental Services",
     "naics_keywords": [],
-    "hq_location": null,
+    "hq_location": "Lynwood, California, United States",
     "locations": [],
-    "size_hint": null,
+    "size_hint": "11-50 employees",
     "socials": {
       "linkedin": null,
       "github": null,

@@ -1,14 +1,11 @@
 """
 Enrich tool for Lead Sorcerer.
 
-This tool fills required fields first, enriches only the best contact per domain,
-and keeps costs to cents. It uses Coresignal for firmographic + role enrichment,
-Mailgun for primary SMTP validation, and Snov.io for email enrichment.
+This tool enriches company and contact data using external APIs like Coresignal,
+Snov.io, and Mailgun. It handles email validation, contact discovery, and
+company data enrichment.
 
-External API dependencies:
-- Coresignal for firmographic + role enrichment
-- Mailgun for primary SMTP validation
-- Snov.io for email enrichment
+Authoritative specifications: BRD §333-336, §410-439
 """
 
 import asyncio
@@ -16,7 +13,8 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 
 import httpx
 # import portalocker  # Removed due to Windows compatibility issues
@@ -42,6 +40,18 @@ from src.common import (
     validate_envelope,
     validate_provider_config,
     validate_testing_flags,
+)
+
+# Load environment variables
+load_dotenv()
+
+# Debug: Show what environment variables we're loading
+coresignal_token = os.getenv("CORESIGNAL_API_TOKEN")
+logging.info(
+    f"🔑 Environment CORESIGNAL_API_TOKEN (first 8 chars): {coresignal_token[:8] if coresignal_token else 'NOT SET'}..."
+)
+logging.info(
+    f"🔑 Environment CORESIGNAL_API_TOKEN length: {len(coresignal_token) if coresignal_token else 0} characters"
 )
 
 # ============================================================================
@@ -88,22 +98,42 @@ class CoresignalClient:
         Returns:
             Enriched company data
         """
-        url = f"{self.base_url}/cdapi/v2/company_clean/enrich"
-        params = {"website": domain}
-        headers = {"apikey": self.api_token}
+        # Use the exact working configuration from the minimal test script
+        website_param = domain.strip()
+        if not website_param.startswith("http://") and not website_param.startswith(
+            "https://"
+        ):
+            website_param = f"https://{website_param}"
 
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            response = await client.get(url, params=params, headers=headers)
-            response.raise_for_status()
-            return response.json()
+        url = f"{self.base_url}/cdapi/v2/company_clean/enrich"
+        params = {"website": website_param}
+        headers = {
+            "accept": "application/json",
+            "apikey": self.api_token,
+        }
+
+        # Debug: Show what API key we're actually using
+        logging.info(
+            f"🔑 Using Coresignal API key (first 8 chars): {self.api_token[:8]}..."
+        )
+        logging.info(f"🔑 Full API key length: {len(self.api_token)} characters")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                logging.debug(
+                    f"Calling Coresignal API: {url} with website={website_param}"
+                )
+                response = await client.get(url, params=params, headers=headers)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as exc:
+                logging.error(
+                    f"Coresignal API error for {domain}: {exc.response.status_code} - {exc.response.text}"
+                )
+                raise
+            except Exception as exc:
+                logging.error(f"Coresignal API exception for {domain}: {exc}")
+                raise
 
     async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
         """
@@ -409,72 +439,174 @@ def map_coresignal_company_fields(
         Mapped company data in unified format
     """
     if not coresignal_response:
+        logging.warning("Coresignal response is empty or None")
         return {}
 
-    # Extract company data from response
-    company_data = coresignal_response.get("company", {})
+    # Log the actual response structure for debugging
+    logging.debug(f"Coresignal response keys: {list(coresignal_response.keys())}")
 
+    # Coresignal response has fields directly at root level, no company wrapper
     mapped_data = {}
 
-    # Map core fields
-    if company_data.get("name"):
-        mapped_data["name"] = company_data["name"]
+    # Map core fields directly from response root
+    if coresignal_response.get("name"):
+        mapped_data["name"] = coresignal_response["name"]
+        logging.debug(f"Mapped company name: {coresignal_response['name']}")
+    else:
+        logging.debug("Company name not found in Coresignal response")
 
-    if company_data.get("description"):
-        mapped_data["description"] = company_data["description"]
+    if coresignal_response.get("description"):
+        mapped_data["description"] = coresignal_response["description"]
+        logging.debug(
+            f"Mapped company description: {coresignal_response['description'][:100]}..."
+        )
+    else:
+        logging.debug("Company description not found in Coresignal response")
 
-    if company_data.get("industry"):
-        mapped_data["industry"] = company_data["industry"]
+    if coresignal_response.get("industry"):
+        mapped_data["industry"] = coresignal_response["industry"]
+        logging.debug(f"Mapped company industry: {coresignal_response['industry']}")
+    else:
+        logging.debug("Company industry not found in Coresignal response")
 
-    # Map size information
-    if company_data.get("size"):
-        mapped_data["size_hint"] = company_data["size"]
+    # Map size information - Coresignal uses size_range and size_employees_count
+    if coresignal_response.get("size_range"):
+        mapped_data["size_hint"] = coresignal_response["size_range"]
+        logging.debug(
+            f"Mapped company size from size_range: {coresignal_response['size_range']}"
+        )
+    elif coresignal_response.get("size_employees_count"):
+        # Convert exact count to size hint if size_range not available
+        count = coresignal_response["size_employees_count"]
+        if count <= 10:
+            mapped_data["size_hint"] = "1-10"
+        elif count <= 50:
+            mapped_data["size_hint"] = "11-50"
+        elif count <= 200:
+            mapped_data["size_hint"] = "51-200"
+        elif count <= 500:
+            mapped_data["size_hint"] = "201-500"
+        elif count <= 1000:
+            mapped_data["size_hint"] = "501-1000"
+        else:
+            mapped_data["size_hint"] = "1000+"
+        logging.debug(
+            f"Converted employee count {count} to size_hint: {mapped_data['size_hint']}"
+        )
+    else:
+        logging.debug("Company size information not found in Coresignal response")
 
-    if company_data.get("employee_count"):
-        # Convert exact count to size hint if size_hint not available
-        if "size_hint" not in mapped_data:
-            count = company_data["employee_count"]
-            if count <= 10:
-                mapped_data["size_hint"] = "1-10"
-            elif count <= 50:
-                mapped_data["size_hint"] = "11-50"
-            elif count <= 200:
-                mapped_data["size_hint"] = "51-200"
-            elif count <= 500:
-                mapped_data["size_hint"] = "201-500"
-            elif count <= 1000:
-                mapped_data["size_hint"] = "501-1000"
-            else:
-                mapped_data["size_hint"] = "1000+"
+    # Map location information - Coresignal uses location_hq_raw_address and location_hq_country
+    if coresignal_response.get("location_hq_raw_address"):
+        mapped_data["hq_location"] = coresignal_response["location_hq_raw_address"]
+        logging.debug(
+            f"Mapped HQ location: {coresignal_response['location_hq_raw_address']}"
+        )
+    else:
+        logging.debug("HQ location not found in Coresignal response")
 
-    # Map location information
-    location = company_data.get("location", {}) or {}
-    if location.get("city"):
-        mapped_data["hq_location"] = location["city"]
-    if location.get("country"):
-        # ISO-2 or country name depending on provider response; keep raw for now.
-        mapped_data["hq_country"] = location["country"]
+    if coresignal_response.get("location_hq_country"):
+        mapped_data["hq_country"] = coresignal_response["location_hq_country"]
+        logging.debug(
+            f"Mapped HQ country: {coresignal_response['location_hq_country']}"
+        )
+    else:
+        logging.debug("HQ country not found in Coresignal response")
 
-    # Map LinkedIn ID
-    linkedin_id = company_data.get("linkedin_id")
+    # Map LinkedIn ID to the correct schema field
+    linkedin_id = coresignal_response.get("linkedin_id")
     if linkedin_id:
-        mapped_data["linkedin_company_id"] = linkedin_id
+        mapped_data["ids"] = {"linkedin": linkedin_id, "crunchbase": None}
+        logging.debug(f"Mapped LinkedIn company ID: {linkedin_id}")
+    else:
+        logging.debug("LinkedIn company ID not found in Coresignal response")
 
-    # Map additional fields that Coresignal provides
-    if company_data.get("founded_year"):
-        mapped_data["founded_year"] = company_data["founded_year"]
-    if company_data.get("revenue"):
-        mapped_data["revenue"] = company_data["revenue"]
+    # Map additional fields that Coresignal provides to schema-compliant fields
+    if coresignal_response.get("founded"):
+        # Convert founded year to integer if it's a string
+        founded_year = coresignal_response["founded"]
+        try:
+            if isinstance(founded_year, str):
+                mapped_data["founded_year"] = int(founded_year)
+            else:
+                mapped_data["founded_year"] = founded_year
+            logging.debug(f"Mapped founded year: {mapped_data['founded_year']}")
+        except (ValueError, TypeError):
+            logging.warning(
+                f"Could not convert founded year to integer: {founded_year}"
+            )
+    else:
+        logging.debug("Founded year not found in Coresignal response")
 
-    if company_data.get("funding"):
-        mapped_data["funding"] = company_data["funding"]
+    # Map company type to both ownership_type and company_type for flexibility
+    if coresignal_response.get("type"):
+        mapped_data["ownership_type"] = coresignal_response["type"]
+        mapped_data["company_type"] = coresignal_response["type"]
+        logging.debug(
+            f"Mapped company type to ownership_type and company_type: {coresignal_response['type']}"
+        )
+    else:
+        logging.debug("Company type not found in Coresignal response")
 
-    if company_data.get("type"):
-        mapped_data["company_type"] = company_data["type"]
+    # Map sector to industry if industry not already set
+    if coresignal_response.get("sector") and not mapped_data.get("industry"):
+        mapped_data["industry"] = coresignal_response["sector"]
+        logging.debug(f"Mapped sector to industry: {coresignal_response['sector']}")
+    elif coresignal_response.get("sector"):
+        logging.debug(
+            f"Sector found but industry already set: {coresignal_response['sector']}"
+        )
 
-    if company_data.get("sector"):
-        mapped_data["sector"] = company_data["sector"]
+    # Map specialities to naics_keywords if they exist
+    if coresignal_response.get("specialities"):
+        if isinstance(coresignal_response["specialities"], list):
+            mapped_data["naics_keywords"] = coresignal_response["specialities"]
+        else:
+            mapped_data["naics_keywords"] = [coresignal_response["specialities"]]
+        logging.debug(
+            f"Mapped specialities to naics_keywords: {coresignal_response['specialities']}"
+        )
+    else:
+        logging.debug("Specialities not found in Coresignal response")
 
+    # Map technologies to tech_stack if they exist
+    if coresignal_response.get("technologies"):
+        if isinstance(coresignal_response["technologies"], list):
+            mapped_data["tech_stack"] = coresignal_response["technologies"]
+        else:
+            mapped_data["tech_stack"] = [coresignal_response["technologies"]]
+        logging.debug(
+            f"Mapped technologies to tech_stack: {coresignal_response['technologies']}"
+        )
+    else:
+        logging.debug("Technologies not found in Coresignal response")
+
+    # Map website to evidence_urls if it's different from the domain
+    if coresignal_response.get("website"):
+        website = coresignal_response["website"]
+        if website and website not in mapped_data.get("evidence_urls", []):
+            if "evidence_urls" not in mapped_data:
+                mapped_data["evidence_urls"] = []
+            mapped_data["evidence_urls"].append(website)
+        logging.debug(f"Mapped website to evidence_urls: {website}")
+    else:
+        logging.debug("Website not found in Coresignal response")
+
+    # Map status if it's a meaningful business status
+    if coresignal_response.get("status"):
+        # Only map if it's a business-relevant status
+        status = coresignal_response["status"]
+        if status.lower() in ["active", "operating", "inactive", "closed", "acquired"]:
+            mapped_data["business_status"] = status
+            logging.debug(f"Mapped business status: {status}")
+        else:
+            logging.debug(f"Status not business-relevant, skipping: {status}")
+    else:
+        logging.debug("Status not found in Coresignal response")
+
+    logging.info(
+        f"Successfully mapped {len(mapped_data)} fields from Coresignal response"
+    )
     return mapped_data
 
 
@@ -612,7 +744,7 @@ async def enrich_company_data(
     domain: str,
     coresignal_client: CoresignalClient,
     costs_config: Dict[str, float],
-) -> Tuple[Dict[str, Any], float]:
+) -> tuple[Dict[str, Any], float]:
     """
     Enrich company data using Coresignal.
 
@@ -629,24 +761,45 @@ async def enrich_company_data(
         # Enrich company information
         enriched_data = await coresignal_client.enrich_company(domain)
 
+        # Log the raw response for debugging
+        logging.debug(f"Raw Coresignal response for {domain}: {enriched_data}")
+
+        if not enriched_data:
+            logging.warning(f"Coresignal returned empty response for domain: {domain}")
+            return company, 0.0
+
         # Map Coresignal response to unified schema
         mapped_data = map_coresignal_company_fields(enriched_data)
 
+        # Log mapping results
+        logging.info(f"Field mapping for {domain}: {len(mapped_data)} fields mapped")
+        if not mapped_data:
+            logging.warning(
+                f"No fields were mapped for domain: {domain}. Response keys: {list(enriched_data.keys())}"
+            )
+            return company, 0.0
+
         # Update company fields
+        fields_updated = 0
         if mapped_data.get("name") and not company.get("name"):
             company["name"] = mapped_data["name"]
+            fields_updated += 1
 
         if mapped_data.get("description") and not company.get("description"):
             company["description"] = mapped_data["description"]
+            fields_updated += 1
 
         if mapped_data.get("industry") and not company.get("industry"):
             company["industry"] = mapped_data["industry"]
+            fields_updated += 1
 
         if mapped_data.get("hq_location") and not company.get("hq_location"):
             company["hq_location"] = mapped_data["hq_location"]
+            fields_updated += 1
 
         if mapped_data.get("size_hint") and not company.get("size_hint"):
             company["size_hint"] = mapped_data["size_hint"]
+            fields_updated += 1
 
         # Backfill company.ids if missing
         if mapped_data.get("linkedin_company_id") and not company.get("ids", {}).get(
@@ -657,22 +810,33 @@ async def enrich_company_data(
             company["ids"]["linkedin"] = (
                 f"/company/{mapped_data['linkedin_company_id']}"
             )
+            fields_updated += 1
 
         # Add additional Coresignal fields
         if mapped_data.get("founded_year") and not company.get("founded_year"):
             company["founded_year"] = mapped_data["founded_year"]
+            fields_updated += 1
 
         if mapped_data.get("revenue") and not company.get("revenue"):
             company["revenue"] = mapped_data["revenue"]
+            fields_updated += 1
 
         if mapped_data.get("funding") and not company.get("funding"):
             company["funding"] = mapped_data["funding"]
+            fields_updated += 1
 
         if mapped_data.get("company_type") and not company.get("company_type"):
             company["company_type"] = mapped_data["company_type"]
+            fields_updated += 1
 
         if mapped_data.get("sector") and not company.get("sector"):
             company["sector"] = mapped_data["sector"]
+            fields_updated += 1
+
+        # Log enrichment results
+        logging.info(
+            f"Successfully enriched company data for {domain}: {fields_updated} fields updated"
+        )
 
         # Calculate cost
         cost_usd = costs_config.get("coresignal", 0.0)
@@ -680,7 +844,9 @@ async def enrich_company_data(
         return company, cost_usd
 
     except Exception as exc:
-        logging.warning(f"Failed to enrich company data for {domain}: {exc}")
+        logging.error(
+            f"Failed to enrich company data for {domain}: {exc}", exc_info=True
+        )
         return company, 0.0
 
 
@@ -691,7 +857,7 @@ async def enrich_contact_data(
     mailgun_client: MailgunClient,
     snovio_client: SnovioClient,
     costs_config: Dict[str, float],
-) -> Tuple[Dict[str, Any], float]:
+) -> tuple[Dict[str, Any], float]:
     """
     Enrich contact data using multiple providers.
 
@@ -981,7 +1147,11 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         Enrichment results with data, errors, and metrics
     """
     start_time = time.time()
-    setup_logging(TOOL_NAME)
+
+    # Resolve data directory first for logging setup. Child tool will use shared
+    # run log path from env if orchestrator provided one.
+    data_dir = resolve_data_dir(payload)
+    setup_logging(TOOL_NAME, data_dir=data_dir)
 
     try:
         # Validate input
@@ -1056,17 +1226,15 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "metrics": build_metrics(0, 0, 0),
             }
 
-        # Resolve data directory
-        logging.info("🔍 Resolving data directory...")
-        data_dir = resolve_data_dir(payload)
-        logging.info(f"✅ Data directory resolved: {data_dir}")
+        # Data directory already resolved for logging setup above
+        logging.info(f"✅ Using data directory: {data_dir}")
 
         # Note: Removed permit manager and semaphore pools since we no longer use file locking
         logging.info("🔍 Skipping concurrency controls (no file locking needed)")
 
         # Initialize provider clients
         logging.info("🔍 Checking environment variables...")
-        coresignal_token = os.environ.get("CORESIGNAL_TOKEN")
+        coresignal_token = os.environ.get("CORESIGNAL_API_TOKEN")
         mailgun_login = os.environ.get("MAILGUN_SMTP_LOGIN")
         mailgun_password = os.environ.get("MAILGUN_SMTP_PW")
         snovio_id = os.environ.get("SNOV_IO_ID")
@@ -1076,22 +1244,37 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
             f"🔑 Environment check - Coresignal: {'✅' if coresignal_token else '❌'}, Mailgun: {'✅' if mailgun_login else '❌'}, Snov.io: {'✅' if snovio_id else '❌'}"
         )
 
-        if not all(
-            [
-                coresignal_token,
-                mailgun_login,
-                mailgun_password,
-                snovio_id,
-                snovio_secret,
-            ]
-        ):
+        # Check which specific environment variables are missing
+        missing_vars = []
+        if not coresignal_token:
+            missing_vars.append("CORESIGNAL_API_TOKEN")
+        if not mailgun_login:
+            missing_vars.append("MAILGUN_SMTP_LOGIN")
+        if not mailgun_password:
+            missing_vars.append("MAILGUN_SMTP_PW")
+        if not snovio_id:
+            missing_vars.append("SNOV_IO_ID")
+        if not snovio_secret:
+            missing_vars.append("SNOV_IO_SECRET")
+
+        if missing_vars:
             return {
                 "data": {"lead_records": []},
                 "errors": [
                     build_error(
                         ErrorCode.PROVIDER_ERROR,
                         tool=TOOL_NAME,
-                        context={"error": "Missing required environment variables"},
+                        context={
+                            "error": f"Missing required environment variables: {', '.join(missing_vars)}",
+                            "missing_variables": missing_vars,
+                            "expected_variables": [
+                                "CORESIGNAL_API_TOKEN",
+                                "MAILGUN_SMTP_LOGIN",
+                                "MAILGUN_SMTP_PW",
+                                "SNOV_IO_ID",
+                                "SNOV_IO_SECRET",
+                            ],
+                        },
                     )
                 ],
                 "metrics": build_metrics(0, 0, 0),
@@ -1154,10 +1337,12 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 company_cost = 0.0
                 if company_usd_cap > 0:
                     try:
-                        company, company_cost = await enrich_company_data(
+                        enriched_company, company_cost = await enrich_company_data(
                             company, normalized_domain, coresignal_client, costs_config
                         )
                         company_cost = min(company_cost, company_usd_cap)
+                        # Update the record's company data
+                        record["company"] = enriched_company
                     except Exception as e:
                         logging.warning(
                             f"⚠️ Company enrichment failed for {normalized_domain}: {e}"

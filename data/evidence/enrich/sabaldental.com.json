@@ -1,9 +1,33 @@
 {
   "domain": "sabaldental.com",
-  "enriched_at": "2025-08-18T02:41:01.761836Z",
+  "enriched_at": "2025-08-18T19:34:55.905898Z",
   "company_enrichment": {
     "name": "Sabal Dental",
-    "description": "Dental practice"
+    "description": "For simple and stress-free dentistry from a North, Central, and South Texas dentist, visit one of Sabal Dental?s nine convenient locations.",
+    "industry": "Dental Services",
+    "naics_keywords": [],
+    "hq_location": null,
+    "locations": [],
+    "size_hint": "51-200 employees",
+    "socials": {
+      "linkedin": null,
+      "github": null,
+      "twitter": null,
+      "telegram": null,
+      "instagram": null
+    },
+    "careers_url": "",
+    "blog_url": "https://sabaldental.com/blog/",
+    "tech_stack": [],
+    "evidence_urls": [
+      "https://sabaldental.com"
+    ],
+    "ids": {
+      "linkedin": null,
+      "crunchbase": null
+    },
+    "founded_year": "2003",
+    "company_type": "Privately Held"
   },
   "contacts_enrichment": [],
   "costs": {

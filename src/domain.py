@@ -422,8 +422,8 @@ class DomainTool:
         # Load schema checksum
         self.schema_checksum = load_schema_checksum()
 
-        # Setup logging
-        self.logger = setup_logging(TOOL_NAME)
+        # Setup logging (child tools inherit shared run log via env)
+        self.logger = setup_logging(TOOL_NAME, data_dir=self.data_dir)
 
     def _validate_icp_config(self) -> List[Dict[str, Any]]:
         """
@@ -615,9 +615,59 @@ class DomainTool:
             "domain": domain,
         }
 
+    async def _search_query(
+        self, query: str, max_pages: int, ttl_hours: int
+    ) -> Tuple[List[Dict[str, Any]], int, int]:
+        """
+        Search for domains using a single query.
+
+        Args:
+            query: Search query
+            max_pages: Maximum pages to search
+            ttl_hours: Cache TTL in hours
+
+        Returns:
+            Tuple of (results, cache_hits, cache_misses)
+        """
+        self.logger.info(f"🔍 Searching query: {query} (max_pages={max_pages})")
+
+        normalized_results: List[Dict[str, Any]] = []
+        cache_hits = 0
+        cache_misses = 0
+
+        for page in range(1, max_pages + 1):
+            # Try cache first
+            cached = self.search_cache.get_cached_results(query, page, ttl_hours)
+            if cached:
+                cache_hits += 1
+                for item in cached["results"].get("items", []):
+                    normalized_results.append(
+                        self._normalize_serp_result(item, query, page)
+                    )
+                continue
+
+            # Fetch fresh
+            try:
+                results = await self.gse_client.search(query, page)
+                cache_misses += 1
+                # Cache
+                self.search_cache.cache_results(query, page, results)
+                # Normalize
+                for item in results.get("items", []):
+                    normalized_results.append(
+                        self._normalize_serp_result(item, query, page)
+                    )
+            except Exception as e:
+                self.logger.error(
+                    f"❌ Search failed for query '{query}' page {page}: {e}"
+                )
+                continue
+
+        return normalized_results, cache_hits, cache_misses
+
     async def _search_and_score_domains(
         self, queries: List[str], max_pages: int, ttl_hours: int
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], int, int]:
         """
         Search and score domains for given queries.
 
@@ -627,87 +677,41 @@ class DomainTool:
             ttl_hours: Cache TTL in hours
 
         Returns:
-            List of scored domain records
+            Tuple of (scored_domains, cache_hits, cache_misses)
         """
         self.logger.info(
             f"🔍 _search_and_score_domains: {len(queries)} queries, {max_pages} pages, {ttl_hours}h TTL"
         )
-        all_results = []
-        cache_hits = 0
-        cache_misses = 0
+        all_scored_domains: List[Dict[str, Any]] = []
+        total_cache_hits = 0
+        total_cache_misses = 0
 
         for query_idx, query in enumerate(queries, 1):
             self.logger.info(
                 f"🔍 Processing query {query_idx}/{len(queries)}: '{query}'"
             )
-
-            for page in range(1, max_pages + 1):
-                self.logger.info(
-                    f"📄 Processing page {page}/{max_pages} for query: '{query}'"
-                )
-
-                # Check cache first
-                self.logger.info(f"🔍 Checking cache for query '{query}' page {page}")
-                cached_results = self.search_cache.get_cached_results(
-                    query, page, ttl_hours
-                )
-                if cached_results:
-                    self.logger.info(f"✅ Cache hit for query '{query}' page {page}")
-                    cache_hits += 1
-                    # Process cached results
-                    for item in cached_results["results"].get("items", []):
-                        normalized_item = self._normalize_serp_result(item, query, page)
-                        all_results.append(normalized_item)
-                    continue
-
-                self.logger.info(
-                    f"❌ Cache miss for query '{query}' page {page}, fetching from GSE..."
-                )
-                cache_misses += 1
-
-                try:
-                    # Fetch from GSE
-                    self.logger.info(
-                        f"📡 Making GSE API call for query '{query}' page {page}"
-                    )
-                    results = await self.gse_client.search(query, page)
-                    self.logger.info(
-                        f"✅ GSE API call successful for query '{query}' page {page}"
-                    )
-
-                    # Cache results
-                    self.logger.info(
-                        f"💾 Caching results for query '{query}' page {page}"
-                    )
-                    self.search_cache.cache_results(query, page, results)
-
-                    # Process results
-                    items = results.get("items", [])
-                    self.logger.info(
-                        f"📋 Processing {len(items)} items from GSE results"
-                    )
-                    for item in items:
-                        normalized_item = self._normalize_serp_result(item, query, page)
-                        all_results.append(normalized_item)
-
-                except Exception as e:
-                    self.logger.error(
-                        f"❌ GSE search failed for query '{query}' page {page}: {e}"
-                    )
-                    continue
+            # Search for domains using the current query
+            (
+                query_results,
+                query_cache_hits,
+                query_cache_misses,
+            ) = await self._search_query(query, max_pages, ttl_hours)
+            total_cache_hits += query_cache_hits
+            total_cache_misses += query_cache_misses
+            # Score domains for this query
+            self.logger.info(
+                f"🤖 Starting LLM scoring for {len(query_results)} domains..."
+            )
+            scored_domains = await self._score_domains(query_results)
+            self.logger.info(
+                f"✅ LLM scoring completed: {len(scored_domains)} scored domains"
+            )
+            all_scored_domains.extend(scored_domains)
 
         self.logger.info(
-            f"📊 Search completed: {len(all_results)} total results, {cache_hits} cache hits, {cache_misses} cache misses"
+            f"📊 Search completed: {len(all_scored_domains)} total results, {total_cache_hits} cache hits, {total_cache_misses} cache misses"
         )
-
-        # Score domains
-        self.logger.info(f"🤖 Starting LLM scoring for {len(all_results)} domains...")
-        scored_domains = await self._score_domains(all_results)
-        self.logger.info(
-            f"✅ LLM scoring completed: {len(scored_domains)} scored domains"
-        )
-
-        return scored_domains, cache_hits, cache_misses
+        return all_scored_domains, total_cache_hits, total_cache_misses
 
     async def _score_domains(
         self, serp_results: List[Dict[str, Any]]

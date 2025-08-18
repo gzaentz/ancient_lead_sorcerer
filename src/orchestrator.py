@@ -65,13 +65,25 @@ class LeadSorcererOrchestrator:
         """
         self.config_path = config_path
         self.batch_size = batch_size
-        self.logger = setup_logging("orchestrator")
 
-        # Load configuration
+        # Load configuration first
         self.icp_config = self._load_icp_config()
 
         # Resolve data directory
         self.data_dir = self._resolve_data_dir()
+
+        # Establish a single shared log file for this run
+        logs_dir = Path(self.data_dir) / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        run_timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+        shared_log_file = str(logs_dir / f"run_{run_timestamp}.log")
+        # Expose to child tools via env so all use the same file
+        os.environ["LEADSORCERER_LOG_FILE"] = shared_log_file
+
+        # Setup logging after data_dir is resolved, using the shared log file
+        self.logger = setup_logging(
+            "orchestrator", data_dir=self.data_dir, log_file_path=shared_log_file
+        )
 
         # Initialize permit manager for global concurrency control
         max_concurrent = self.icp_config.get("concurrency", {}).get(
@@ -81,7 +93,7 @@ class LeadSorcererOrchestrator:
 
         # Initialize tools
         self.domain_tool = DomainTool(self.icp_config, self.data_dir)
-        self.crawl_tool = CrawlTool()
+        self.crawl_tool = CrawlTool(self.data_dir)
 
         # Track metrics
         self.start_time = None
@@ -325,6 +337,7 @@ class LeadSorcererOrchestrator:
                 "metrics": final_metrics,
                 "total_errors": len(self.total_errors),
                 "unknown_error_count": self.total_unknown_errors,
+                "errors": self.total_errors,  # Include actual error details
             }
 
         except Exception as e:
@@ -501,6 +514,7 @@ class LeadSorcererOrchestrator:
 
         except Exception as e:
             self.logger.error(f"Failed to export leads: {e}")
+            self.total_errors.append(f"Export failed: {e}")
 
     def _export_to_csv(
         self, lead_records: List[Dict[str, Any]], csv_file: Path
@@ -540,7 +554,12 @@ class LeadSorcererOrchestrator:
                     fields.add(field_path)
         elif isinstance(obj, list):
             # For arrays, join with "|" separator
-            if obj and isinstance(obj[0], (str, int, float, bool)) or obj[0] is None:
+            if (
+                obj
+                and len(obj) > 0
+                and isinstance(obj[0], (str, int, float, bool))
+                or (obj and len(obj) > 0 and obj[0] is None)
+            ):
                 field_path = prefix
                 fields.add(field_path)
 
@@ -563,8 +582,9 @@ class LeadSorcererOrchestrator:
                 # Join arrays with "|" separator
                 if (
                     value
+                    and len(value) > 0
                     and isinstance(value[0], (str, int, float, bool))
-                    or value[0] is None
+                    or (value and len(value) > 0 and value[0] is None)
                 ):
                     return "|".join(str(v) if v is not None else "" for v in value)
                 else:

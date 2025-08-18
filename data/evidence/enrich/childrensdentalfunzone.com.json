@@ -1,14 +1,14 @@
 {
   "domain": "childrensdentalfunzone.com",
-  "enriched_at": "2025-08-18T16:41:03.524320Z",
+  "enriched_at": "2025-08-18T19:55:45.943848Z",
   "company_enrichment": {
     "name": "Children's Dental FunZone",
     "description": "Children's Dental FunZone specializes in pediatric dental care and orthodontic services, providing comprehensive dental care throughout Southern California. They offer free consultations, walk-ins, special offers, and accept most insurance. Their mission is to make dental visits enjoyable for children while delivering top-tier services.",
     "industry": "Pediatric Dentistry",
     "naics_keywords": [],
-    "hq_location": null,
+    "hq_location": "West Covina, CA, United States",
     "locations": [],
-    "size_hint": null,
+    "size_hint": "51-200 employees",
     "socials": {
       "linkedin": null,
       "github": null,
@@ -25,7 +25,9 @@
     "ids": {
       "linkedin": null,
       "crunchbase": null
-    }
+    },
+    "founded_year": 2002,
+    "company_type": "Privately Held"
   },
   "contacts_enrichment": [],
   "costs": {

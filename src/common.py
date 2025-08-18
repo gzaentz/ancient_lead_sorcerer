@@ -1081,13 +1081,21 @@ class PIIMaskingFormatter(logging.Formatter):
         return text
 
 
-def setup_logging(tool_name: str, level: int = logging.INFO) -> logging.Logger:
+def setup_logging(
+    tool_name: str,
+    level: int = logging.INFO,
+    data_dir: Optional[str] = None,
+    log_file_path: Optional[str] = None,
+) -> logging.Logger:
     """
     Setup logging with PII masking and JSON formatting.
+
+    Creates both console and file handlers. File logs are stored in data/logs folder.
 
     Args:
         tool_name: Name of the tool
         level: Logging level
+        data_dir: Optional data directory path for log files
 
     Returns:
         Configured logger
@@ -1100,23 +1108,97 @@ def setup_logging(tool_name: str, level: int = logging.INFO) -> logging.Logger:
         logger.removeHandler(handler)
 
     # Create console handler (stderr)
-    handler = logging.StreamHandler()
-    handler.setLevel(level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
 
     # Create formatter
     formatter = PIIMaskingFormatter(
         '{"ts": "%(asctime)s", "level": "%(levelname)s", "tool": "%(name)s", "msg": "%(message)s"}'
     )
-    handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
-    logger.addHandler(handler)
+    # Determine shared run log file from explicit arg or env
+    if not log_file_path:
+        log_file_path = os.environ.get("LEADSORCERER_LOG_FILE")
+
+    logs_dir = None
+
+    # Create file handler if either a log file was provided or a data_dir exists
+    if log_file_path or data_dir:
+        try:
+            if not log_file_path:
+                # Fallback to per-tool file naming if shared path not provided
+                logs_dir = os.path.join(data_dir, "logs") if data_dir else None
+                if logs_dir:
+                    os.makedirs(logs_dir, exist_ok=True)
+                    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+                    log_file_path = os.path.join(
+                        logs_dir, f"{tool_name}_{timestamp}.log"
+                    )
+            else:
+                # Ensure parent directory exists
+                logs_dir = os.path.dirname(log_file_path) or "."
+                os.makedirs(logs_dir, exist_ok=True)
+
+            # Create file handler
+            file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
+            file_handler.setLevel(level)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+
+            # Log that file logging is enabled
+            logger.info(f"File logging enabled: {log_file_path}")
+
+        except Exception as e:
+            # If file logging fails, just log to console and continue
+            logger.warning(f"Failed to setup file logging: {e}")
+
     logger.propagate = False
+
+    # Clean up old log files if file logging is enabled
+    if logs_dir:
+        cleanup_old_logs(logs_dir, max_log_files=10)
 
     return logger
 
 
+def cleanup_old_logs(logs_dir: str, max_log_files: int = 10) -> None:
+    """
+    Clean up old log files, keeping only the most recent ones.
+
+    Args:
+        logs_dir: Directory containing log files
+        max_log_files: Maximum number of log files to keep
+    """
+    try:
+        if not os.path.exists(logs_dir):
+            return
+
+        # Get all log files with their modification times
+        log_files = []
+        for filename in os.listdir(logs_dir):
+            if filename.endswith(".log"):
+                filepath = os.path.join(logs_dir, filename)
+                mtime = os.path.getmtime(filepath)
+                log_files.append((filepath, mtime))
+
+        # Sort by modification time (newest first)
+        log_files.sort(key=lambda x: x[1], reverse=True)
+
+        # Remove old files beyond the limit
+        for filepath, _ in log_files[max_log_files:]:
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass  # Ignore errors when removing files
+
+    except Exception:
+        pass  # Ignore cleanup errors
+
+
 # ============================================================================
-# File Operations with Portalocker
+# File Operations with Portallocker
 # ============================================================================
 
 

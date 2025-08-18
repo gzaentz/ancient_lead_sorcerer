@@ -1,14 +1,14 @@
 {
   "domain": "espiredental.com",
-  "enriched_at": "2025-08-18T16:52:04.993895Z",
+  "enriched_at": "2025-08-18T19:55:45.025607Z",
   "company_enrichment": {
     "name": "Espire Dental",
     "description": "Discover top-notch sedation and cosmetic dentistry. Transform your smile with Espire Dental.",
     "industry": "Dental Services",
     "naics_keywords": [],
-    "hq_location": null,
+    "hq_location": "Greenwood Village, Colorado, United States",
     "locations": [],
-    "size_hint": null,
+    "size_hint": "201-500 employees",
     "socials": {
       "linkedin": null,
       "github": null,
@@ -25,7 +25,9 @@
     "ids": {
       "linkedin": null,
       "crunchbase": null
-    }
+    },
+    "founded_year": 2018,
+    "company_type": "Privately Held"
   },
   "contacts_enrichment": [],
   "costs": {

@@ -1,14 +1,14 @@
 {
   "domain": "altafhudanidds.com",
-  "enriched_at": "2025-08-18T16:41:06.771062Z",
+  "enriched_at": "2025-08-18T19:55:46.867020Z",
   "company_enrichment": {
     "name": "Ocean Dental Center",
     "description": "Huntington Beach dentist, Ocean Dental Center is a local, trusted dental practice offering general and cosmetic dentistry, teeth whitening, implants, veneers & other dental care. Call today to make an appointment!",
     "industry": "Dental Care",
     "naics_keywords": [],
-    "hq_location": null,
+    "hq_location": "Huntington Beach, California, United States",
     "locations": [],
-    "size_hint": null,
+    "size_hint": "1-10 employees",
     "socials": {
       "linkedin": null,
       "github": null,

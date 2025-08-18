@@ -1,4 +1,3 @@
-"""
 Unit tests for the Enrich tool.
 
 Tests cover all functionality including:
@@ -27,6 +26,7 @@ from src.enrich import (
     write_evidence_file,
     run_enrich,
     main,
+    map_coresignal_company_fields,
 )
 from src.common import ErrorCode
 
@@ -157,8 +157,7 @@ class TestSnovioClient:
 
         assert client.client_id == "client_id"
         assert client.client_secret == "client_secret"
-        assert client.base_url == "https://api.snov.io/v2"
-        assert client._access_token is None
+        assert client.base_url == "https://api.snov.io/v2/"        assert client._access_token is None
 
     @pytest.mark.asyncio
     async def test_get_access_token_success(self):
@@ -392,14 +391,12 @@ class TestCompanyEnrichment:
 
         # Mock successful enrichment
         coresignal_client.enrich_company.return_value = {
-            "company": {
-                "name": "Test Company",
-                "description": "Test description",
-                "industry": "Technology",
-                "size": "50-100 employees",
-                "location": {"city": "San Francisco"},
-                "linkedin_id": "12345",
-            }
+            "name": "Test Company",
+            "description": "Test description",
+            "industry": "Technology",
+            "size_range": "50-100 employees",
+            "location_hq_raw_address": "San Francisco",
+            "linkedin_id": "12345",
         }
 
         enriched_company, cost = await enrich_company_data(
@@ -577,6 +574,126 @@ class TestEvidenceFileWriting:
                         assert content == evidence_data
 
 
+class TestCoresignalFieldMapping:
+    """Test Coresignal field mapping functionality."""
+
+    def test_map_coresignal_company_fields_success(self):
+        """Test successful field mapping from Coresignal response."""
+
+        # Mock Coresignal response with actual field structure
+        coresignal_response = {
+            "name": "Acme Corporation",
+            "description": "A leading technology company specializing in AI solutions",
+            "industry": "Technology",
+            "size_range": "201-500 employees",
+            "size_employees_count": 350,
+            "location_hq_raw_address": "San Francisco, CA",
+            "location_hq_country": "United States",
+            "linkedin_id": "acme-corporation-123",
+            "founded": 2010,
+            "revenue": "$50M - $100M",
+            "funding": "Series C",
+            "type": "Private",
+            "sector": "Software",
+            "specialities": ["Artificial Intelligence", "Machine Learning"],
+            "technologies": ["Python", "TensorFlow", "AWS"],
+            "website": "https://acme.com",
+            "status": "Active"
+        }
+
+        mapped_data = map_coresignal_company_fields(coresignal_response)
+
+        # Verify core fields are mapped correctly
+        assert mapped_data["name"] == "Acme Corporation"
+        assert mapped_data["description"] == "A leading technology company specializing in AI solutions"
+        assert mapped_data["industry"] == "Technology"
+        assert mapped_data["size_hint"] == "201-500 employees"
+        assert mapped_data["hq_location"] == "San Francisco, CA"
+        assert mapped_data["hq_country"] == "United States"
+        assert mapped_data["linkedin_company_id"] == "acme-corporation-123"
+        assert mapped_data["founded_year"] == 2010
+        assert mapped_data["revenue"] == "$50M - $100M"
+        assert mapped_data["funding"] == "Series C"
+        assert mapped_data["company_type"] == "Private"
+        assert mapped_data["sector"] == "Software"
+        assert mapped_data["specialities"] == ["Artificial Intelligence", "Machine Learning"]
+        assert mapped_data["technologies"] == ["Python", "TensorFlow", "AWS"]
+        assert mapped_data["website"] == "https://acme.com"
+        assert mapped_data["status"] == "Active"
+
+    def test_map_coresignal_company_fields_size_conversion(self):
+        """Test employee count to size hint conversion."""
+
+        # Test with only size_employees_count (no size_range)
+        coresignal_response = {
+            "name": "Small Startup",
+            "size_employees_count": 25
+        }
+
+        mapped_data = map_coresignal_company_fields(coresignal_response)
+        assert mapped_data["size_hint"] == "11-50"
+
+        # Test with larger company
+        coresignal_response = {
+            "name": "Large Corp",
+            "size_employees_count": 2500
+        }
+
+        mapped_data = map_coresignal_company_fields(coresignal_response)
+        assert mapped_data["size_hint"] == "1000+"
+
+    def test_map_coresignal_company_fields_partial_data(self):
+        """Test field mapping with partial data."""
+
+        # Minimal response with only essential fields
+        coresignal_response = {
+            "name": "Minimal Company",
+            "industry": "Manufacturing"
+        }
+
+        mapped_data = map_coresignal_company_fields(coresignal_response)
+
+        # Should only map available fields
+        assert mapped_data["name"] == "Minimal Company"
+        assert mapped_data["industry"] == "Manufacturing"
+        assert "description" not in mapped_data
+        assert "size_hint" not in mapped_data
+        assert "hq_location" not in mapped_data
+
+    def test_map_coresignal_company_fields_empty_response(self):
+        """Test field mapping with empty response."""
+
+        # Empty response
+        coresignal_response = {}
+        mapped_data = map_coresignal_company_fields(coresignal_response)
+        assert mapped_data == {}
+
+        # None response
+        mapped_data = map_coresignal_company_fields(None)
+        assert mapped_data == {}
+
+    def test_map_coresignal_company_fields_no_company_wrapper(self):
+        """Test that field mapping works without company wrapper (the fix)."""
+
+        # This is the structure that was causing the bug
+        coresignal_response = {
+            "name": "Direct Company",
+            "description": "Company without wrapper",
+            "industry": "Technology"
+        }
+
+        # Old code would have looked for coresignal_response.get("company", {})
+        # and returned empty dict, causing all field lookups to fail
+
+        mapped_data = map_coresignal_company_fields(coresignal_response)
+
+        # Should now work correctly
+        assert mapped_data["name"] == "Direct Company"
+        assert mapped_data["description"] == "Company without wrapper"
+        assert mapped_data["industry"] == "Technology"
+        assert len(mapped_data) == 3  # All 3 fields should be mapped
+
+
 class TestMainEnrichmentLogic:
     """Test main enrichment logic."""
 
@@ -694,7 +811,7 @@ class TestMainEnrichmentLogic:
 
                                     # Mock company enrichment
                                     mock_coresignal.enrich_company.return_value = {
-                                        "company": {"name": "Test Company"}
+                                        "name": "Test Company"
                                     }
 
                                     # Mock evidence file writing
@@ -1204,7 +1321,7 @@ class TestMissingRequirements:
             assert result["errors"][0]["code"] == ErrorCode.PROVIDER_ERROR.value
 
     def test_evidence_array_truncation(self):
-        """Test evidence array truncation: validate company.evidence_urls ≤ 10, contacts[*].evidence_urls ≤ 5."""
+        """Test evidence array truncation: validate company.evidence_urls <= 10, contacts[*].evidence_urls <= 5."""
         # This test will verify evidence array truncation
         # Implementation depends on truncation logic
         pass
@@ -1270,7 +1387,7 @@ class TestMissingRequirements:
         pass
 
     def test_exponential_backoff_45s_wall_clock_cap(self):
-        """Test exponential backoff with 45s wall-clock cap."""
+        """Test exponential backoff with 45 second wall-clock cap."""
         # This test will verify exponential backoff logic
         # Implementation depends on retry logic
         pass
@@ -1402,7 +1519,7 @@ class TestMissingRequirements:
         pass
 
     def test_best_contact_selection_per_brd(self):
-        """Test best contact selection per BRD §333-336."""
+        """Test best contact selection per BRD sections 333-336."""
         # This test will verify best contact selection
         # Implementation depends on contact selection logic
         pass

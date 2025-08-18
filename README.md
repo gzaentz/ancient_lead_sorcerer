@@ -241,7 +241,7 @@ Required environment variables:
 - `GSE_CX`: Google Search Engine ID
 - `OPENROUTER_KEY`: OpenRouter API key
 - `FIRECRAWL_KEY`: Firecrawl API key
-- `CORESIGNAL_TOKEN`: Coresignal API token for company and contact enrichment
+- `CORESIGNAL_API_TOKEN`: Coresignal API token for company and contact enrichment
 - `MAILGUN_SMTP_LOGIN`: Mailgun SMTP login
 - `MAILGUN_SMTP_PW`: Mailgun SMTP password
 - `SNOV_IO_ID`: Snov.io API ID

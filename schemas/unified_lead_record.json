@@ -112,6 +112,27 @@
           "maxItems": 50,
           "description": "Technology stack components"
         },
+        "founded_year": {
+          "type": ["integer", "null"],
+          "minimum": 1800,
+          "maximum": 2030,
+          "description": "Year company was founded"
+        },
+        "ownership_type": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Type of ownership (e.g., private, public, franchise, etc.)"
+        },
+        "company_type": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Company type/category from external sources"
+        },
+        "business_status": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Business operational status (e.g., active, inactive, closed)"
+        },
         "evidence_urls": {
           "type": "array",
           "items": {
@@ -338,11 +359,55 @@
         "discovery_evidence": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 2048
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "description": "URL of the discovered page"
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Title of the discovered page"
+              },
+              "snippet": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Snippet/description of the discovered page"
+              },
+              "query": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Search query that led to this discovery"
+              },
+              "page_index": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Page number where this result was found"
+              },
+              "rank_on_page": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Rank position on the page"
+              },
+              "fetched_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601 UTC timestamp when this was fetched"
+              },
+              "domain": {
+                "type": "string",
+                "format": "hostname",
+                "description": "Normalized domain of the discovered page"
+              }
+            },
+            "required": ["url", "title", "snippet", "query", "page_index", "rank_on_page", "fetched_at", "domain"],
+            "additionalProperties": false
           },
           "maxItems": 100,
-          "description": "Evidence supporting lead discovery"
+          "description": "Evidence supporting lead discovery (SERP results)"
         },
         "scored_at": {
           "type": ["string", "null"],

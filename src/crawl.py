@@ -97,8 +97,10 @@ FIRECRAWL_EXTRACT_SCHEMA = {
 class CrawlTool:
     """Crawl tool for extracting company and contact information from websites."""
 
-    def __init__(self):
-        self.logger = setup_logging(TOOL_NAME)
+    def __init__(self, data_dir: Optional[str] = None):
+        self.data_dir = data_dir or "./data"
+        # Setup logging (child tools inherit shared run log via env)
+        self.logger = setup_logging(TOOL_NAME, data_dir=self.data_dir)
         self.schema_version = load_schema_checksum()
         self.costs_config = load_costs_config()
 
