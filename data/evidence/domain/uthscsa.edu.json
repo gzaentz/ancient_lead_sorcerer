@@ -1,20 +1,20 @@
 {
   "domain": "uthscsa.edu",
   "queries": [
-    "dental practice locations Texas"
+    "dental practice multiple locations Texas"
   ],
-  "fetched_at": "2025-08-18T02:02:07.853100Z",
+  "fetched_at": "2025-08-18T21:07:47.605589Z",
   "serp_results": [
     {
-      "url": "https://uthscsa.edu/utdentistry/",
-      "title": "UT Dentistry home | UT Dentistry",
-      "snippet": "... care needs, time constraints and price point. Services. We offer the region's most comprehensive dental services in one location with faculty, resident and\u00a0...",
-      "query": "dental practice locations Texas",
+      "url": "https://uthscsa.edu/dental/",
+      "title": "Dental Academics Home | School of Dentistry",
+      "snippet": "... dental education, research, community service and patient care in South Texas. ... We are proud to provide multiple different opportunities for\u00a0...",
+      "query": "dental practice multiple locations Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:01:55.470512Z",
+      "fetched_at": "2025-08-18T21:07:26.984637Z",
       "domain": "uthscsa.edu"
     }
   ],
-  "scoring_prompt_fingerprint": "26e76812fc43ce4f684a853bd674e30d482696cc10b9153eadd983b9ada0fc06"
+  "scoring_prompt_fingerprint": "10abaee266da338fd21ff488938732cb2e9a9cd1b7506cb15524a7789f92be4e"
 }

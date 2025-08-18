@@ -50,11 +50,6 @@ coresignal_token = os.getenv("CORESIGNAL_API_TOKEN")
 logging.info(
     f"🔑 Environment CORESIGNAL_API_TOKEN status: {'SET' if coresignal_token else 'NOT SET'}"
 )
-if coresignal_token:
-    logging.info(
-        f"🔑 Environment CORESIGNAL_API_TOKEN length: {len(coresignal_token)} characters"
-    )
-
 # ============================================================================
 # Constants and Configuration
 # ============================================================================
@@ -122,13 +117,19 @@ class CoresignalClient:
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as exc:
-                logging.error(
-                    f"Coresignal API error for {domain}: {exc.response.status_code} - {exc.response.text}"
-                )
-                raise
+                if exc.response.status_code == 404:
+                    logging.warning(
+                        f"Coresignal: Company not found for {domain} (404) - this is normal for smaller companies"
+                    )
+                    return {}  # Return empty dict instead of raising
+                else:
+                    logging.error(
+                        f"Coresignal API error for {domain}: {exc.response.status_code} - {exc.response.text}"
+                    )
+                    return {}  # Return empty dict instead of raising
             except Exception as exc:
                 logging.error(f"Coresignal API exception for {domain}: {exc}")
-                raise
+                return {}  # Return empty dict instead of raising
     async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
         """
         Enrich contact information using Coresignal.
@@ -547,7 +548,6 @@ def map_coresignal_company_fields(
 
     # Map technologies to tech_stack if they exist
     if coresignal_response.get("technologies"):
-        if isinstance(coresignal_response["technologies"], list):
             # Extract technology names from the technology objects
             tech_names = []
             for tech in coresignal_response["technologies"]:
@@ -558,11 +558,11 @@ def map_coresignal_company_fields(
             if tech_names:
                 mapped_data["tech_stack"] = tech_names
                 logging.debug(f"Mapped technologies to tech_stack: {tech_names}")
-        else:
+        elif isinstance(coresignal_response["technologies"], str):
             mapped_data["tech_stack"] = [coresignal_response["technologies"]]
             logging.debug(
                 f"Mapped technologies to tech_stack: {coresignal_response['technologies']}"
-            )
+            )            )
 
     # Map website to evidence_urls if it's different from the domain
     if coresignal_response.get("website"):
@@ -893,13 +893,17 @@ async def enrich_company_data(
     """
     try:
         # Enrich company information
-        enriched_data = await coresignal_client.enrich_company(domain)
+        try:
+            enriched_data = await coresignal_client.enrich_company(domain)
+        except Exception as exc:
+            logging.warning(f"Failed to enrich company data for {domain}: {exc}")
+            return company, 0.0
 
         # Log the raw response for debugging
         logging.info(f"🔍 CoreSignal raw response for {domain}: {enriched_data}")
 
         if not enriched_data:
-            logging.warning(f"Coresignal returned empty response for domain: {domain}")
+            logging.info(f"Coresignal returned empty response for domain: {domain} - this is normal for smaller companies")
             return company, 0.0
 
         # Map Coresignal response to unified schema
@@ -1187,7 +1191,10 @@ async def enrich_contact_data(
                         total_cost += costs_config.get("snovio", 0.0)
 
             except Exception as exc:
-                logging.warning(f"Failed to discover email via Snov.io: {exc}")
+                if "402 Payment Required" in str(exc):
+                    logging.warning(f"Snov.io API credits exhausted - skipping email discovery")
+                else:
+                    logging.warning(f"Failed to discover email via Snov.io: {exc}")
 
         # Validate email if present
         if contact.get("email"):
@@ -1264,7 +1271,10 @@ async def discover_contacts_for_domain(
         try:
             all_prospects_result = await snovio_client.get_all_domain_prospects(domain)
         except Exception as exc:
-            logging.warning(f"⚠️ Failed to fetch Snov.io prospects for {domain}: {exc}")
+            if "402 Payment Required" in str(exc):
+                logging.warning(f"⚠️ Snov.io API credits exhausted for {domain} - skipping contact discovery")
+            else:
+                logging.warning(f"⚠️ Failed to fetch Snov.io prospects for {domain}: {exc}")
             all_prospects_result = {"data": []}
 
         raw_profiles = []

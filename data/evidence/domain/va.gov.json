@@ -1,20 +1,20 @@
 {
   "domain": "va.gov",
   "queries": [
-    "dental practice locations Texas"
+    "dental practice multiple locations Texas"
   ],
-  "fetched_at": "2025-08-18T02:02:07.853100Z",
+  "fetched_at": "2025-08-18T21:07:47.606589Z",
   "serp_results": [
     {
-      "url": "https://www.va.gov/find-locations/",
-      "title": "Find VA Locations | Veterans Affairs",
-      "snippet": "Find VA locations. Facility Locator is down for maintenance. We're making ... Visit a medical center or regional office. Find a VA location. Talk to the\u00a0...",
-      "query": "dental practice locations Texas",
+      "url": "https://www.va.gov/central-texas-health-care/locations/austin-va-clinic/",
+      "title": "Austin VA Clinic | VA Central Texas Health Care | Veterans Affairs",
+      "snippet": "Jan 21, 2025 ... Learn more about DAV and the other van services available in your county ... If you're eligible for VA dental care, we offer a full range of\u00a0...",
+      "query": "dental practice multiple locations Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:01:55.383857Z",
+      "fetched_at": "2025-08-18T21:07:27.027227Z",
       "domain": "va.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "d77348b7621fd552ea025d25ab4657ae798e81aabbc80a2556483eeb1f0abc3f"
+  "scoring_prompt_fingerprint": "04e0110fb946d1810dcbe502dcec49ef3553b77b3fed25cdb84f4c2193f7da0f"
 }

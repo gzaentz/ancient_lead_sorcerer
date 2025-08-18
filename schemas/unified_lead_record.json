@@ -356,6 +356,7 @@
           "type": ["string", "null"],
           "maxLength": 2048,
           "description": "Website metadata title"
+        },
         "evidence_urls": {
           "type": "array",
           "items": {
@@ -408,7 +409,21 @@
           },
           "maxItems": 100,
           "description": "Evidence supporting company data (SERP results)"
-        },          "role": {
+                 }
+       },
+       "additionalProperties": false
+     },
+     "contacts": {
+       "type": "array",
+       "items": {
+         "type": "object",
+         "properties": {
+           "contact_id": {
+             "type": "string",
+             "format": "uuid",
+             "description": "Unique identifier for this contact"
+           },
+           "role": {
             "type": ["string", "null"],
             "maxLength": 2048,
             "description": "Job title/role"

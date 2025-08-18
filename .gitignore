@@ -179,6 +179,8 @@ data/domain_pass.jsonl
 data/exports/
 data/crawl_artifacts/
 data/evidence/
+data/evidence/domain/
+data/logs/
 data/domain_history.jsonl
 *.log
 .env

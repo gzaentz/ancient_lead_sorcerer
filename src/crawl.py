@@ -611,51 +611,44 @@ class CrawlTool:
         async with self.async_semaphore_pool:
             self.logger.info(f"🔒 Acquired semaphore for domain: {domain}")
             try:
-                # Try HTTPS first, fallback to HTTP
-                urls_to_try = [f"https://{domain}", f"http://{domain}"]
-                self.logger.info(f"🌐 Will try URLs: {urls_to_try}")
+                # Single attempt over HTTPS only (avoid duplicate spend on HTTP fallback)
+                url = f"https://{domain}"
+                self.logger.info(f"🌐 Will try URL: {url}")
 
-                for url in urls_to_try:
-                    self.logger.info(f"📡 Attempting extraction from: {url}")
-                    try:
-                        # Call Firecrawl extract tool
+                self.logger.info(f"📡 Attempting extraction from: {url}")
+                try:
+                    # Call Firecrawl extract tool
+                    self.logger.info(
+                        f"🤖 Calling Firecrawl API with urls=[{url}] and schema..."
+                    )
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            self.firecrawl_client.extract,
+                            urls=[url],  # Use 'urls' parameter (list)
+                            schema=FIRECRAWL_EXTRACT_SCHEMA,
+                        ),
+                        timeout=20.0,  # 20 second timeout per attempt
+                    )
+
+                    if response and hasattr(response, "success") and response.success:
                         self.logger.info(
-                            f"🤖 Calling Firecrawl API with urls=[{url}] and schema..."
+                            f"✅ Firecrawl extraction successful for {url}"
                         )
-                        response = await asyncio.wait_for(
-                            asyncio.to_thread(
-                                self.firecrawl_client.extract,
-                                urls=[url],  # Use 'urls' parameter (list)
-                                schema=FIRECRAWL_EXTRACT_SCHEMA,
-                            ),
-                            timeout=10.0,  # 10 second timeout per attempt
+                        return response.data if hasattr(response, "data") else {}
+                    else:
+                        self.logger.warning(
+                            f"Firecrawl extract failed for {url}: {response}"
+                        )
+                        raise Exception(
+                            "Firecrawl extract returned unsuccessful response"
                         )
 
-                        if (
-                            response
-                            and hasattr(response, "success")
-                            and response.success
-                        ):
-                            self.logger.info(
-                                f"✅ Firecrawl extraction successful for {url}"
-                            )
-                            return response.data if hasattr(response, "data") else {}
-                        else:
-                            self.logger.warning(
-                                f"Firecrawl extract failed for {url}: {response}"
-                            )
-
-                    except asyncio.TimeoutError:
-                        self.logger.warning(f"Timeout extracting from {url}")
-                        continue
-                    except Exception as exc:
-                        self.logger.warning(f"Failed to extract from {url}: {exc}")
-                        continue
-
-                # If all attempts failed
-                raise Exception(
-                    f"Failed to extract data from {domain} after trying both HTTP and HTTPS"
-                )
+                except asyncio.TimeoutError:
+                    self.logger.warning(f"Timeout extracting from {url}")
+                    raise Exception("Firecrawl extraction timed out")
+                except Exception as exc:
+                    self.logger.warning(f"Failed to extract from {url}: {exc}")
+                    raise
 
             except Exception as exc:
                 raise Exception(f"Firecrawl extraction failed: {exc}")
