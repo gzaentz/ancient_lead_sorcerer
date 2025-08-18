@@ -7,7 +7,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 0.2 Add `config/costs.yaml` default pricing (§387-407).
     ✅ 0.3 Create `data/`, `data/evidence/`, `data/crawl_artifacts/`, `data/exports/` dirs (§29-33, 42-46).
     ✅ 0.4 Create `data/domain_history.jsonl` for Domain tool's cross-run deduplication (§239).
-    ✅ 0.5 Install & pin third-party libs: `httpx>=0.27`, `openrouter`, `firecrawl`, `proxycurl`, `mailgun`, `phonenumbers`, `portalocker`, `publicsuffix2` (§48-49). Note: Snov.io package not available on PyPI - custom client will be implemented using httpx.
+    ✅ 0.5 Install & pin third-party libs: `httpx>=0.27`, `openrouter`, `firecrawl`, `coresignal`, `mailgun`, `phonenumbers`, `portalocker`, `publicsuffix2` (§48-49). Note: Snov.io package not available on PyPI - custom client will be implemented using httpx.
     ✅ 0.6 Inject env-var loader & .env template for all required keys (§78-79).
     ✅ 0.7 Add nightly GitHub Actions job placeholder for GC (§34-39).
     ✅ 0.8 Create `schemas/unified_lead_record.json` with canonical JSON schema (§100-156).
@@ -223,7 +223,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 4.1 CLI + schema validation (§71).
     ✅ 4.2 Resolve caps & track cumulative spend (§325-341).
     ✅ 4.3 Deterministic best-contact selection tuple (§333-336).
-    ✅ 4.4 Enrich company via Proxycurl first (§338-340).
+    ✅ 4.4 Enrich company via Coresignal first (§338-340).
     ✅ 4.5 Validate/append email via Mailgun; enrich via Snov.io within caps (§321-360).
     ✅ 4.6 Normalize all fields (domain, email, phone, names) (§327-328).
     ✅ 4.7 Set `best_contact_id`, `contacts[*].email_status`, `email_confidence` (§349-352).
@@ -232,7 +232,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 4.10 Status enriched/enrich_partial & append status_history (§330-331).
     ✅ 4.11 Persist evidence to `data/evidence/enrich/{eTLD+1}.json` & pointer (§355-356).
     ✅ 4.12 Compute `provenance.enriched_at`, maybe `next_revisit_at` (§353-355).
-    ✅ 4.13 Cost accounting: Proxycurl/Mailgun/Snov.io unit pricing → `cost.enrich_usd` (§371-375).
+    ✅ 4.13 Cost accounting: Coresignal/Mailgun/Snov.io unit pricing → `cost.enrich_usd` (§371-375).
     ✅ 4.14 Metrics: pass_rate, cost_usd total (§362-380).
     ✅ 4.15 Error handling & UNKNOWN wrapper (§345-347).
     ✅ 4.16 Tests for cap logic, best-contact tie-break, state machine (§341-460).
@@ -244,11 +244,11 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 4.22 Set `provenance.evidence_paths.enrich` to `"data/evidence/enrich/{eTLD+1}.json"` (§355-356).
     ✅ 4.23 Handle best_contact_id recomputation when previously selected contact no longer exists (§333-336).
     ✅ 4.24 Implement template placeholder validation for queries if present (§226, §229).
-    ✅ 4.25 Implement provider presence checks for Proxycurl, Mailgun, and Snov.io (§409, §76).
+    ✅ 4.25 Implement provider presence checks for Coresignal, Mailgun, and Snov.io (§409, §76).
     ✅ 4.26 Implement audit trail logging for enrichment steps (§91-99).
     ✅ 4.27 Implement failure_revisit_days logic for enrichment failures (§5-6, 240-242, 286-312, 353, 470).
     ✅ 4.28 Implement icp_config.role_priority configuration loading for best contact selection (§333-336).
-    ✅ 4.29 Ensure paid enrichment calls (Proxycurl, Mailgun, Snov.io) also share the global AsyncSemaphorePool semaphore (§40-41).
+    ✅ 4.29 Ensure paid enrichment calls (Coresignal, Mailgun, Snov.io) also share the global AsyncSemaphorePool semaphore (§40-41).
     ✅ 4.30 Populate contacts[*].email_source when an email is added/verified (§349-352).
     ✅ 4.31 Append new links to contacts[*].other_links; maintain append-only semantics (§349-352).
     ✅ 4.32 Extend best-contact sort tuple to (role_priority, seniority_rank, email_status_rank, has_linkedin, contact_id) per BRD §333-336.
@@ -358,7 +358,7 @@ Note: References like (§75-76) refer to line numbers in docs/brd.md. Check the 
     ✅ 6.2.5 Revisit max-rule enforcement (§461).
 
     6.3 Fixtures & Mocks
-    ✅ 6.3.1 `responses` / `httpx_mock` stubs for GSE, Firecrawl, Proxycurl, Mailgun, Snov.io (§442-445).
+    ✅ 6.3.1 `responses` / `httpx_mock` stubs for GSE, Firecrawl, Coresignal, Mailgun, Snov.io (§442-445).
 
     6.4 CI Pipeline
     ✅ 6.4.1 GitHub Actions: lint, type-check, tests, coverage ≥90%.

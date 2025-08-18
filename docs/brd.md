@@ -45,8 +45,8 @@ Implementation note: wrap **all** outbound network calls in an `asyncio.Semaphor
    data/crawl_artifacts/{eTLD+1}.json, data/evidence/**
    If compaction is required, use copy-on-write to a new path and update the pointer atomically in the same run.
    No cross-imports between tools. No shared utility modules.
-   Allowed imports: standard library + approved third-party libs (httpx ≥ 0.27 for HTTP; async supported), OpenAI SDK, OpenRouter client, Firecrawl SDK, Google Programmable Search (GSE), Proxycurl, Mailgun, Snov.io, phonenumbers, portalocker. Each tool declares an internal version string (e.g., 1.0.0) and sets provenance.tool_versions.{tool} on every run. Bump the version when logic, prompts, or schema usage changes.
-   Domain must call Google Programmable Search (GSE); Crawl must call Firecrawl. Enrich must call Proxycurl, Mailgun, and Snov.io.
+   Allowed imports: standard library + approved third-party libs (httpx ≥ 0.27 for HTTP; async supported), OpenAI SDK, OpenRouter client, Firecrawl SDK, Google Programmable Search (GSE), Coresignal, Mailgun, Snov.io, phonenumbers, portalocker. Each tool declares an internal version string (e.g., 1.0.0) and sets provenance.tool_versions.{tool} on every run. Bump the version when logic, prompts, or schema usage changes.
+   Domain must call Google Programmable Search (GSE); Crawl must call Firecrawl. Enrich must call Coresignal, Mailgun, and Snov.io.
    Prompts may be duplicated per-file; the schema is not duplicated and must be loaded from schemas/unified_lead_record.json. Each tool validates inputs/outputs at runtime; on mismatch, fail fast for that item, add a structured errors[] entry, and still return the standard envelope. errors[] objects use {code, message, tool, lead_id?, item?, retryable, context?}. code is from a fixed enum: SCHEMA_VALIDATION, HTTP_429, HTTP_TIMEOUT, SMTP_TIMEOUT, DNS_FAILURE, PROVIDER_ERROR, EXTRACT_ERROR, BUDGET_EXCEEDED, PARSE_ERROR, UNKNOWN. errors[] MUST mask PII (emails "j\***@domain.com", phones "+1**\*\***7890", LinkedIn paths masked). Full PII is forbidden in errors[] and logs. Backoff: 1s → 2s → 4s → 8s → 16s (max 5 attempts), within a 45s wall-clock cap per item.
    Connect/read timeouts (3 s / 10 s) apply per attempt.
    The exponential back-off ladder governs the delay **between** attempts.
@@ -73,7 +73,7 @@ Implementation note: wrap **all** outbound network calls in an `asyncio.Semaphor
    All tools must always return { "data": { "lead_records": [...] }, "errors": [...], "metrics": {...} }. On any error, return partial results and append an error object including lead_id where applicable; do not crash.
    Orchestrator (separate file, not a tool): imports or shells to each tool, connects data flow Domain → Crawl → Enrich, handles batch sizing and persistence. Orchestrator is the only place tools “meet”.
    Load secrets from env/secret manager; never print secrets. Redact PII in logs (mask emails/phones). All logs → stderr. Logs are single-line JSON objects {ts, level, tool, msg} with PII masked.
-   Expected env vars: GSE_API_KEY, FIRECRAWL_KEY, PROXYCURL_KEY, MAILGUN_SMTP_LOGIN, MAILGUN_SMTP_PW, SNOV_IO_ID, SNOV_IO_SECRET, GSE_CX (Google Programmable Search Engine-ID (CX) used in all GSE calls), OPENROUTER_KEY
+   Expected env vars: GSE_API_KEY, FIRECRAWL_KEY, CORESIGNAL_TOKEN, MAILGUN_SMTP_LOGIN, MAILGUN_SMTP_PW, SNOV_IO_ID, SNOV_IO_SECRET, GSE_CX (Google Programmable Search Engine-ID (CX) used in all GSE calls), OPENROUTER_KEY
 
 Data Flow
 icp_config.json → Domain.run(config)
@@ -335,7 +335,7 @@ Sort by this tuple (ascending) and pick first:
 email_status_rank: valid=0, risky=1, catch_all=2, unknown=3, invalid=4
 has_linkedin: True=0, False=1
 Ties fall back to smallest contact_id (lexicographic), guaranteeing stability.
-Company-first enrichment (cheap providers first, e.g., Proxycurl).
+Company-first enrichment (cheap providers first, e.g., Coresignal).
 Paid discovery only if within cap.
 Track provider, confidence, and per-lead cost; stop optional when cap hit.
 If a single lead would exceed run_usd_max, skip that lead and log a BUDGET_EXCEEDED error.
@@ -355,7 +355,7 @@ icp.scoring_meta, icp.pre\*\* unchanged.
 provenance.enriched_at = now()
 provenance.evidence_paths.enrich = "data/evidence/enrich/{eTLD+1}.json".
 External API dependencies
-Proxycurl for firmographic + role enrichment.
+Coresignal for firmographic + role enrichment.
 Mailgun for primary SMTP validation.
 Snov.io for email enrichment.
 
@@ -389,7 +389,7 @@ Cost Configuration (Authoritative): Each tool looks up unit pricing from `config
 Example YAML:
 
 ```yaml
-proxycurl:
+coresignal:
   unit: 'lookup'
   usd_per_unit: 0.0100
 mailgun:

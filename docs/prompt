@@ -21,7 +21,7 @@ Implement **Task <TASK_NUM>** exactly as defined in `docs/tasks.md`.
 ## Hard Rules (mirror BRD constraints)
 
 • Single-file isolation (no shared utils, no cross-imports between tools)
-• Only allowed third-party libraries: `httpx>=0.27`, `openrouter`, `firecrawl`, `proxycurl`, `mailgun`, `snovio`, `phonenumbers`, `portalocker`, `publicsuffix2`
+• Only allowed third-party libraries: `httpx>=0.27`, `openrouter`, `firecrawl`, `coresignal`, `mailgun`, `snovio`, `phonenumbers`, `portalocker`, `publicsuffix2`
 • All timestamps → ISO-8601 UTC (Z suffix)
 • Deterministic UUIDs per BRD spec (uuid5 with NAMESPACE_DNS/NAMESPACE_URL)
 • Follow refresh-policy logic and error-handling rules verbatim

@@ -298,14 +298,17 @@ def map_coresignal_company_fields(coresignal_response: Dict[str, Any]) -> Dict[s
                 mapped_data["size_hint"] = "1000+"
 
     # Map location information
-    if company_data.get("location", {}).get("city"):
-        mapped_data["hq_location"] = company_data["location"]["city"]
+    location = company_data.get("location", {}) or {}
+    if location.get("city"):
+        mapped_data["hq_location"] = location["city"]
+    if location.get("country"):
+        # ISO-2 or country name depending on provider response; keep raw for now.
+        mapped_data["hq_country"] = location["country"]
 
-    # Map LinkedIn ID
-    if company_data.get("linkedin_id"):
+    # Map LinkedIn ID    if company_data.get("linkedin_id"):
         mapped_data["linkedin_company_id"] = company_data["linkedin_id"]
 
-    # Map additional fields that Proxycurl doesn't have
+    # Map additional fields that Coresignal provides
     if company_data.get("founded_year"):
         mapped_data["founded_year"] = company_data["founded_year"]
 
@@ -371,7 +374,7 @@ def map_coresignal_contact_fields(coresignal_response: Dict[str, Any]) -> Dict[s
     if person.get("linkedin_url"):
         mapped_data["linkedin"] = person["linkedin_url"]
 
-    # Map additional fields that Proxycurl doesn't have
+    # Map additional fields that Coresignal provides
     if person.get("role"):
         mapped_data["role_description"] = person["role"]
 
@@ -456,12 +459,12 @@ async def enrich_company_data(
     costs_config: Dict[str, float],
 ) -> Tuple[Dict[str, Any], float]:
     """
-    Enrich company data using Proxycurl.
+    Enrich company data using Coresignal.
 
     Args:
         company: Company data to enrich
         domain: Company domain
-        proxycurl_client: Proxycurl client
+        coresignal_client: Coresignal client
         costs_config: Costs configuration
 
     Returns:
