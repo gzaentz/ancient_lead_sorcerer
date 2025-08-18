@@ -51,11 +51,30 @@
         "locations": {
           "type": "array",
           "items": {
-            "type": "string",
-            "maxLength": 2048
+            "oneOf": [
+              {
+                "type": "string",
+                "maxLength": 2048
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "Full address of the location"
+                  },
+                  "is_primary": {
+                    "type": ["boolean", "null"],
+                    "description": "Whether this is the primary location"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
           },
           "maxItems": 20,
-          "description": "Additional office locations"
+          "description": "Additional office locations (strings or detailed objects)"
         },
         "size_hint": {
           "type": ["string", "null"],
@@ -86,6 +105,36 @@
               "maxLength": 2048
             },
             "instagram": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "facebook": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "youtube": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "tiktok": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "discord": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "pinterest": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "reddit": {
               "type": ["string", "null"],
               "format": "uri",
               "maxLength": 2048
@@ -157,27 +206,209 @@
             }
           },
           "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "contacts": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["contact_id", "full_name", "role", "department", "seniority", "role_priority", "email", "email_confidence", "email_status", "email_source", "phone", "linkedin", "other_links", "evidence_urls"],
-        "properties": {
-          "contact_id": {
+        },
+        "hq_country": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Country where company headquarters is located"
+        },
+        "hq_regions": {
+          "type": "array",
+          "items": {
             "type": "string",
-            "format": "uuid",
-            "description": "Deterministic UUID5 identifier for the contact"
+            "maxLength": 2048
           },
-          "full_name": {
-            "type": ["string", "null"],
-            "maxLength": 2048,
-            "description": "Full name of the contact"
+          "maxItems": 10,
+          "description": "Geographic regions where company operates"
+        },
+        "sector": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Business sector classification"
+        },
+        "followers_count": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Number of social media followers"
+        },
+        "ticker": {
+          "type": ["string", "null"],
+          "maxLength": 20,
+          "description": "Stock ticker symbol"
+        },
+        "exchange": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Stock exchange where company is listed"
+        },
+        "enriched_summary": {
+          "type": ["string", "null"],
+          "maxLength": 4096,
+          "description": "AI-generated company summary"
+        },
+        "enriched_keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048
           },
-          "role": {
+          "maxItems": 50,
+          "description": "AI-extracted business keywords"
+        },
+        "enriched_b2b_score": {
+          "type": ["number", "null"],
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "B2B relevance score"
+        },
+        "enriched_category": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "AI-categorized business type"
+        },
+        "phone_numbers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "maxItems": 20,
+          "description": "Company phone numbers"
+        },
+        "company_emails": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 2048
+          },
+          "maxItems": 20,
+          "description": "Company email addresses"
+        },
+        "funding": {
+          "type": "object",
+          "properties": {
+            "last_round_type": {
+              "type": ["string", "null"],
+              "maxLength": 2048,
+              "description": "Type of most recent funding round"
+            },
+            "last_round_date": {
+              "type": ["string", "null"],
+              "maxLength": 2048,
+              "description": "Date of most recent funding round"
+            },
+            "last_round_amount": {
+              "type": ["string", "null"],
+              "maxLength": 2048,
+              "description": "Amount raised in most recent round"
+            },
+            "total_rounds": {
+              "type": ["integer", "null"],
+              "minimum": 0,
+              "description": "Total number of funding rounds"
+            },
+            "last_round_investors": {
+              "type": ["integer", "null"],
+              "minimum": 0,
+              "description": "Number of investors in most recent round"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Company funding information"
+        },
+        "business_features": {
+          "type": "object",
+          "properties": {
+            "pricing_available": {
+              "type": ["boolean", "null"],
+              "description": "Whether pricing information is available"
+            },
+            "free_trial_available": {
+              "type": ["boolean", "null"],
+              "description": "Whether free trial is available"
+            },
+            "demo_available": {
+              "type": ["boolean", "null"],
+              "description": "Whether product demo is available"
+            },
+            "is_downloadable": {
+              "type": ["boolean", "null"],
+              "description": "Whether product is downloadable"
+            },
+            "mobile_apps_exist": {
+              "type": ["boolean", "null"],
+              "description": "Whether mobile apps exist"
+            },
+            "online_reviews_exist": {
+              "type": ["boolean", "null"],
+              "description": "Whether online reviews exist"
+            },
+            "api_docs_exist": {
+              "type": ["boolean", "null"],
+              "description": "Whether API documentation exists"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Business feature flags"
+        },
+        "metadata_title": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Website metadata title"
+        "evidence_urls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "maxLength": 2048,
+                "description": "URL of the evidence page"
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Title of the evidence page"
+              },
+              "snippet": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Snippet/description of the evidence page"
+              },
+              "query": {
+                "type": "string",
+                "maxLength": 2048,
+                "description": "Search query that led to this evidence"
+              },
+              "page_index": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Page number where this result was found"
+              },
+              "rank_on_page": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Rank position on the page"
+              },
+              "fetched_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601 UTC timestamp when this was fetched"
+              },
+              "domain": {
+                "type": "string",
+                "format": "hostname",
+                "description": "Normalized domain of the evidence page"
+              }
+            },
+            "required": ["url", "title", "snippet", "query", "page_index", "rank_on_page", "fetched_at", "domain"],
+            "additionalProperties": false
+          },
+          "maxItems": 100,
+          "description": "Evidence supporting company data (SERP results)"
+        },          "role": {
             "type": ["string", "null"],
             "maxLength": 2048,
             "description": "Job title/role"

@@ -157,8 +157,8 @@ class TestSnovioClient:
 
         assert client.client_id == "client_id"
         assert client.client_secret == "client_secret"
-        assert client.base_url == "https://api.snov.io/v2/"        assert client._access_token is None
-
+        assert client.base_url == "https://api.snov.io/v2"
+        assert client._access_token is None
     @pytest.mark.asyncio
     async def test_get_access_token_success(self):
         """Test successful access token retrieval."""

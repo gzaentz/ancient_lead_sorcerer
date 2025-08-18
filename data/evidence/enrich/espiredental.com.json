@@ -1,33 +1,150 @@
 {
   "domain": "espiredental.com",
-  "enriched_at": "2025-08-18T19:55:45.025607Z",
+  "enriched_at": "2025-08-18T20:26:24.067345Z",
   "company_enrichment": {
     "name": "Espire Dental",
-    "description": "Discover top-notch sedation and cosmetic dentistry. Transform your smile with Espire Dental.",
-    "industry": "Dental Services",
-    "naics_keywords": [],
+    "description": "Espire Dental is on a mission to transform the dental industry with joy, confidence, and excellence. We\u2019re not just about fixing teeth; we\u2019re about changing lives, one smile at a time. As a leader in general and cosmetic dentistry, Espire is setting a new standard for what dental care should look like. Gone are the days of stuffy offices and cold, clinical experiences\u2014our team is all about spreading joy and creating an environment where patients and employees alike can truly feel at ease. At Espire, we believe that confidence and joy go hand in hand. That\u2019s why our people are so good at what they do\u2014they love their work, they excel at it, and most importantly, they have fun while doing it. After all, you can\u2019t spread confidence and joy if you don\u2019t feel it yourself. Our offices are full of celebration, collaboration, and the kind of energy that makes a real difference in the lives of our patients and our team. We\u2019re flipping the script on the dental industry by pursuing excellence and embracing innovation every step of the way. At Espire, we\u2019re passionate about making people smile\u2014whether it\u2019s through state-of-the-art dental care or the warmth and positivity of our team. This is a place where purpose and passion meet, where every role plays a part in creating a better dental experience for everyone. If you\u2019re looking for something special, a workplace that\u2019s not only changing smiles but also changing lives, Espire Dental is the place for you. Together, we\u2019re redefining dentistry and creating a culture built on trust, excellence, and joy. So why not join us and use your powers for good? Let\u2019s revolutionize the dental industry, one joyful, confident smile at a time.",
+    "industry": "Hospitals and Health Care",
+    "naics_keywords": [
+      "General Dentistry",
+      "Endodontics",
+      "Periodontics",
+      "Oral Surgery",
+      "Cosmetic Dentistry",
+      "Dentist",
+      "Invisalign",
+      "Same Day Dentist",
+      "Dental Assistant",
+      "Dental Hygienist",
+      "EDDA",
+      "CEREC",
+      "TMJ",
+      "Periodontal Disease",
+      "Prosthodontis",
+      "Orthodontics",
+      "Dental Implants",
+      "Dental Veneers",
+      "Tooth Whitening",
+      "Associate Dentist"
+    ],
     "hq_location": "Greenwood Village, Colorado, United States",
-    "locations": [],
+    "locations": [
+      {
+        "address": "6825 E Tennessee Ave; Suite 180; Denver, Colorado 80224, US",
+        "is_primary": false
+      },
+      {
+        "address": "1590 Little Raven St; Suite 180; Denver, Colorado 80202, US",
+        "is_primary": false
+      },
+      {
+        "address": "8080 E Union Ave; Suite 140; Denver, Colorado 80237, US",
+        "is_primary": false
+      },
+      {
+        "address": "8610 Explorer Dr; Suite 315; Colorado Springs, Colorado 80920, US",
+        "is_primary": false
+      },
+      {
+        "address": "2117 Custer Dr; Fort Collins, Colorado 80525, US",
+        "is_primary": false
+      },
+      {
+        "address": "550 24th Ave SW; Norman, Oklahoma 73069, US",
+        "is_primary": false
+      },
+      {
+        "address": "12448 Saint Andrews Dr; Oklahoma City, Oklahoma 73120, US",
+        "is_primary": false
+      },
+      {
+        "address": "7112 Commons Circle; Cheyenne, Wyoming 82009, US",
+        "is_primary": false
+      },
+      {
+        "address": "8989 Rio San Diego Dr.; Suite 170; San Diego, California 92108, US",
+        "is_primary": false
+      },
+      {
+        "address": "7995 E Prentice Ave; Ste 211; Greenwood Village, Colorado 80111, US",
+        "is_primary": true
+      }
+    ],
     "size_hint": "201-500 employees",
     "socials": {
-      "linkedin": null,
-      "github": null,
-      "twitter": null,
-      "telegram": null,
-      "instagram": null
+      "facebook": "https://www.facebook.com/espiredental",
+      "instagram": "https://www.instagram.com/espiredental/",
+      "youtube": "https://www.youtube.com/channel/UCKCKRPE2DDUdlLE9MnTuNXA"
     },
     "careers_url": "",
     "blog_url": "",
-    "tech_stack": [],
+    "tech_stack": [
+      "c",
+      "facebook",
+      "microsoft",
+      "amp",
+      "paycom",
+      "well",
+      "adobe",
+      "ups",
+      "microsoft office",
+      "microsoft excel",
+      "operative",
+      "linkedin",
+      "instagram",
+      "dentrix",
+      "tiktok",
+      "onedrive",
+      "impact"
+    ],
     "evidence_urls": [
-      "https://espiredental.com"
+      "https://espiredental.com",
+      "https://espiredental.com/",
+      "https://www.espiredental.com/"
     ],
     "ids": {
       "linkedin": null,
       "crunchbase": null
     },
+    "hq_country": "United States",
+    "hq_regions": [
+      "Northern America",
+      "Northern America",
+      "AMER"
+    ],
     "founded_year": 2018,
-    "company_type": "Privately Held"
+    "company_type": "Privately Held",
+    "ownership_type": "Privately Held",
+    "followers_count": 3961,
+    "enriched_summary": "Espire Dental is a dental company that offers top-notch sedation and cosmetic dentistry in La Mesa. They provide high-quality, innovative dentistry in an environment where excellence in dentistry meets hospitality, and comfort and well-being are prioritized.",
+    "enriched_keywords": [
+      "dental",
+      "sedation",
+      "cosmetic dentistry",
+      "hospitality",
+      "La Mesa"
+    ],
+    "enriched_category": "Healthcare",
+    "phone_numbers": [
+      "6193377700",
+      "(619) 337-7700"
+    ],
+    "business_features": {
+      "pricing_available": false,
+      "free_trial_available": false,
+      "demo_available": false,
+      "is_downloadable": false,
+      "mobile_apps_exist": false,
+      "online_reviews_exist": false,
+      "api_docs_exist": false
+    },
+    "metadata_title": "Espire Dental",
+    "metadata_description": "Discover top-notch sedation and cosmetic dentistry in La Mesa. Transform your smile with Espire Dental.",
+    "created_at": "2019-08-03",
+    "last_updated": "2025-08-10",
+    "logo": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAyADIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9U6ZKxSNiOoBNPprrvRlPQjBxQJniv/CyvEH/AD+R/wDfhP8ACj/hZXiD/n8T/vwn+FeH6n431HwJ401Xw9euNdtrO7e3jmQ/viM8DI4ZsEAg85B5r2fwf4QufFkEVwX/ALNikAby7pds4H/XPr+Zr2alKFNKUkrM/P6WIxVabpwnLmXmey6Bdy3+iWNzMQ0ssCO5Axkkc8VoVW02xXTdPtrRGLrBGsYZupAGM1Zrx3voffQTUEpbhRRRSLCmyZ8tsHBweabJPHCVEkioWOAGYDNEsscewSOq7zsUMcbj6D1PFAHhPhvwDo3haaW5tbYzahK7PLf3R8yd2JyTuPTJPbFdEDg5HB9a75/DOkxsqtEFZzhQZSCfpzSnwrpYIHkcnoPMb/Gux1lJ3kfPRy6cFaNl/XoXdIdpNLtHYlmaJSSep4q5UNuIYFW2jKjy1ACA5IHanNPGkqxtIokbopYZP4VyM9+KtFJklFFFIo8Q+KfhyS++N/gvUrnSZL7S7exliaY6AdURJTdQMq7h/wAe7YUnzewB9Kn+NGiyv458K6zYaLP4i1a1KwRadc6S13YlHuIi8gn6WkyBd4lJwQuMHjHs+K4fxx8Q/wDhHNe0XRreENd311bK0krIqiJ51jYKGYM7YzwgO3gnAxW8ZttJdDnlCKTbe5xfxn+FV/8AE/x7pdtHBZw2B0K+tpNUvrA3Js5Hnttr25Dr5dwFVmR+cbc44rsvEGjXsnxT8E3kME81laWOpRz3OMqjOLbYGPq21seuDSQfFzTri58Wwrp9/nw5G7zsUUeft3ZEeWznKnG7AIIIOKuWPj9tQvNAjTS5o49RF4JjJIu+1e3O1lIUnfltwBU9ge9F52Sa2/UEoXbT3t+DPKYfBGt2/wC0Xd+ILnRRHocmtmSDVLKxzfM/9mQRKk027P2JiZOinEsQ3YBBrXl8OyL+03Pq95pMktrJp9lHaXj6AbpQ6rc7tt50t9u5cj+LcPWuo0r4tw+LNE+3aTbPb+XqtjZSC5McmUneIk/Ix2tsl5B5Vsgjjn0bHenKpJbrpYmNOL2fW4UUtFc51BTGiR3V2RWZfusRyPpRRQALEis7BFDP94gctjpn1p2B6UUUCGpEkYIRFUEliAMc9SafRRQCCiiigZ//2Q==",
+    "expired_domain": false,
+    "unique_domain": true
   },
   "contacts_enrichment": [],
   "costs": {

@@ -1,31 +1,76 @@
 {
   "domain": "phddental.com",
-  "enriched_at": "2025-08-18T19:55:43.554087Z",
+  "enriched_at": "2025-08-18T20:26:22.334373Z",
   "company_enrichment": {
     "name": "PhD Dental",
-    "description": "At PhD Dental Group, we offer the most comprehensive and compassionate approach to dentistry. Our mission is to promote excellent oral health care, prevent dental disease, and provide comprehensive dental care to all members of the family in all the communities we serve.",
-    "industry": "Dental Services",
+    "description": "We are currently accepting patients at our Los Angeles, Inglewood, Lynwood, and Pico Rivera locations. Contact one of our convenient locations to book!",
+    "industry": "Medical Practices",
     "naics_keywords": [],
     "hq_location": "Lynwood, California, United States",
-    "locations": [],
+    "locations": [
+      {
+        "address": "3737 MARTIN LUTHER KING BLVD; Lynwood, California 90262, us",
+        "is_primary": false
+      }
+    ],
     "size_hint": "11-50 employees",
     "socials": {
-      "linkedin": null,
-      "github": null,
-      "twitter": null,
-      "telegram": null,
-      "instagram": null
+      "facebook": "https://www.facebook.com/PhDDentalEastLA/",
+      "instagram": "https://www.instagram.com/phddental/",
+      "youtube": "https://www.youtube.com/channel/UCucGNyp6x3065BbT2rMZx5A?view_as=subscriber"
     },
     "careers_url": "https://www.phddental.com/careers/cp",
     "blog_url": "",
     "tech_stack": [],
     "evidence_urls": [
-      "https://phddental.com"
+      "https://phddental.com",
+      "http://phddentalgroup.com",
+      "https://www.phddental.com/"
     ],
     "ids": {
       "linkedin": null,
       "crunchbase": null
-    }
+    },
+    "hq_country": "United States",
+    "hq_regions": [
+      "Northern America",
+      "Northern America",
+      "AMER"
+    ],
+    "followers_count": 20,
+    "enriched_keywords": [
+      "tooth-colored fillings",
+      "dental services",
+      "prevention and gum disease treatment",
+      "dental implants",
+      "dental practice"
+    ],
+    "enriched_category": "Healthcare",
+    "phone_numbers": [
+      "(562) 307-9200",
+      "(323) 269-5437",
+      "(310) 631-1111",
+      "(323) 777-7420",
+      "(424) 232-0508",
+      "(562) 205-4591",
+      "(310) 645-0336",
+      "(888) 305-4866"
+    ],
+    "business_features": {
+      "pricing_available": false,
+      "free_trial_available": false,
+      "demo_available": false,
+      "is_downloadable": false,
+      "mobile_apps_exist": false,
+      "online_reviews_exist": false,
+      "api_docs_exist": false
+    },
+    "metadata_title": "Welcome to Our Practice",
+    "metadata_description": "Welcome to PhD Dental, we are currently accepting new patients at our Los Angeles, Pico Rivera, Lynwood, and Inglewood locations. Contact us to book!",
+    "created_at": "2020-03-26",
+    "last_updated": "2025-08-01",
+    "expired_domain": false,
+    "unique_domain": true
   },
   "contacts_enrichment": [],
   "costs": {

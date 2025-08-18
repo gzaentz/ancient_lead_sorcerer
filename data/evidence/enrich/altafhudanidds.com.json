@@ -1,13 +1,18 @@
 {
   "domain": "altafhudanidds.com",
-  "enriched_at": "2025-08-18T19:55:46.867020Z",
+  "enriched_at": "2025-08-18T20:26:26.036037Z",
   "company_enrichment": {
-    "name": "Ocean Dental Center",
-    "description": "Huntington Beach dentist, Ocean Dental Center is a local, trusted dental practice offering general and cosmetic dentistry, teeth whitening, implants, veneers & other dental care. Call today to make an appointment!",
-    "industry": "Dental Care",
+    "name": "Altaf Hudani, DDS",
+    "description": "Looking for a caring dentist in Huntington Beach, CA 92649? Ocean Dental Center specializes in Cosmetic & General Dentistry in Huntington Beach & Torrance.",
+    "industry": "Medical Practices",
     "naics_keywords": [],
     "hq_location": "Huntington Beach, California, United States",
-    "locations": [],
+    "locations": [
+      {
+        "address": "15052 SPRINGDALE ST; Huntington Beach, California 92649, us",
+        "is_primary": false
+      }
+    ],
     "size_hint": "1-10 employees",
     "socials": {
       "linkedin": null,
@@ -20,12 +25,49 @@
     "blog_url": "",
     "tech_stack": [],
     "evidence_urls": [
-      "https://altafhudanidds.com"
+      "https://altafhudanidds.com",
+      "http://altafhudanidds.com",
+      "https://www.altafhudanidds.com/"
     ],
     "ids": {
       "linkedin": null,
       "crunchbase": null
-    }
+    },
+    "hq_country": "United States",
+    "hq_regions": [
+      "Northern America",
+      "Northern America",
+      "AMER"
+    ],
+    "enriched_summary": "Ocean Dental Center is a local, trusted dental practice offering general and cosmetic dentistry, teeth whitening, implants, veneers & other dental care.",
+    "enriched_keywords": [
+      "implants",
+      "veneers",
+      "dental practice",
+      "cosmetic dentistry",
+      "teeth whitening"
+    ],
+    "enriched_category": "Healthcare",
+    "phone_numbers": [
+      "(310) 544-0544",
+      "(714) 898-0718",
+      "562-535-9887"
+    ],
+    "business_features": {
+      "pricing_available": false,
+      "free_trial_available": false,
+      "demo_available": false,
+      "is_downloadable": false,
+      "mobile_apps_exist": false,
+      "online_reviews_exist": false,
+      "api_docs_exist": false
+    },
+    "metadata_title": "Ocean Dental Center",
+    "metadata_description": "Huntington Beach dentist, Ocean Dental Center is a local, trusted dental practice offering general and cosmetic dentistry, teeth whitening, implants, veneers & other dental care. Call today to make an appointment!",
+    "created_at": "2020-04-14",
+    "last_updated": "2025-08-10",
+    "expired_domain": false,
+    "unique_domain": true
   },
   "contacts_enrichment": [],
   "costs": {

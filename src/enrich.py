@@ -45,14 +45,15 @@ from src.common import (
 # Load environment variables
 load_dotenv()
 
-# Debug: Show what environment variables we're loading
+# Debug: Show environment variable status without exposing sensitive data
 coresignal_token = os.getenv("CORESIGNAL_API_TOKEN")
 logging.info(
-    f"🔑 Environment CORESIGNAL_API_TOKEN (first 8 chars): {coresignal_token[:8] if coresignal_token else 'NOT SET'}..."
+    f"🔑 Environment CORESIGNAL_API_TOKEN status: {'SET' if coresignal_token else 'NOT SET'}"
 )
-logging.info(
-    f"🔑 Environment CORESIGNAL_API_TOKEN length: {len(coresignal_token) if coresignal_token else 0} characters"
-)
+if coresignal_token:
+    logging.info(
+        f"🔑 Environment CORESIGNAL_API_TOKEN length: {len(coresignal_token)} characters"
+    )
 
 # ============================================================================
 # Constants and Configuration
@@ -112,12 +113,6 @@ class CoresignalClient:
             "apikey": self.api_token,
         }
 
-        # Debug: Show what API key we're actually using
-        logging.info(
-            f"🔑 Using Coresignal API key (first 8 chars): {self.api_token[:8]}..."
-        )
-        logging.info(f"🔑 Full API key length: {len(self.api_token)} characters")
-
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 logging.debug(
@@ -134,7 +129,6 @@ class CoresignalClient:
             except Exception as exc:
                 logging.error(f"Coresignal API exception for {domain}: {exc}")
                 raise
-
     async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
         """
         Enrich contact information using Coresignal.
@@ -452,22 +446,16 @@ def map_coresignal_company_fields(
     if coresignal_response.get("name"):
         mapped_data["name"] = coresignal_response["name"]
         logging.debug(f"Mapped company name: {coresignal_response['name']}")
-    else:
-        logging.debug("Company name not found in Coresignal response")
 
     if coresignal_response.get("description"):
         mapped_data["description"] = coresignal_response["description"]
         logging.debug(
             f"Mapped company description: {coresignal_response['description'][:100]}..."
         )
-    else:
-        logging.debug("Company description not found in Coresignal response")
 
     if coresignal_response.get("industry"):
         mapped_data["industry"] = coresignal_response["industry"]
         logging.debug(f"Mapped company industry: {coresignal_response['industry']}")
-    else:
-        logging.debug("Company industry not found in Coresignal response")
 
     # Map size information - Coresignal uses size_range and size_employees_count
     if coresignal_response.get("size_range"):
@@ -493,8 +481,6 @@ def map_coresignal_company_fields(
         logging.debug(
             f"Converted employee count {count} to size_hint: {mapped_data['size_hint']}"
         )
-    else:
-        logging.debug("Company size information not found in Coresignal response")
 
     # Map location information - Coresignal uses location_hq_raw_address and location_hq_country
     if coresignal_response.get("location_hq_raw_address"):
@@ -502,24 +488,24 @@ def map_coresignal_company_fields(
         logging.debug(
             f"Mapped HQ location: {coresignal_response['location_hq_raw_address']}"
         )
-    else:
-        logging.debug("HQ location not found in Coresignal response")
 
     if coresignal_response.get("location_hq_country"):
         mapped_data["hq_country"] = coresignal_response["location_hq_country"]
         logging.debug(
             f"Mapped HQ country: {coresignal_response['location_hq_country']}"
         )
-    else:
-        logging.debug("HQ country not found in Coresignal response")
+
+    if coresignal_response.get("location_hq_regions"):
+        mapped_data["hq_regions"] = coresignal_response["location_hq_regions"]
+        logging.debug(
+            f"Mapped HQ regions: {coresignal_response['location_hq_regions']}"
+        )
 
     # Map LinkedIn ID to the correct schema field
     linkedin_id = coresignal_response.get("linkedin_id")
     if linkedin_id:
         mapped_data["ids"] = {"linkedin": linkedin_id, "crunchbase": None}
         logging.debug(f"Mapped LinkedIn company ID: {linkedin_id}")
-    else:
-        logging.debug("LinkedIn company ID not found in Coresignal response")
 
     # Map additional fields that Coresignal provides to schema-compliant fields
     if coresignal_response.get("founded"):
@@ -535,8 +521,6 @@ def map_coresignal_company_fields(
             logging.warning(
                 f"Could not convert founded year to integer: {founded_year}"
             )
-    else:
-        logging.debug("Founded year not found in Coresignal response")
 
     # Map company type to both ownership_type and company_type for flexibility
     if coresignal_response.get("type"):
@@ -545,17 +529,11 @@ def map_coresignal_company_fields(
         logging.debug(
             f"Mapped company type to ownership_type and company_type: {coresignal_response['type']}"
         )
-    else:
-        logging.debug("Company type not found in Coresignal response")
 
     # Map sector to industry if industry not already set
     if coresignal_response.get("sector") and not mapped_data.get("industry"):
         mapped_data["industry"] = coresignal_response["sector"]
         logging.debug(f"Mapped sector to industry: {coresignal_response['sector']}")
-    elif coresignal_response.get("sector"):
-        logging.debug(
-            f"Sector found but industry already set: {coresignal_response['sector']}"
-        )
 
     # Map specialities to naics_keywords if they exist
     if coresignal_response.get("specialities"):
@@ -566,20 +544,25 @@ def map_coresignal_company_fields(
         logging.debug(
             f"Mapped specialities to naics_keywords: {coresignal_response['specialities']}"
         )
-    else:
-        logging.debug("Specialities not found in Coresignal response")
 
     # Map technologies to tech_stack if they exist
     if coresignal_response.get("technologies"):
         if isinstance(coresignal_response["technologies"], list):
-            mapped_data["tech_stack"] = coresignal_response["technologies"]
+            # Extract technology names from the technology objects
+            tech_names = []
+            for tech in coresignal_response["technologies"]:
+                if isinstance(tech, dict) and tech.get("technology"):
+                    tech_names.append(tech["technology"])
+                elif isinstance(tech, str):
+                    tech_names.append(tech)
+            if tech_names:
+                mapped_data["tech_stack"] = tech_names
+                logging.debug(f"Mapped technologies to tech_stack: {tech_names}")
         else:
             mapped_data["tech_stack"] = [coresignal_response["technologies"]]
-        logging.debug(
-            f"Mapped technologies to tech_stack: {coresignal_response['technologies']}"
-        )
-    else:
-        logging.debug("Technologies not found in Coresignal response")
+            logging.debug(
+                f"Mapped technologies to tech_stack: {coresignal_response['technologies']}"
+            )
 
     # Map website to evidence_urls if it's different from the domain
     if coresignal_response.get("website"):
@@ -589,8 +572,44 @@ def map_coresignal_company_fields(
                 mapped_data["evidence_urls"] = []
             mapped_data["evidence_urls"].append(website)
         logging.debug(f"Mapped website to evidence_urls: {website}")
-    else:
-        logging.debug("Website not found in Coresignal response")
+
+    # Map all website variations
+    website_fields = [
+        "websites_main_original", "websites_main", "websites_resolved",
+        "websites_facebook", "websites_twitter", "websites_professional_network"
+    ]
+    for field in website_fields:
+        if coresignal_response.get(field):
+            if "evidence_urls" not in mapped_data:
+                mapped_data["evidence_urls"] = []
+            mapped_data["evidence_urls"].append(coresignal_response[field])
+            logging.debug(f"Mapped {field} to evidence_urls: {coresignal_response[field]}")
+
+    # Map social media URLs
+    social_fields = [
+        "social_discord_urls", "social_facebook_urls", "social_instagram_urls",
+        "social_professional_network_urls", "social_pinterest_urls", "social_tiktok_urls",
+        "social_twitter_urls", "social_x_urls", "social_youtube_urls", "social_github_urls",
+        "social_reddit_urls"
+    ]
+
+    socials = {}
+    for field in social_fields:
+        if coresignal_response.get(field):
+            urls = coresignal_response[field]
+            if isinstance(urls, list) and urls:
+                # Extract platform name from field name
+                platform = field.replace("social_", "").replace("_urls", "")
+                if platform == "professional_network":
+                    platform = "linkedin"  # Map to LinkedIn
+                elif platform == "x":
+                    platform = "twitter"  # Map X to Twitter for consistency
+
+                socials[platform] = urls[0] if urls else None
+                logging.debug(f"Mapped {field} to socials.{platform}: {urls[0] if urls else None}")
+
+    if socials:
+        mapped_data["socials"] = socials
 
     # Map status if it's a meaningful business status
     if coresignal_response.get("status"):
@@ -599,10 +618,125 @@ def map_coresignal_company_fields(
         if status.lower() in ["active", "operating", "inactive", "closed", "acquired"]:
             mapped_data["business_status"] = status
             logging.debug(f"Mapped business status: {status}")
-        else:
-            logging.debug(f"Status not business-relevant, skipping: {status}")
-    else:
-        logging.debug("Status not found in Coresignal response")
+
+    # Map additional valuable fields
+    if coresignal_response.get("followers"):
+        mapped_data["followers_count"] = coresignal_response["followers"]
+        logging.debug(f"Mapped followers count: {coresignal_response['followers']}")
+
+    if coresignal_response.get("ticker"):
+        mapped_data["ticker"] = coresignal_response["ticker"]
+        logging.debug(f"Mapped ticker: {coresignal_response['ticker']}")
+
+    if coresignal_response.get("exchange"):
+        mapped_data["exchange"] = coresignal_response["exchange"]
+        logging.debug(f"Mapped exchange: {coresignal_response['exchange']}")
+
+    if coresignal_response.get("enriched_summary"):
+        mapped_data["enriched_summary"] = coresignal_response["enriched_summary"]
+        logging.debug(f"Mapped enriched summary: {coresignal_response['enriched_summary'][:100]}...")
+
+    if coresignal_response.get("enriched_keywords"):
+        mapped_data["enriched_keywords"] = coresignal_response["enriched_keywords"]
+        logging.debug(f"Mapped enriched keywords: {coresignal_response['enriched_keywords']}")
+
+    if coresignal_response.get("enriched_b2b"):
+        mapped_data["enriched_b2b_score"] = coresignal_response["enriched_b2b"]
+        logging.debug(f"Mapped B2B score: {coresignal_response['enriched_b2b']}")
+
+    if coresignal_response.get("enriched_category"):
+        mapped_data["enriched_category"] = coresignal_response["enriched_category"]
+        logging.debug(f"Mapped enriched category: {coresignal_response['enriched_category']}")
+
+    # Map phone numbers and emails
+    if coresignal_response.get("phone_numbers"):
+        mapped_data["phone_numbers"] = coresignal_response["phone_numbers"]
+        logging.debug(f"Mapped phone numbers: {coresignal_response['phone_numbers']}")
+
+    if coresignal_response.get("emails"):
+        mapped_data["company_emails"] = coresignal_response["emails"]
+        logging.debug(f"Mapped company emails: {coresignal_response['emails']}")
+
+    # Map funding information
+    if coresignal_response.get("funding_rounds"):
+        funding_rounds = coresignal_response["funding_rounds"]
+        if isinstance(funding_rounds, list) and funding_rounds:
+            # Take the most recent funding round
+            latest_round = funding_rounds[0]
+            mapped_data["funding"] = {
+                "last_round_type": latest_round.get("last_round_type"),
+                "last_round_date": latest_round.get("last_round_date"),
+                "last_round_amount": latest_round.get("last_round_money_raised"),
+                "total_rounds": latest_round.get("total_rounds_count"),
+                "last_round_investors": latest_round.get("last_round_investors_count")
+            }
+            logging.debug(f"Mapped funding information: {mapped_data['funding']}")
+
+    # Map locations information
+    if coresignal_response.get("locations_full"):
+        locations = coresignal_response["locations_full"]
+        if isinstance(locations, list):
+            mapped_data["locations"] = []
+            for loc in locations:
+                if isinstance(loc, dict):
+                    location_data = {
+                        "address": loc.get("location_address"),
+                        "is_primary": loc.get("is_primary", False)
+                    }
+                    mapped_data["locations"].append(location_data)
+            logging.debug(f"Mapped {len(mapped_data['locations'])} locations")
+
+    # Map business features
+    business_features = {}
+    feature_fields = [
+        "pricing_available", "free_trial_available", "demo_available",
+        "is_downloadable", "mobile_apps_exist", "online_reviews_exist", "api_docs_exist"
+    ]
+
+    for field in feature_fields:
+        if coresignal_response.get(field) is not None:
+            business_features[field] = coresignal_response[field]
+
+    if business_features:
+        mapped_data["business_features"] = business_features
+        logging.debug(f"Mapped business features: {business_features}")
+
+    # Map metadata
+    if coresignal_response.get("metadata_title"):
+        mapped_data["metadata_title"] = coresignal_response["metadata_title"]
+        logging.debug(f"Mapped metadata title: {coresignal_response['metadata_title']}")
+
+    if coresignal_response.get("metadata_description"):
+        mapped_data["metadata_description"] = coresignal_response["metadata_description"]
+        logging.debug(f"Mapped metadata description: {coresignal_response['metadata_description'][:100]}...")
+
+    # Map timestamps
+    if coresignal_response.get("created_at"):
+        mapped_data["created_at"] = coresignal_response["created_at"]
+        logging.debug(f"Mapped created at: {coresignal_response['created_at']}")
+
+    if coresignal_response.get("last_updated"):
+        mapped_data["last_updated"] = coresignal_response["last_updated"]
+        logging.debug(f"Mapped last updated: {coresignal_response['last_updated']}")
+
+    # Map logo if available
+    if coresignal_response.get("logo"):
+        mapped_data["logo"] = coresignal_response["logo"]
+        logging.debug("Mapped company logo")
+
+    # Map domain information
+    if coresignal_response.get("expired_domain") is not None:
+        mapped_data["expired_domain"] = bool(coresignal_response["expired_domain"])
+        logging.debug(f"Mapped expired domain: {mapped_data['expired_domain']}")
+
+    if coresignal_response.get("unique_domain") is not None:
+        mapped_data["unique_domain"] = bool(coresignal_response["unique_domain"])
+        logging.debug(f"Mapped unique domain: {mapped_data['unique_domain']}")
+
+    # Map professional network source ID
+    if coresignal_response.get("professional_network_source_id"):
+        mapped_data["professional_network_id"] = coresignal_response["professional_network_source_id"]
+        logging.debug(f"Mapped professional network ID: {coresignal_response['professional_network_source_id']}")
 
     logging.info(
         f"Successfully mapped {len(mapped_data)} fields from Coresignal response"
@@ -762,7 +896,7 @@ async def enrich_company_data(
         enriched_data = await coresignal_client.enrich_company(domain)
 
         # Log the raw response for debugging
-        logging.debug(f"Raw Coresignal response for {domain}: {enriched_data}")
+        logging.info(f"🔍 CoreSignal raw response for {domain}: {enriched_data}")
 
         if not enriched_data:
             logging.warning(f"Coresignal returned empty response for domain: {domain}")
@@ -772,71 +906,190 @@ async def enrich_company_data(
         mapped_data = map_coresignal_company_fields(enriched_data)
 
         # Log mapping results
-        logging.info(f"Field mapping for {domain}: {len(mapped_data)} fields mapped")
+        logging.info(f"✅ CoreSignal field mapping for {domain}: {len(mapped_data)} fields mapped")
+        logging.info(f"🔍 Mapped fields: {list(mapped_data.keys())}")
         if not mapped_data:
             logging.warning(
                 f"No fields were mapped for domain: {domain}. Response keys: {list(enriched_data.keys())}"
             )
             return company, 0.0
 
-        # Update company fields
+        # Update company fields - enhance existing data with CoreSignal insights
         fields_updated = 0
-        if mapped_data.get("name") and not company.get("name"):
+
+        # Always enhance name if CoreSignal provides it (more authoritative)
+        if mapped_data.get("name"):
             company["name"] = mapped_data["name"]
             fields_updated += 1
 
-        if mapped_data.get("description") and not company.get("description"):
+        # Always enhance description if CoreSignal provides it (more comprehensive)
+        if mapped_data.get("description"):
             company["description"] = mapped_data["description"]
             fields_updated += 1
 
-        if mapped_data.get("industry") and not company.get("industry"):
+        # Always enhance industry if CoreSignal provides it (more accurate classification)
+        if mapped_data.get("industry"):
             company["industry"] = mapped_data["industry"]
             fields_updated += 1
 
-        if mapped_data.get("hq_location") and not company.get("hq_location"):
+        # Always enhance location if CoreSignal provides it (more detailed address)
+        if mapped_data.get("hq_location"):
             company["hq_location"] = mapped_data["hq_location"]
             fields_updated += 1
 
-        if mapped_data.get("size_hint") and not company.get("size_hint"):
+        # Always enhance size information if CoreSignal provides it (more accurate)
+        if mapped_data.get("size_hint"):
             company["size_hint"] = mapped_data["size_hint"]
             fields_updated += 1
 
-        # Backfill company.ids if missing
-        if mapped_data.get("linkedin_company_id") and not company.get("ids", {}).get(
-            "linkedin"
-        ):
-            if "ids" not in company:
-                company["ids"] = {}
-            company["ids"]["linkedin"] = (
-                f"/company/{mapped_data['linkedin_company_id']}"
-            )
+        # Add new location fields
+        if mapped_data.get("hq_country"):
+            company["hq_country"] = mapped_data["hq_country"]
             fields_updated += 1
 
-        # Add additional Coresignal fields
+        if mapped_data.get("hq_regions"):
+            company["hq_regions"] = mapped_data["hq_regions"]
+            fields_updated += 1
+
+        # Add social media information
+        if mapped_data.get("socials"):
+            company["socials"] = mapped_data["socials"]
+            fields_updated += 1
+
+        # Add additional CoreSignal fields
         if mapped_data.get("founded_year") and not company.get("founded_year"):
             company["founded_year"] = mapped_data["founded_year"]
-            fields_updated += 1
-
-        if mapped_data.get("revenue") and not company.get("revenue"):
-            company["revenue"] = mapped_data["revenue"]
-            fields_updated += 1
-
-        if mapped_data.get("funding") and not company.get("funding"):
-            company["funding"] = mapped_data["funding"]
             fields_updated += 1
 
         if mapped_data.get("company_type") and not company.get("company_type"):
             company["company_type"] = mapped_data["company_type"]
             fields_updated += 1
 
+        if mapped_data.get("ownership_type") and not company.get("ownership_type"):
+            company["ownership_type"] = mapped_data["ownership_type"]
+            fields_updated += 1
+
         if mapped_data.get("sector") and not company.get("sector"):
             company["sector"] = mapped_data["sector"]
             fields_updated += 1
 
+        # Add new fields that weren't in the original schema
+        if mapped_data.get("followers_count"):
+            company["followers_count"] = mapped_data["followers_count"]
+            fields_updated += 1
+
+        if mapped_data.get("ticker"):
+            company["ticker"] = mapped_data["ticker"]
+            fields_updated += 1
+
+        if mapped_data.get("exchange"):
+            company["exchange"] = mapped_data["exchange"]
+            fields_updated += 1
+
+        if mapped_data.get("enriched_summary"):
+            company["enriched_summary"] = mapped_data["enriched_summary"]
+            fields_updated += 1
+
+        if mapped_data.get("enriched_keywords"):
+            company["enriched_keywords"] = mapped_data["enriched_keywords"]
+            fields_updated += 1
+
+        if mapped_data.get("enriched_b2b_score"):
+            company["enriched_b2b_score"] = mapped_data["enriched_b2b_score"]
+            fields_updated += 1
+
+        if mapped_data.get("enriched_category"):
+            company["enriched_category"] = mapped_data["enriched_category"]
+            fields_updated += 1
+
+        if mapped_data.get("phone_numbers"):
+            company["phone_numbers"] = mapped_data["phone_numbers"]
+            fields_updated += 1
+
+        if mapped_data.get("company_emails"):
+            company["company_emails"] = mapped_data["company_emails"]
+            fields_updated += 1
+
+        if mapped_data.get("funding"):
+            company["funding"] = mapped_data["funding"]
+            fields_updated += 1
+
+        if mapped_data.get("locations"):
+            company["locations"] = mapped_data["locations"]
+            fields_updated += 1
+
+        if mapped_data.get("business_features"):
+            company["business_features"] = mapped_data["business_features"]
+            fields_updated += 1
+
+        if mapped_data.get("metadata_title"):
+            company["metadata_title"] = mapped_data["metadata_title"]
+            fields_updated += 1
+
+        if mapped_data.get("metadata_description"):
+            company["metadata_description"] = mapped_data["metadata_description"]
+            fields_updated += 1
+
+        if mapped_data.get("created_at"):
+            company["created_at"] = mapped_data["created_at"]
+            fields_updated += 1
+
+        if mapped_data.get("last_updated"):
+            company["last_updated"] = mapped_data["last_updated"]
+            fields_updated += 1
+
+        if mapped_data.get("logo"):
+            company["logo"] = mapped_data["logo"]
+            fields_updated += 1
+
+        if mapped_data.get("expired_domain") is not None:
+            company["expired_domain"] = mapped_data["expired_domain"]
+            fields_updated += 1
+
+        if mapped_data.get("unique_domain") is not None:
+            company["unique_domain"] = mapped_data["unique_domain"]
+            fields_updated += 1
+
+        if mapped_data.get("professional_network_id"):
+            company["professional_network_id"] = mapped_data["professional_network_id"]
+            fields_updated += 1
+
+        # Backfill company.ids if missing
+        if mapped_data.get("ids") and not company.get("ids"):
+            company["ids"] = mapped_data["ids"]
+            fields_updated += 1
+
+        # Add evidence URLs (websites)
+        if mapped_data.get("evidence_urls"):
+            if "evidence_urls" not in company:
+                company["evidence_urls"] = []
+            # Add new URLs that aren't already present
+            for url in mapped_data["evidence_urls"]:
+                if url and url not in company["evidence_urls"]:
+                    company["evidence_urls"].append(url)
+                    fields_updated += 1
+
+        # Add tech stack
+        if mapped_data.get("tech_stack"):
+            company["tech_stack"] = mapped_data["tech_stack"]
+            fields_updated += 1
+
+        # Add NAICS keywords
+        if mapped_data.get("naics_keywords"):
+            company["naics_keywords"] = mapped_data["naics_keywords"]
+            fields_updated += 1
+
+        # Add business status
+        if mapped_data.get("business_status"):
+            company["business_status"] = mapped_data["business_status"]
+            fields_updated += 1
+
         # Log enrichment results
         logging.info(
-            f"Successfully enriched company data for {domain}: {fields_updated} fields updated"
+            f"🎯 CoreSignal enrichment completed for {domain}: {fields_updated} fields updated"
         )
+        if fields_updated > 0:
+            logging.info(f"📊 Updated fields: {[k for k, v in mapped_data.items() if company.get(k) == v]}")
 
         # Calculate cost
         cost_usd = costs_config.get("coresignal", 0.0)
