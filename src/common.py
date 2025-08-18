@@ -344,7 +344,7 @@ def parse_phone_number(
 
 def resolve_data_dir(payload: Dict[str, Any]) -> str:
     """
-    Resolve data directory with precedence: payload.config.data_dir → env LEADPOUT_DATA_DIR → ./data.
+    Resolve data directory with precedence: payload.config.data_dir → env LEADPOET_DATA_DIR → ./data.
 
     Args:
         payload: Tool input payload
@@ -357,7 +357,7 @@ def resolve_data_dir(payload: Dict[str, Any]) -> str:
         return payload["config"]["data_dir"]
 
     # Check environment variable
-    env_data_dir = os.environ.get("LEADPOUT_DATA_DIR")
+    env_data_dir = os.environ.get("LEADPOET_DATA_DIR")
     if env_data_dir:
         return env_data_dir
 
@@ -693,47 +693,50 @@ def build_error(
     return error
 
 
-def wrap_unknown_errors(func):
+def wrap_unknown_errors(tool_name=None):
     """
     Decorator to wrap uncaught exceptions as UNKNOWN errors.
 
     Args:
-        func: Function to wrap
+        tool_name: Optional tool name, defaults to function module
 
     Returns:
-        Wrapped function
+        Decorator function
     """
 
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as exc:
-            # Create UNKNOWN error
-            error = build_error(
-                code=ErrorCode.UNKNOWN, exc=exc, tool=func.__module__ or "unknown"
-            )
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:
+                # Create UNKNOWN error
+                error = build_error(
+                    code=ErrorCode.UNKNOWN, exc=exc, tool=tool_name or func.__module__ or "unknown"
+                )
 
-            # Return partial results with error
-            return {
-                "data": {"lead_records": []},
-                "errors": [error],
-                "metrics": {
-                    "count_in": 0,
-                    "count_out": 0,
-                    "duration_ms": 0,
-                    "cache_hit_rate": None,
-                    "pass_rate": None,
-                    "cost_usd": {
-                        "domain": 0.0,
-                        "crawl": 0.0,
-                        "enrich": 0.0,
-                        "total": 0.0,
+                # Return partial results with error
+                return {
+                    "data": {"lead_records": []},
+                    "errors": [error],
+                    "metrics": {
+                        "count_in": 0,
+                        "count_out": 0,
+                        "duration_ms": 0,
+                        "cache_hit_rate": None,
+                        "pass_rate": None,
+                        "cost_usd": {
+                            "domain": 0.0,
+                            "crawl": 0.0,
+                            "enrich": 0.0,
+                            "total": 0.0,
+                        },
                     },
-                },
-            }
+                }
 
-    return wrapper
+        return wrapper
+
+    return decorator
 
 
 def exponential_backoff_with_timeout(

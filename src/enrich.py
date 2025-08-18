@@ -305,11 +305,12 @@ def map_coresignal_company_fields(coresignal_response: Dict[str, Any]) -> Dict[s
         # ISO-2 or country name depending on provider response; keep raw for now.
         mapped_data["hq_country"] = location["country"]
 
-    # Map LinkedIn ID    if company_data.get("linkedin_id"):
-        mapped_data["linkedin_company_id"] = company_data["linkedin_id"]
+    # Map LinkedIn ID
+    linkedin_id = company_data.get("linkedin_id")
+    if linkedin_id:
+        mapped_data["linkedin_company_id"] = linkedin_id
 
-    # Map additional fields that Coresignal provides
-    if company_data.get("founded_year"):
+    # Map additional fields that Coresignal provides    if company_data.get("founded_year"):
         mapped_data["founded_year"] = company_data["founded_year"]
 
     if company_data.get("revenue"):
