@@ -5,7 +5,7 @@
     "dental practice multiple locations California"
   ],
   "required_fields": {
-    "company": ["name", "hq_location", "number_of_locations"],
+    "company": ["name", "hq_location", "number_of_locations", "ownership_type"],
     "contact": ["email", "role"]
   },
   "optional_fields": {

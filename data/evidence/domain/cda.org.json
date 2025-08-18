@@ -1,0 +1,20 @@
+{
+  "domain": "cda.org",
+  "queries": [
+    "dental practice multiple locations California"
+  ],
+  "fetched_at": "2025-08-18T02:41:31.045452Z",
+  "serp_results": [
+    {
+      "url": "https://www.cda.org/",
+      "title": "California Dental Association (CDA)",
+      "snippet": "CDA supports dentists in all stages of their careers. Here, you'll find a unique set of resources, including education, practice support, advocacy and\u00a0...",
+      "query": "dental practice multiple locations California",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:41:10.691268Z",
+      "domain": "cda.org"
+    }
+  ],
+  "scoring_prompt_fingerprint": "57163fe08fd74933ac3c65273ce20231f01d680d52f47c056a5ca1426e6f93d3"
+}

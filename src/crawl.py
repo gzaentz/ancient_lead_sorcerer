@@ -67,13 +67,11 @@ FIRECRAWL_EXTRACT_SCHEMA = {
                 "hq_location": {"type": "string"},
                 "socials": {
                     "type": "object",
-                    "properties": {
-                        "linkedin": {"type": "string"}
-                    }
+                    "properties": {"linkedin": {"type": "string"}},
                 },
                 "careers_url": {"type": "string"},
-                "blog_url": {"type": "string"}
-            }
+                "blog_url": {"type": "string"},
+            },
         },
         "employees": {
             "type": "array",
@@ -83,11 +81,11 @@ FIRECRAWL_EXTRACT_SCHEMA = {
                     "full_name": {"type": "string"},
                     "role": {"type": "string"},
                     "linkedin": {"type": "string"},
-                    "email": {"type": "string"}
-                }
-            }
-        }
-    }
+                    "email": {"type": "string"},
+                },
+            },
+        },
+    },
 }
 
 
@@ -476,12 +474,12 @@ class CrawlTool:
 
                 # Only reject if we have clear evidence it's not dental-related
                 is_dental_related = (
-                    "dental" in industry or
-                    "dental" in name or
-                    "dentist" in name or
-                    "orthodont" in name or
-                    "oral" in industry or
-                    "oral" in name
+                    "dental" in industry
+                    or "dental" in name
+                    or "dentist" in name
+                    or "orthodont" in name
+                    or "oral" in industry
+                    or "oral" in name
                 )
 
                 if is_dental_related:
@@ -631,9 +629,15 @@ class CrawlTool:
                             timeout=10.0,  # 10 second timeout per attempt
                         )
 
-                        if response and hasattr(response, 'success') and response.success:
-                            self.logger.info(f"✅ Firecrawl extraction successful for {url}")
-                            return response.data if hasattr(response, 'data') else {}
+                        if (
+                            response
+                            and hasattr(response, "success")
+                            and response.success
+                        ):
+                            self.logger.info(
+                                f"✅ Firecrawl extraction successful for {url}"
+                            )
+                            return response.data if hasattr(response, "data") else {}
                         else:
                             self.logger.warning(
                                 f"Firecrawl extract failed for {url}: {response}"

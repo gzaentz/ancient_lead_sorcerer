@@ -589,9 +589,9 @@ class TestCosts(unittest.TestCase):
     def test_load_costs_config(self):
         """Test cost configuration loading."""
         # Skip this test if yaml is not available
-        try:
-            import yaml
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("yaml") is None:
             self.skipTest("PyYAML not available")
 
         # Create a temporary costs file
@@ -666,9 +666,9 @@ class TestFileLocking(unittest.TestCase):
     def test_write_with_lock(self):
         """Test writing with portalocker lock."""
         # Skip this test if portalocker is not available
-        try:
-            import portalocker
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("portalocker") is None:
             self.skipTest("portalocker not available")
 
         # Skip this test on Windows due to permission issues
@@ -689,9 +689,9 @@ class TestFileLocking(unittest.TestCase):
     def test_append_jsonl_with_lock(self):
         """Test appending JSONL with portalocker lock."""
         # Skip this test if portalocker is not available
-        try:
-            import portalocker
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("portalocker") is None:
             self.skipTest("portalocker not available")
 
         # Skip this test on Windows due to permission issues

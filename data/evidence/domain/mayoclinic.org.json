@@ -1,0 +1,20 @@
+{
+  "domain": "mayoclinic.org",
+  "queries": [
+    "dental practice multiple locations California"
+  ],
+  "fetched_at": "2025-08-18T02:41:31.045452Z",
+  "serp_results": [
+    {
+      "url": "https://www.mayoclinic.org/",
+      "title": "Mayo Clinic: The world's best hospital",
+      "snippet": "... to get care from Mayo Clinic. International services. Locations. Learn more about Mayo Clinic locations or choose a specific location. Explore all locations.",
+      "query": "dental practice multiple locations California",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:41:10.649786Z",
+      "domain": "mayoclinic.org"
+    }
+  ],
+  "scoring_prompt_fingerprint": "9011063d94935ac28c6ae0ae1cd64ef157f8c15b4f0336040100cf5258efc6b7"
+}

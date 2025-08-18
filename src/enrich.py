@@ -19,12 +19,10 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
-import portalocker
+# import portalocker  # Removed due to Windows compatibility issues
 
 from src.common import (
-    AsyncSemaphorePool,
     ErrorCode,
-    PermitManager,
     append_audit,
     append_status,
     build_error,
@@ -76,10 +74,9 @@ MAX_WALL_CLOCK = 45.0
 class CoresignalClient:
     """Client for Coresignal API."""
 
-    def __init__(self, api_token: str, semaphore_pool: AsyncSemaphorePool):
+    def __init__(self, api_token: str):
         self.api_token = api_token
         self.base_url = "https://api.coresignal.com"
-        self.semaphore_pool = semaphore_pool
 
     async def enrich_company(self, domain: str) -> Dict[str, Any]:
         """
@@ -91,19 +88,18 @@ class CoresignalClient:
         Returns:
             Enriched company data
         """
-        async with self.semaphore_pool:
-            url = f"{self.base_url}/v2/company_clean/enrich"
-            params = {"website": domain}
-            headers = {"Authorization": f"Bearer {self.api_token}"}
+        url = f"{self.base_url}/cdapi/v2/company_clean/enrich"
+        params = {"website": domain}
+        headers = {"apikey": self.api_token}
 
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
-                )
-            ) as client:
-                response = await client.get(url, params=params, headers=headers)
-                response.raise_for_status()
-                return response.json()
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+            )
+        ) as client:
+            response = await client.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            return response.json()
 
     async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
         """
@@ -134,31 +130,27 @@ class CoresignalClient:
         Returns:
             Enriched company contacts data
         """
-        async with self.semaphore_pool:
-            url = f"{self.base_url}/v2/people/by-company-domain/{domain}"
-            headers = {"Authorization": f"Bearer {self.api_token}"}
+        url = f"{self.base_url}/v2/people/by-company-domain/{domain}"
+        headers = {"apikey": self.api_token}
 
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
-                )
-            ) as client:
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
-                return response.json()
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+            )
+        ) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
 
 
 class MailgunClient:
     """Client for Mailgun SMTP validation."""
 
-    def __init__(
-        self, smtp_login: str, smtp_password: str, semaphore_pool: AsyncSemaphorePool
-    ):
+    def __init__(self, smtp_login: str, smtp_password: str):
         self.smtp_login = smtp_login
         self.smtp_password = smtp_password
         self.base_url = "https://api.mailgun.net/v3"
         self.domain = smtp_login.split("@")[1] if "@" in smtp_login else None
-        self.semaphore_pool = semaphore_pool
 
     async def validate_email(self, email: str) -> Dict[str, Any]:
         """
@@ -170,30 +162,26 @@ class MailgunClient:
         Returns:
             Validation result with status and confidence
         """
-        async with self.semaphore_pool:
-            url = f"{self.base_url}/address/validate"
-            params = {"address": email, "api_key": self.smtp_password}
+        url = f"{self.base_url}/address/validate"
+        params = {"address": email, "api_key": self.smtp_password}
 
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
-                )
-            ) as client:
-                response = await client.get(url, params=params)
-                response.raise_for_status()
-                return response.json()
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+            )
+        ) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
 
 
 class SnovioClient:
     """Client for Snov.io email enrichment."""
 
-    def __init__(
-        self, client_id: str, client_secret: str, semaphore_pool: AsyncSemaphorePool
-    ):
+    def __init__(self, client_id: str, client_secret: str):
         self.client_id = client_id
         self.client_secret = client_secret
         self.base_url = "https://api.snov.io/v1"
-        self.semaphore_pool = semaphore_pool
         self._access_token = None
 
     async def _get_access_token(self) -> str:
@@ -201,24 +189,23 @@ class SnovioClient:
         if self._access_token:
             return self._access_token
 
-        async with self.semaphore_pool:
-            url = f"{self.base_url}/oauth/access_token"
-            data = {
-                "grant_type": "client_credentials",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-            }
+        url = f"{self.base_url}/oauth/access_token"
+        data = {
+            "grant_type": "client_credentials",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+        }
 
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
-                )
-            ) as client:
-                response = await client.post(url, data=data)
-                response.raise_for_status()
-                token_data = response.json()
-                self._access_token = token_data["access_token"]
-                return self._access_token
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+            )
+        ) as client:
+            response = await client.post(url, data=data)
+            response.raise_for_status()
+            token_data = response.json()
+            self._access_token = token_data["access_token"]
+            return self._access_token
 
     async def find_email(
         self, domain: str, first_name: str, last_name: str
@@ -234,24 +221,56 @@ class SnovioClient:
         Returns:
             Email discovery result
         """
-        async with self.semaphore_pool:
-            token = await self._get_access_token()
-            url = f"{self.base_url}/search-profile"
-            params = {
-                "access_token": token,
-                "domain": domain,
-                "firstName": first_name,
-                "lastName": last_name,
-            }
+        token = await self._get_access_token()
+        url = f"{self.base_url}/search-profile"
+        params = {
+            "access_token": token,
+            "domain": domain,
+            "firstName": first_name,
+            "lastName": last_name,
+        }
 
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
-                )
-            ) as client:
-                response = await client.get(url, params=params)
-                response.raise_for_status()
-                return response.json()
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+            )
+        ) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+
+    async def search_profiles(
+        self, domain: str, job_title: str = None
+    ) -> Dict[str, Any]:
+        """
+        Search for profiles in a domain using Snov.io.
+
+        Args:
+            domain: Company domain
+            job_title: Optional job title to filter by
+
+        Returns:
+            Search results with profile data
+        """
+        token = await self._get_access_token()
+        url = f"{self.base_url}/search-profiles"
+        params = {
+            "access_token": token,
+            "domain": domain,
+            "limit": 10,  # Get up to 10 profiles
+        }
+
+        if job_title:
+            params["jobTitle"] = job_title
+
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+            )
+        ) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
 
 
 # ============================================================================
@@ -681,6 +700,116 @@ async def enrich_contact_data(
         return contact, total_cost
 
 
+async def discover_contacts_for_domain(
+    domain: str,
+    snovio_client: SnovioClient,
+    costs_config: Dict[str, float],
+    contact_usd_cap: float,
+) -> List[Dict[str, Any]]:
+    """
+    Discover contacts for a domain using Snov.io.
+
+    Args:
+        domain: Company domain
+        snovio_client: Snov.io client
+        costs_config: Costs configuration
+        contact_usd_cap: Maximum cost allowed for contact discovery
+
+    Returns:
+        List of discovered contacts
+    """
+    try:
+        logging.info(f"🔍 Discovering contacts for domain: {domain}")
+
+        # Use Snov.io to search for profiles in the domain
+        # We'll look for common job titles that would be decision makers
+        decision_maker_titles = [
+            "CEO",
+            "Chief Executive Officer",
+            "President",
+            "Owner",
+            "Founder",
+            "Managing Director",
+            "General Manager",
+            "Practice Manager",
+            "Dental Director",
+            "Clinical Director",
+            "Operations Manager",
+        ]
+
+        discovered_contacts = []
+        total_cost = 0.0
+        snovio_cost_per_search = costs_config.get("snovio", 0.0)
+
+        for title in decision_maker_titles:
+            # Check if we're within budget
+            if total_cost >= contact_usd_cap:
+                logging.info(f"💰 Contact discovery budget reached for {domain}")
+                break
+
+            try:
+                # Search for profiles with this title at the domain
+                search_result = await snovio_client.search_profiles(
+                    domain=domain, job_title=title
+                )
+
+                if search_result and search_result.get("data"):
+                    profiles = search_result["data"]
+
+                    for profile in profiles[:3]:  # Limit to top 3 results per title
+                        if len(discovered_contacts) >= 5:  # Limit total contacts
+                            break
+
+                        # Create contact record
+                        contact = {
+                            "contact_id": f"discovered_{len(discovered_contacts)}",
+                            "first_name": profile.get("firstName", ""),
+                            "last_name": profile.get("lastName", ""),
+                            "email": profile.get("email", ""),
+                            "job_title": profile.get("jobTitle", title),
+                            "company": profile.get("company", ""),
+                            "linkedin_url": profile.get("linkedinUrl", ""),
+                            "location": profile.get("location", ""),
+                            "discovery_source": "snovio",
+                            "discovery_method": "title_search",
+                        }
+
+                        # Only add if we don't already have this person
+                        if not any(
+                            c.get("email") == contact["email"]
+                            and c.get("first_name") == contact["first_name"]
+                            and c.get("last_name") == contact["last_name"]
+                            for c in discovered_contacts
+                        ):
+                            discovered_contacts.append(contact)
+                            total_cost += snovio_cost_per_search
+                            logging.info(
+                                f"✅ Discovered contact: {contact['first_name']} {contact['last_name']} - {contact['job_title']}"
+                            )
+
+                # Small delay to avoid rate limiting
+                await asyncio.sleep(0.1)
+
+            except Exception as e:
+                logging.warning(
+                    f"⚠️ Failed to search for title '{title}' in {domain}: {e}"
+                )
+                continue
+
+        if discovered_contacts:
+            logging.info(
+                f"🎯 Successfully discovered {len(discovered_contacts)} contacts for {domain}"
+            )
+        else:
+            logging.warning(f"❌ No contacts discovered for {domain}")
+
+        return discovered_contacts
+
+    except Exception as exc:
+        logging.error(f"❌ Failed to discover contacts for {domain}: {exc}")
+        return []
+
+
 def write_evidence_file(
     domain: str, evidence_data: Dict[str, Any], data_dir: str
 ) -> str:
@@ -706,11 +835,11 @@ def write_evidence_file(
     evidence_path = os.path.join(evidence_dir, f"{normalized_domain}.json")
 
     try:
-        with portalocker.Lock(evidence_path, timeout=10):
-            with open(evidence_path, "w") as f:
-                json.dump(evidence_data, f, indent=2)
-    except portalocker.exceptions.LockException as e:
-        raise RuntimeError(f"Failed to acquire lock for {evidence_path}: {e}")
+        # Write directly without locking (Windows compatibility)
+        with open(evidence_path, "w") as f:
+            json.dump(evidence_data, f, indent=2)
+    except Exception as e:
+        raise RuntimeError(f"Failed to write evidence file {evidence_path}: {e}")
 
     return evidence_path
 
@@ -755,7 +884,15 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Validate testing flags
         try:
+            logging.info("🔍 Validating testing flags...")
+            logging.info(f"🔍 ICP config keys: {list(icp_config.keys())}")
+            logging.info(
+                f"🔍 Testing section: {icp_config.get('testing', 'NOT_FOUND')}"
+            )
+            logging.info("🔍 About to call validate_testing_flags...")
             validate_testing_flags(icp_config)
+            logging.info("🔍 validate_testing_flags returned successfully")
+            logging.info("✅ Testing flags validation passed")
         except ValueError as exc:
             return {
                 "data": {"lead_records": []},
@@ -767,9 +904,14 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Load costs configuration
         try:
+            logging.info("🔍 Loading costs configuration...")
             costs_config = load_costs_config()
+            logging.info(f"✅ Costs config loaded: {list(costs_config.keys())}")
+
             required_providers = ["coresignal", "mailgun", "snovio"]
+            logging.info(f"🔍 Validating provider config for: {required_providers}")
             validate_provider_config(required_providers, costs_config)
+            logging.info("✅ Provider config validation passed")
         except (FileNotFoundError, KeyError) as exc:
             return {
                 "data": {"lead_records": []},
@@ -781,7 +923,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Load schema checksum
         try:
+            logging.info("🔍 Loading schema checksum...")
             schema_checksum = load_schema_checksum()
+            logging.info(f"✅ Schema checksum loaded: {schema_checksum[:8]}...")
         except FileNotFoundError as exc:
             return {
                 "data": {"lead_records": []},
@@ -792,21 +936,24 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
             }
 
         # Resolve data directory
+        logging.info("🔍 Resolving data directory...")
         data_dir = resolve_data_dir(payload)
+        logging.info(f"✅ Data directory resolved: {data_dir}")
 
-        # Initialize permit manager and semaphore pools
-        max_concurrent = icp_config.get("concurrency", {}).get(
-            "max_concurrent_requests", 3
-        )
-        permit_manager = PermitManager(max_concurrent)
-        async_semaphore_pool = AsyncSemaphorePool(permit_manager)
+        # Note: Removed permit manager and semaphore pools since we no longer use file locking
+        logging.info("🔍 Skipping concurrency controls (no file locking needed)")
 
         # Initialize provider clients
+        logging.info("🔍 Checking environment variables...")
         coresignal_token = os.environ.get("CORESIGNAL_TOKEN")
         mailgun_login = os.environ.get("MAILGUN_SMTP_LOGIN")
         mailgun_password = os.environ.get("MAILGUN_SMTP_PW")
         snovio_id = os.environ.get("SNOV_IO_ID")
         snovio_secret = os.environ.get("SNOV_IO_SECRET")
+
+        logging.info(
+            f"🔑 Environment check - Coresignal: {'✅' if coresignal_token else '❌'}, Mailgun: {'✅' if mailgun_login else '❌'}, Snov.io: {'✅' if snovio_id else '❌'}"
+        )
 
         if not all(
             [
@@ -829,11 +976,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "metrics": build_metrics(0, 0, 0),
             }
 
-        coresignal_client = CoresignalClient(coresignal_token, async_semaphore_pool)
-        mailgun_client = MailgunClient(
-            mailgun_login, mailgun_password, async_semaphore_pool
-        )
-        snovio_client = SnovioClient(snovio_id, snovio_secret, async_semaphore_pool)
+        coresignal_client = CoresignalClient(coresignal_token)
+        mailgun_client = MailgunClient(mailgun_login, mailgun_password)
+        snovio_client = SnovioClient(snovio_id, snovio_secret)
 
         # Get configuration values
         role_priority_config = icp_config.get("role_priority", {})
@@ -887,10 +1032,17 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 # Enrich company data first (cheaper)
                 company_cost = 0.0
                 if company_usd_cap > 0:
-                    company, company_cost = await enrich_company_data(
-                        company, normalized_domain, coresignal_client, costs_config
-                    )
-                    company_cost = min(company_cost, company_usd_cap)
+                    try:
+                        company, company_cost = await enrich_company_data(
+                            company, normalized_domain, coresignal_client, costs_config
+                        )
+                        company_cost = min(company_cost, company_usd_cap)
+                    except Exception as e:
+                        logging.warning(
+                            f"⚠️ Company enrichment failed for {normalized_domain}: {e}"
+                        )
+                        # Continue with contact discovery even if company enrichment fails
+                        company_cost = 0.0
 
                 # Select best contact
                 best_contact_id = select_best_contact(contacts, role_priority_config)
@@ -898,6 +1050,28 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                 # Enrich contacts (only if within budget)
                 contact_cost = 0.0
+
+                # If no contacts exist, try to discover them using Snov.io
+                if not contacts and contact_usd_cap > 0:
+                    logging.info(
+                        f"🔍 No contacts found for {normalized_domain}, attempting contact discovery..."
+                    )
+                    discovered_contacts = await discover_contacts_for_domain(
+                        normalized_domain, snovio_client, costs_config, contact_usd_cap
+                    )
+
+                    if discovered_contacts:
+                        contacts = discovered_contacts
+                        record["contacts"] = contacts
+                        logging.info(
+                            f"✅ Discovered {len(contacts)} contacts for {normalized_domain}"
+                        )
+                    else:
+                        logging.warning(
+                            f"⚠️ No contacts discovered for {normalized_domain}"
+                        )
+
+                # Enrich existing or discovered contacts
                 if contacts and contact_usd_cap > 0:
                     for contact in contacts:
                         if contact_cost >= contact_usd_cap:

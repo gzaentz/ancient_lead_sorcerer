@@ -1,0 +1,20 @@
+{
+  "domain": "ca.gov",
+  "queries": [
+    "dental practice multiple locations California"
+  ],
+  "fetched_at": "2025-08-18T02:41:31.040450Z",
+  "serp_results": [
+    {
+      "url": "https://www.dbc.ca.gov/licensees/dds/permits/additional_office.shtml",
+      "title": "Application for Additional Dental Office Permit - Dental Board of ...",
+      "snippet": "The Dental Board of California (Board) issues an Additional Office (AO) ... After approval, the permit will arrive to the practice location within 30 days.",
+      "query": "dental practice multiple locations California",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:41:10.331522Z",
+      "domain": "ca.gov"
+    }
+  ],
+  "scoring_prompt_fingerprint": "78bd521643b3ab5206eddefefe590b9bf255afe8825866ea6b6d47b925b0ee7e"
+}

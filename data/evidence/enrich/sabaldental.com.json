@@ -1,0 +1,14 @@
+{
+  "domain": "sabaldental.com",
+  "enriched_at": "2025-08-18T02:41:01.761836Z",
+  "company_enrichment": {
+    "name": "Sabal Dental",
+    "description": "Dental practice"
+  },
+  "contacts_enrichment": [],
+  "costs": {
+    "company_usd": 0.01,
+    "contact_usd": 0.0,
+    "total_usd": 0.01
+  }
+}

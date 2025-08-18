@@ -1,0 +1,20 @@
+{
+  "domain": "phddental.com",
+  "queries": [
+    "dental practice multiple locations California"
+  ],
+  "fetched_at": "2025-08-18T02:41:31.041450Z",
+  "serp_results": [
+    {
+      "url": "https://www.phddental.com/",
+      "title": "PhD Dental | Greater Los Angeles Dentists",
+      "snippet": "As a multi-specialty dental practice, we offer a wide array of services and treat patients of all ages, from infants to grandparents. Our comfortable offices\u00a0...",
+      "query": "dental practice multiple locations California",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:41:10.396972Z",
+      "domain": "phddental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "51a79075189b8815ac1108829cfbdb24e16a3c81af20d457d90bcae02c2e1af1"
+}

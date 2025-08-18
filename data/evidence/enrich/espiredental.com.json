@@ -1,0 +1,36 @@
+{
+  "domain": "espiredental.com",
+  "enriched_at": "2025-08-18T02:41:38.523423Z",
+  "company_enrichment": {
+    "name": "Espire Dental",
+    "description": "Discover top-notch sedation and cosmetic dentistry. Transform your smile with Espire Dental.",
+    "industry": "Dental Services",
+    "naics_keywords": [],
+    "hq_location": null,
+    "locations": [],
+    "size_hint": null,
+    "socials": {
+      "linkedin": null,
+      "github": null,
+      "twitter": null,
+      "telegram": null,
+      "instagram": null
+    },
+    "careers_url": "",
+    "blog_url": "",
+    "tech_stack": [],
+    "evidence_urls": [
+      "https://espiredental.com"
+    ],
+    "ids": {
+      "linkedin": null,
+      "crunchbase": null
+    }
+  },
+  "contacts_enrichment": [],
+  "costs": {
+    "company_usd": 0.01,
+    "contact_usd": 0.0,
+    "total_usd": 0.01
+  }
+}

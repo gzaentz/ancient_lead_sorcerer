@@ -1,0 +1,20 @@
+{
+  "domain": "altafhudanidds.com",
+  "queries": [
+    "dental practice multiple locations California"
+  ],
+  "fetched_at": "2025-08-18T02:41:31.046452Z",
+  "serp_results": [
+    {
+      "url": "https://www.altafhudanidds.com/about-ocean-dental-center",
+      "title": "Ocean Dental Center",
+      "snippet": "Multi-Speciality Dental Practice \u00b7 Multiple California Locations \u00b7 Experienced Dentist \u00b7 Advanced Technology \u00b7 Visit Ocean Dental Center Today \u00b7 Request An\u00a0...",
+      "query": "dental practice multiple locations California",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:41:10.734054Z",
+      "domain": "altafhudanidds.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "3a78727b3f95a0c28e634c944a21e9dfcf0bfa7963c7266811cfb715e27f4aca"
+}

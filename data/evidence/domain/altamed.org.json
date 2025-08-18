@@ -1,20 +1,20 @@
 {
   "domain": "altamed.org",
   "queries": [
-    "dental practice group multiple locations United States"
+    "dental practice multiple locations California"
   ],
-  "fetched_at": "2025-08-18T02:00:23.511520Z",
+  "fetched_at": "2025-08-18T02:41:31.042453Z",
   "serp_results": [
     {
       "url": "https://www.altamed.org/find/facility",
       "title": "Locations and Hours | AltaMed",
-      "snippet": "AltaMed Medical and Dental Group - Boyle Heights. 3945 Whittier Blvd. Los Angeles, CA 90023. United States. Get Directions\u00a0...",
-      "query": "dental practice group multiple locations United States",
+      "snippet": "We have many locations throughout Los Angeles and Orange counties. Some of our locations offer multiple services, including medical, dental, urgent care,\u00a0...",
+      "query": "dental practice multiple locations California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:00:09.146420Z",
+      "fetched_at": "2025-08-18T02:41:10.480927Z",
       "domain": "altamed.org"
     }
   ],
-  "scoring_prompt_fingerprint": "b0ae6195eace1052901f9fd0a82e6f2e56daf3a73aa4b4421eebe16e48f7b0ae"
+  "scoring_prompt_fingerprint": "2724c339b943ad93d5a9cc3c9e488f47ebd8bdc4ad238a181aa37a45c5ce6644"
 }

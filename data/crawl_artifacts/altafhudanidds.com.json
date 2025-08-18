@@ -1,0 +1,18 @@
+{
+  "crawled_at": "2025-08-18T02:22:29.804469Z",
+  "content_hash": "f54f789edf3093982b22547f51325cc51578a6b2d28b39dc69e406f654cbc049",
+  "extracted_data": {
+    "company": {
+      "name": "Ocean Dental Center",
+      "socials": {
+        "linkedin": ""
+      },
+      "blog_url": "",
+      "industry": "Dental Care",
+      "careers_url": "",
+      "description": "Huntington Beach dentist, Ocean Dental Center is a local, trusted dental practice offering general and cosmetic dentistry, teeth whitening, implants, veneers & other dental care. Call today to make an appointment!",
+      "hq_location": "Huntington Beach, CA"
+    },
+    "employees": []
+  }
+}

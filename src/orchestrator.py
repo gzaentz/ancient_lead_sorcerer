@@ -243,7 +243,9 @@ class LeadSorcererOrchestrator:
                 self.logger.info(f"Crawl tool processed {len(crawled_leads)} leads")
 
                 # Add detailed logging for pipeline flow
-                self.logger.info(f"🔍 Pipeline Debug: Found {len(crawled_leads)} crawled leads")
+                self.logger.info(
+                    f"🔍 Pipeline Debug: Found {len(crawled_leads)} crawled leads"
+                )
                 status_counts = {}
                 for lead in crawled_leads:
                     status = lead.get("status", "unknown")
@@ -254,7 +256,9 @@ class LeadSorcererOrchestrator:
                 enrich_ready_leads = [
                     r for r in crawled_leads if r.get("status") == "enrich_ready"
                 ]
-                self.logger.info(f"🔍 Pipeline Debug: Found {len(enrich_ready_leads)} enrich_ready leads")
+                self.logger.info(
+                    f"🔍 Pipeline Debug: Found {len(enrich_ready_leads)} enrich_ready leads"
+                )
 
                 # Check testing flags for additional processing
                 process_low_crawl = testing.get("process_low_crawl", False)
@@ -271,13 +275,17 @@ class LeadSorcererOrchestrator:
 
                 # Step 3: Enrich tool - fill missing data and verify contacts
                 if enrich_ready_leads:
-                    self.logger.info(f"🚀 Running Enrich tool with {len(enrich_ready_leads)} leads...")
+                    self.logger.info(
+                        f"🚀 Running Enrich tool with {len(enrich_ready_leads)} leads..."
+                    )
                     enrich_payload = {
                         "lead_records": enrich_ready_leads,
                         "icp_config": self.icp_config,
                         "caps": self.icp_config.get("caps", {}),
                     }
-                    self.logger.info(f"🔍 Enrich payload structure: {len(enrich_payload.get('lead_records', []))} leads, {len(enrich_payload.get('icp_config', {}))} config items")
+                    self.logger.info(
+                        f"🔍 Enrich payload structure: {len(enrich_payload.get('lead_records', []))} leads, {len(enrich_payload.get('icp_config', {}))} config items"
+                    )
                     enrich_result = await run_enrich(enrich_payload)
 
                     if enrich_result.get("errors"):

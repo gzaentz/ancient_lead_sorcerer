@@ -1,0 +1,20 @@
+{
+  "domain": "espiredental.com",
+  "queries": [
+    "dental practice multiple locations California"
+  ],
+  "fetched_at": "2025-08-18T02:41:31.043450Z",
+  "serp_results": [
+    {
+      "url": "https://www.espiredental.com/",
+      "title": "Espire Dental",
+      "snippet": "With multiple locations in California, Colorado, Oklahoma, Wyoming, and beyond, finding our trusted dental care teams and top dentists nearby has never been\u00a0...",
+      "query": "dental practice multiple locations California",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T02:41:10.563774Z",
+      "domain": "espiredental.com"
+    }
+  ],
+  "scoring_prompt_fingerprint": "fec03f81a2b4ab3e00ea7a057b625126159b2da618e2702aa5610c0b33ab988f"
+}
