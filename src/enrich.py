@@ -94,7 +94,11 @@ class CoresignalClient:
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
             )
         ) as client:
             response = await client.get(url, params=params, headers=headers)
@@ -135,7 +139,11 @@ class CoresignalClient:
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
             )
         ) as client:
             response = await client.get(url, headers=headers)
@@ -198,7 +206,11 @@ class SnovioClient:
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
             )
         ) as client:
             response = await client.post(url, data=data)
@@ -232,7 +244,11 @@ class SnovioClient:
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
             )
         ) as client:
             response = await client.get(url, params=params)
@@ -265,7 +281,11 @@ class SnovioClient:
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=CONNECT_TIMEOUT, read=READ_TIMEOUT, write=None, pool=None
+                timeout=MAX_WALL_CLOCK,
+                connect=CONNECT_TIMEOUT,
+                read=READ_TIMEOUT,
+                write=None,
+                pool=None,
             )
         ) as client:
             response = await client.get(url, params=params)
@@ -599,6 +619,9 @@ async def enrich_contact_data(
                     domain
                 )
 
+                # Increment cost for Coresignal API call regardless of outcome
+                total_cost += costs_config.get("coresignal", 0.0)
+
                 # Map Coresignal response to unified schema
                 mapped_contact = map_coresignal_contact_fields(company_contacts)
 
@@ -621,8 +644,6 @@ async def enrich_contact_data(
 
                         if mapped_contact.get("role") and not contact.get("role"):
                             contact["role"] = mapped_contact["role"]
-
-                        total_cost += costs_config.get("coresignal", 0.0)
 
             except Exception as exc:
                 logging.warning(

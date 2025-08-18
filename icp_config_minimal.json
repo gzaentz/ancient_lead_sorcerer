@@ -5,11 +5,11 @@
     "dental practice multiple locations California"
   ],
   "required_fields": {
-    "company": ["name", "hq_location", "number_of_locations", "ownership_type"],
+    "company": ["name", "hq_location", "number_of_locations"],
     "contact": ["email", "role"]
   },
   "optional_fields": {
-    "company": ["tech_stack", "revenue_range", "employee_count", "specialties", "founded_year"],
+    "company": ["tech_stack", "revenue_range", "employee_count", "specialties", "founded_year", "ownership_type"],
     "contact": ["phone", "linkedin", "decision_maker"]
   },
   "threshold": 0.3,

@@ -6,6 +6,17 @@ __pycache__/
 # C extensions
 *.so
 
+# Data artifacts and evidence files
+data/crawl_artifacts/
+data/evidence/
+data/exports/
+data/domain_history.jsonl
+
+# Generated files
+htmlcov/
+*.pyc
+__pycache__/
+
 # Distribution / packaging
 .Python
 build/
@@ -166,10 +177,15 @@ cython_debug/
 data/domain_all.jsonl
 data/domain_pass.jsonl
 data/exports/
+data/crawl_artifacts/
+data/evidence/
+data/domain_history.jsonl
 *.log
 .env
 .env.local
 .env.production
+.env_backup
+icp_config_*.json
 
 # IDE
 .vscode/
@@ -181,3 +197,38 @@ data/exports/
 # OS
 .DS_Store
 Thumbs.db
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Temporary files
+*.pid
+*.seed
+*.pid.lock
+
+# Local configuration overrides
+config/local/
+config/dev/
+config/test/
+
+# Additional Lead Sorcerer patterns
+debug_pii.py
+test_*.py
+icp_config_minimal.json
+icp_config_test.json
+.env_backup
+
+# Cursor IDE
+.cursor/
+cursor.json
+
+# Ruff cache
+.ruff_cache/
+
+# Pre-commit
+.pre-commit-config.yaml
+
+# GitHub Actions (if you want to ignore workflow changes)
+.github/workflows/*.yml.bak
+.github/workflows/*.yaml.bak
