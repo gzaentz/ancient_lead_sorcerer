@@ -249,4 +249,4 @@ Required environment variables:
 
 ## License
 
-[License information to be added]
+[Leadpoet License]
