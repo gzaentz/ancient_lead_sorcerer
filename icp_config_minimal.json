@@ -2,7 +2,7 @@
   "name": "Dentist Practices Test - Minimal",
   "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that are not private equity backed and not part of large national franchises",
   "queries": [
-    "dental practice multiple locations Florida"
+    "dental practice multiple locations New York"
   ],
   "required_fields": {
     "company": ["name", "hq_location", "number_of_locations"],

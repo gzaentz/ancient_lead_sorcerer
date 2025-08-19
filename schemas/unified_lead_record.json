@@ -73,7 +73,7 @@
               }
             ]
           },
-          "maxItems": 20,
+          "maxItems": 50,
           "description": "Additional office locations (strings or detailed objects)"
         },
         "size_hint": {
@@ -444,9 +444,9 @@
             "description": "Department within the company"
           },
           "seniority": {
-            "type": ["string", "null"],
+            "type": ["string", "integer", "null"],
             "maxLength": 2048,
-            "description": "Seniority level"
+            "description": "Seniority level (string or numeric rank)"
           },
           "role_priority": {
             "type": ["integer", "null"],
@@ -516,7 +516,7 @@
             "description": "URLs providing evidence for contact data"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": true
       },
       "maxItems": 100
     },

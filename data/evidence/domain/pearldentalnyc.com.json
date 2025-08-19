@@ -1,20 +1,20 @@
 {
   "domain": "pearldentalnyc.com",
   "queries": [
-    "best dental practices NYC"
+    "dental practice multiple locations New York"
   ],
-  "fetched_at": "2025-08-18T01:16:53.921474Z",
+  "fetched_at": "2025-08-19T00:48:38.142587Z",
   "serp_results": [
     {
       "url": "https://www.pearldentalnyc.com/",
       "title": "Pearl Dental NYC / Financial District Dentist, Tribeca Dental Office",
-      "snippet": "Using the latest advances in chemistry, biomaterials, and 3D technology, we can practice a better way of dentistry that extends your teeth's lifespan, saves you\u00a0...",
-      "query": "best dental practices NYC",
+      "snippet": "Equipped with fast and efficient machines, our practice offers better and more immediate results the same day \u2014 no need for multiple visits. Convenient Location\u00a0...",
+      "query": "dental practice multiple locations New York",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:16:36.708950Z",
+      "fetched_at": "2025-08-19T00:48:20.332295Z",
       "domain": "pearldentalnyc.com"
     }
   ],
-  "scoring_prompt_fingerprint": "50343ac1f87c2520da26b5c7a5e2c9d31299c8bff871c5c80c48ff9f2462d75e"
+  "scoring_prompt_fingerprint": "3d5705a99b8b0db31374e198b5bdf54081783dc1b0bef5331d5e1680192fcf8c"
 }
