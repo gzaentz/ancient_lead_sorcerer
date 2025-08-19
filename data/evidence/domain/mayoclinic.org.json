@@ -1,20 +1,20 @@
 {
   "domain": "mayoclinic.org",
   "queries": [
-    "dental practice multiple locations California"
+    "dental practice multiple locations Florida"
   ],
-  "fetched_at": "2025-08-18T20:26:21.225489Z",
+  "fetched_at": "2025-08-19T00:19:19.954263Z",
   "serp_results": [
     {
       "url": "https://www.mayoclinic.org/",
       "title": "Mayo Clinic: The world's best hospital",
-      "snippet": "... to get care from Mayo Clinic. International services. Locations. Learn more about Mayo Clinic locations or choose a specific location. Explore all locations.",
-      "query": "dental practice multiple locations California",
+      "snippet": "Mayo Clinic is the No. 1 hospital in the world., with campuses in Arizona, Florida, and Minnesota.",
+      "query": "dental practice multiple locations Florida",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T20:25:57.726122Z",
+      "fetched_at": "2025-08-19T00:19:05.415505Z",
       "domain": "mayoclinic.org"
     }
   ],
-  "scoring_prompt_fingerprint": "9011063d94935ac28c6ae0ae1cd64ef157f8c15b4f0336040100cf5258efc6b7"
+  "scoring_prompt_fingerprint": "d3c1f3b5c932088225c9595296be55daaf11097ca63c2868e11d602f3d13228c"
 }

@@ -1,20 +1,20 @@
 {
   "domain": "ny.gov",
   "queries": [
-    "best dental practices NYC"
+    "regional dental chains independent operators"
   ],
-  "fetched_at": "2025-08-18T01:16:53.920391Z",
+  "fetched_at": "2025-08-18T22:41:18.853420Z",
   "serp_results": [
     {
-      "url": "https://www.health.ny.gov/diseases/aids/general/resources/dental_resource_directory/medicaid_medicare.htm",
-      "title": "Dental Clinics that Accept Medicaid",
-      "snippet": "NYC Health + Hospitals Woodhull Dental Clinic, 760 Broadway Brooklyn, New ... Medicaid members should call clinic directly for scheduling information. Back to top.",
-      "query": "best dental practices NYC",
+      "url": "https://dol.ny.gov/independent-contractors",
+      "title": "Independent Contractors | Department of Labor",
+      "snippet": "It is vital that you understand the distinction between independent contractors and employees. NYS Law requires that if you have employees, you are liable\u00a0...",
+      "query": "regional dental chains independent operators",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:16:36.667380Z",
+      "fetched_at": "2025-08-18T22:41:02.247405Z",
       "domain": "ny.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "f8bd4fb3a5d926639aab08ef8d65a65104426a12dd6d93b6badb220392b167ca"
+  "scoring_prompt_fingerprint": "8106a9f229c133c6d639f336a8ac73abc4018a24f5825a3e45b6ac4dc3da5adc"
 }

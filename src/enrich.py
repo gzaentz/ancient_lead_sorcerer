@@ -122,6 +122,12 @@ class CoresignalClient:
                         f"Coresignal: Company not found for {domain} (404) - this is normal for smaller companies"
                     )
                     return {}  # Return empty dict instead of raising
+                elif exc.response.status_code == 401:
+                    logging.error(f"Coresignal API authentication failed for {domain}")
+                    raise  # Re-raise authentication errors
+                elif exc.response.status_code == 429:
+                    logging.error(f"Coresignal API rate limit exceeded for {domain}")
+                    raise  # Re-raise rate limit errors
                 else:
                     logging.error(
                         f"Coresignal API error for {domain}: {exc.response.status_code} - {exc.response.text}"
@@ -129,7 +135,11 @@ class CoresignalClient:
                     return {}  # Return empty dict instead of raising
             except Exception as exc:
                 logging.error(f"Coresignal API exception for {domain}: {exc}")
-                return {}  # Return empty dict instead of raising
+                # Re-raise unexpected exceptions that indicate configuration issues
+                if "connection" in str(exc).lower() or "timeout" in str(exc).lower():
+                    raise
+                return {}
+
     async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
         """
         Enrich contact information using Coresignal.
@@ -548,6 +558,7 @@ def map_coresignal_company_fields(
 
     # Map technologies to tech_stack if they exist
     if coresignal_response.get("technologies"):
+        if isinstance(coresignal_response["technologies"], list):
             # Extract technology names from the technology objects
             tech_names = []
             for tech in coresignal_response["technologies"]:
@@ -562,7 +573,7 @@ def map_coresignal_company_fields(
             mapped_data["tech_stack"] = [coresignal_response["technologies"]]
             logging.debug(
                 f"Mapped technologies to tech_stack: {coresignal_response['technologies']}"
-            )            )
+            )
 
     # Map website to evidence_urls if it's different from the domain
     if coresignal_response.get("website"):
@@ -575,22 +586,35 @@ def map_coresignal_company_fields(
 
     # Map all website variations
     website_fields = [
-        "websites_main_original", "websites_main", "websites_resolved",
-        "websites_facebook", "websites_twitter", "websites_professional_network"
+        "websites_main_original",
+        "websites_main",
+        "websites_resolved",
+        "websites_facebook",
+        "websites_twitter",
+        "websites_professional_network",
     ]
     for field in website_fields:
         if coresignal_response.get(field):
             if "evidence_urls" not in mapped_data:
                 mapped_data["evidence_urls"] = []
             mapped_data["evidence_urls"].append(coresignal_response[field])
-            logging.debug(f"Mapped {field} to evidence_urls: {coresignal_response[field]}")
+            logging.debug(
+                f"Mapped {field} to evidence_urls: {coresignal_response[field]}"
+            )
 
     # Map social media URLs
     social_fields = [
-        "social_discord_urls", "social_facebook_urls", "social_instagram_urls",
-        "social_professional_network_urls", "social_pinterest_urls", "social_tiktok_urls",
-        "social_twitter_urls", "social_x_urls", "social_youtube_urls", "social_github_urls",
-        "social_reddit_urls"
+        "social_discord_urls",
+        "social_facebook_urls",
+        "social_instagram_urls",
+        "social_professional_network_urls",
+        "social_pinterest_urls",
+        "social_tiktok_urls",
+        "social_twitter_urls",
+        "social_x_urls",
+        "social_youtube_urls",
+        "social_github_urls",
+        "social_reddit_urls",
     ]
 
     socials = {}
@@ -606,7 +630,9 @@ def map_coresignal_company_fields(
                     platform = "twitter"  # Map X to Twitter for consistency
 
                 socials[platform] = urls[0] if urls else None
-                logging.debug(f"Mapped {field} to socials.{platform}: {urls[0] if urls else None}")
+                logging.debug(
+                    f"Mapped {field} to socials.{platform}: {urls[0] if urls else None}"
+                )
 
     if socials:
         mapped_data["socials"] = socials
@@ -634,11 +660,15 @@ def map_coresignal_company_fields(
 
     if coresignal_response.get("enriched_summary"):
         mapped_data["enriched_summary"] = coresignal_response["enriched_summary"]
-        logging.debug(f"Mapped enriched summary: {coresignal_response['enriched_summary'][:100]}...")
+        logging.debug(
+            f"Mapped enriched summary: {coresignal_response['enriched_summary'][:100]}..."
+        )
 
     if coresignal_response.get("enriched_keywords"):
         mapped_data["enriched_keywords"] = coresignal_response["enriched_keywords"]
-        logging.debug(f"Mapped enriched keywords: {coresignal_response['enriched_keywords']}")
+        logging.debug(
+            f"Mapped enriched keywords: {coresignal_response['enriched_keywords']}"
+        )
 
     if coresignal_response.get("enriched_b2b"):
         mapped_data["enriched_b2b_score"] = coresignal_response["enriched_b2b"]
@@ -646,7 +676,9 @@ def map_coresignal_company_fields(
 
     if coresignal_response.get("enriched_category"):
         mapped_data["enriched_category"] = coresignal_response["enriched_category"]
-        logging.debug(f"Mapped enriched category: {coresignal_response['enriched_category']}")
+        logging.debug(
+            f"Mapped enriched category: {coresignal_response['enriched_category']}"
+        )
 
     # Map phone numbers and emails
     if coresignal_response.get("phone_numbers"):
@@ -668,7 +700,7 @@ def map_coresignal_company_fields(
                 "last_round_date": latest_round.get("last_round_date"),
                 "last_round_amount": latest_round.get("last_round_money_raised"),
                 "total_rounds": latest_round.get("total_rounds_count"),
-                "last_round_investors": latest_round.get("last_round_investors_count")
+                "last_round_investors": latest_round.get("last_round_investors_count"),
             }
             logging.debug(f"Mapped funding information: {mapped_data['funding']}")
 
@@ -681,7 +713,7 @@ def map_coresignal_company_fields(
                 if isinstance(loc, dict):
                     location_data = {
                         "address": loc.get("location_address"),
-                        "is_primary": loc.get("is_primary", False)
+                        "is_primary": loc.get("is_primary", False),
                     }
                     mapped_data["locations"].append(location_data)
             logging.debug(f"Mapped {len(mapped_data['locations'])} locations")
@@ -689,8 +721,13 @@ def map_coresignal_company_fields(
     # Map business features
     business_features = {}
     feature_fields = [
-        "pricing_available", "free_trial_available", "demo_available",
-        "is_downloadable", "mobile_apps_exist", "online_reviews_exist", "api_docs_exist"
+        "pricing_available",
+        "free_trial_available",
+        "demo_available",
+        "is_downloadable",
+        "mobile_apps_exist",
+        "online_reviews_exist",
+        "api_docs_exist",
     ]
 
     for field in feature_fields:
@@ -707,8 +744,12 @@ def map_coresignal_company_fields(
         logging.debug(f"Mapped metadata title: {coresignal_response['metadata_title']}")
 
     if coresignal_response.get("metadata_description"):
-        mapped_data["metadata_description"] = coresignal_response["metadata_description"]
-        logging.debug(f"Mapped metadata description: {coresignal_response['metadata_description'][:100]}...")
+        mapped_data["metadata_description"] = coresignal_response[
+            "metadata_description"
+        ]
+        logging.debug(
+            f"Mapped metadata description: {coresignal_response['metadata_description'][:100]}..."
+        )
 
     # Map timestamps
     if coresignal_response.get("created_at"):
@@ -735,8 +776,12 @@ def map_coresignal_company_fields(
 
     # Map professional network source ID
     if coresignal_response.get("professional_network_source_id"):
-        mapped_data["professional_network_id"] = coresignal_response["professional_network_source_id"]
-        logging.debug(f"Mapped professional network ID: {coresignal_response['professional_network_source_id']}")
+        mapped_data["professional_network_id"] = coresignal_response[
+            "professional_network_source_id"
+        ]
+        logging.debug(
+            f"Mapped professional network ID: {coresignal_response['professional_network_source_id']}"
+        )
 
     logging.info(
         f"Successfully mapped {len(mapped_data)} fields from Coresignal response"
@@ -782,8 +827,8 @@ def map_coresignal_contact_fields(
 
     if person.get("email"):
         mapped_data["email"] = person["email"]
-        mapped_data["email_source"] = "provider"
-        mapped_data["email_status"] = "unknown"  # Will be validated by Mailgun
+        mapped_data["email_source"] = ["provider"]
+        mapped_data["email_status"] = ["unknown"]  # Will be validated by Mailgun
 
     if person.get("phone"):
         mapped_data["phone"] = person["phone"]
@@ -843,7 +888,11 @@ def select_best_contact(
         contact_id = contact.get("contact_id", "")
         role = contact.get("role", "")
         seniority = contact.get("seniority", 99)
-        email_status = contact.get("email_status", "unknown")
+        email_status = (
+            contact.get("email_status", ["unknown"])[0]
+            if isinstance(contact.get("email_status"), list)
+            else contact.get("email_status", "unknown")
+        )
         linkedin = contact.get("linkedin", "")
 
         # Get role priority
@@ -903,14 +952,18 @@ async def enrich_company_data(
         logging.info(f"🔍 CoreSignal raw response for {domain}: {enriched_data}")
 
         if not enriched_data:
-            logging.info(f"Coresignal returned empty response for domain: {domain} - this is normal for smaller companies")
+            logging.info(
+                f"Coresignal returned empty response for domain: {domain} - this is normal for smaller companies"
+            )
             return company, 0.0
 
         # Map Coresignal response to unified schema
         mapped_data = map_coresignal_company_fields(enriched_data)
 
         # Log mapping results
-        logging.info(f"✅ CoreSignal field mapping for {domain}: {len(mapped_data)} fields mapped")
+        logging.info(
+            f"✅ CoreSignal field mapping for {domain}: {len(mapped_data)} fields mapped"
+        )
         logging.info(f"🔍 Mapped fields: {list(mapped_data.keys())}")
         if not mapped_data:
             logging.warning(
@@ -1093,7 +1146,9 @@ async def enrich_company_data(
             f"🎯 CoreSignal enrichment completed for {domain}: {fields_updated} fields updated"
         )
         if fields_updated > 0:
-            logging.info(f"📊 Updated fields: {[k for k, v in mapped_data.items() if company.get(k) == v]}")
+            logging.info(
+                f"📊 Updated fields: {[k for k, v in mapped_data.items() if company.get(k) == v]}"
+            )
 
         # Calculate cost
         cost_usd = costs_config.get("coresignal", 0.0)
@@ -1155,10 +1210,10 @@ async def enrich_contact_data(
                         # Update contact fields
                         if mapped_contact.get("email") and not contact.get("email"):
                             contact["email"] = mapped_contact["email"]
-                            contact["email_source"] = "provider"
-                            contact["email_status"] = (
-                                "unknown"  # Will be validated by Mailgun
-                            )
+                            contact["email_source"] = ["provider"]
+                            contact["email_status"] = [
+                                "unknown"
+                            ]  # Will be validated by Mailgun
 
                         if mapped_contact.get("phone") and not contact.get("phone"):
                             contact["phone"] = mapped_contact["phone"]
@@ -1184,15 +1239,17 @@ async def enrich_contact_data(
 
                     if email_data.get("email"):
                         contact["email"] = email_data["email"]
-                        contact["email_source"] = "provider"
-                        contact["email_status"] = (
-                            "unknown"  # Will be validated by Mailgun
-                        )
+                        contact["email_source"] = ["provider"]
+                        contact["email_status"] = [
+                            "unknown"
+                        ]  # Will be validated by Mailgun
                         total_cost += costs_config.get("snovio", 0.0)
 
             except Exception as exc:
                 if "402 Payment Required" in str(exc):
-                    logging.warning(f"Snov.io API credits exhausted - skipping email discovery")
+                    logging.warning(
+                        "Snov.io API credits exhausted - skipping email discovery"
+                    )
                 else:
                     logging.warning(f"Failed to discover email via Snov.io: {exc}")
 
@@ -1206,23 +1263,23 @@ async def enrich_contact_data(
                 # Map Mailgun status to our email_status
                 mailgun_status = validation_result.get("result", "unknown")
                 if mailgun_status == "valid":
-                    contact["email_status"] = "valid"
+                    contact["email_status"] = ["valid"]
                     contact["email_confidence"] = validation_result.get("score", 0.0)
                 elif mailgun_status == "catch_all":
-                    contact["email_status"] = "catch_all"
+                    contact["email_status"] = ["catch_all"]
                     contact["email_confidence"] = 0.5
                 elif mailgun_status == "invalid":
-                    contact["email_status"] = "invalid"
+                    contact["email_status"] = ["invalid"]
                     contact["email_confidence"] = 0.0
                 else:
-                    contact["email_status"] = "unknown"
+                    contact["email_status"] = ["unknown"]
                     contact["email_confidence"] = 0.5
 
                 total_cost += costs_config.get("mailgun", 0.0)
 
             except Exception as exc:
                 logging.warning(f"Failed to validate email: {exc}")
-                contact["email_status"] = "unknown"
+                contact["email_status"] = ["unknown"]
                 contact["email_confidence"] = 0.0
 
         # Normalize phone number if present
@@ -1272,9 +1329,13 @@ async def discover_contacts_for_domain(
             all_prospects_result = await snovio_client.get_all_domain_prospects(domain)
         except Exception as exc:
             if "402 Payment Required" in str(exc):
-                logging.warning(f"⚠️ Snov.io API credits exhausted for {domain} - skipping contact discovery")
+                logging.warning(
+                    f"⚠️ Snov.io API credits exhausted for {domain} - skipping contact discovery"
+                )
             else:
-                logging.warning(f"⚠️ Failed to fetch Snov.io prospects for {domain}: {exc}")
+                logging.warning(
+                    f"⚠️ Failed to fetch Snov.io prospects for {domain}: {exc}"
+                )
             all_prospects_result = {"data": []}
 
         raw_profiles = []

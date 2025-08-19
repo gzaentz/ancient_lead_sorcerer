@@ -1,20 +1,30 @@
 {
   "domain": "groupdentistrynow.com",
   "queries": [
-    "dental practice groups 5+ locations United States"
+    "dental practice groups 5+ locations non-corporate"
   ],
-  "fetched_at": "2025-08-18T01:12:01.220872Z",
+  "fetched_at": "2025-08-18T22:41:18.849423Z",
   "serp_results": [
     {
       "url": "https://www.groupdentistrynow.com/dso-group-blog/emerging-dental-groups-to-watch-in-2023/",
       "title": "Emerging Dental Groups to Watch in 2023 - Group Dentistry Now",
-      "snippet": "Jan 25, 2023 ... In the next 5+ years, the group will expand its footprint with ... The group began with ten dental practices, and has grown to 18 locations\u00a0...",
-      "query": "dental practice groups 5+ locations United States",
+      "snippet": "Jan 25, 2023 ... Based in the Boston area, this doctor-led dental partnership has since grown from a single office to nine non-branded locations and is closing\u00a0...",
+      "query": "dental practice groups 5+ locations non-corporate",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:11:43.359109Z",
+      "fetched_at": "2025-08-18T22:40:47.751790Z",
+      "domain": "groupdentistrynow.com"
+    },
+    {
+      "url": "https://www.groupdentistrynow.com/dso-group-blog/six-emerging-dso-dental-group-practices-to-watch-in-2017/",
+      "title": "Six Emerging Dental Groups to Watch Now - Group Dentistry Now",
+      "snippet": "Apr 6, 2017 ... ... office and corporate administrative functions. The legal DSO ... MDG has 2 practice locations in Williamsburg, one in Hampton, one in\u00a0...",
+      "query": "dental practice groups 5+ locations non-corporate",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-18T22:40:47.878393Z",
       "domain": "groupdentistrynow.com"
     }
   ],
-  "scoring_prompt_fingerprint": "966f6627b411ad7dfb26ec765dfeeef16731056031096e7124dc6120cc77d0fa"
+  "scoring_prompt_fingerprint": "cb1efd73418b38e587b2ba0281dcda96217103ff7bd392ea2b05bfa093ba80d5"
 }

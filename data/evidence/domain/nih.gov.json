@@ -1,20 +1,20 @@
 {
   "domain": "nih.gov",
   "queries": [
-    "dental practice group multiple locations United States"
+    "regional dental practice chains non-PE backed"
   ],
-  "fetched_at": "2025-08-18T02:00:23.511520Z",
+  "fetched_at": "2025-08-18T22:41:18.834302Z",
   "serp_results": [
     {
-      "url": "https://pubmed.ncbi.nlm.nih.gov/2724036/",
-      "title": "Early career experiences of young periodontists",
-      "snippet": "Group Practice, Dental; Humans; Job Satisfaction; Partnership Practice, Dental; Periodontics*; Professional Practice Location; Professional Practice*; United\u00a0...",
-      "query": "dental practice group multiple locations United States",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9125965/",
+      "title": "Private equity and its effect on patients: a window into the future - PMC",
+      "snippet": "May 23, 2022 ... ... dentistry, orthopedics, urology and primary care ... 2) Other ophthalmologists stated no change to their practice under PE management.",
+      "query": "regional dental practice chains non-PE backed",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:00:09.232926Z",
+      "fetched_at": "2025-08-18T22:40:03.867382Z",
       "domain": "nih.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "473d88c46eb447147c14eb3514f1b09810b6aea3e6062be7689a8c45b41cb006"
+  "scoring_prompt_fingerprint": "fe492ace761b6f27918a2fbb4a3b16d9f813cbb0151214940e5ba3dd79772018"
 }

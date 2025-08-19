@@ -1,6 +1,6 @@
 {
   "domain": "scfamilydentistry.com",
-  "enriched_at": "2025-08-18T20:26:23.018679Z",
+  "enriched_at": "2025-08-18T22:38:19.587215Z",
   "company_enrichment": {
     "name": "JAHANGIRI DDS INC.",
     "description": "Southern California Family Dentistry is a multi-location dental practice specializing in Implants and Orthodontics. Our offices are conveniently located Whittier (562) 693-0788, Lake Forest (949) 830-3743 and San Clemente (949) 234-0500.",
@@ -33,6 +33,13 @@
       "linkedin": null,
       "crunchbase": null
     },
+    "emails": [],
+    "phone_numbers": [
+      "(562) 693-0788",
+      "(949) 830-3743",
+      "(949) 234-0500",
+      "(562) 501-4648"
+    ],
     "hq_country": "United States",
     "hq_regions": [
       "Northern America",
@@ -48,12 +55,6 @@
       "orthodontics"
     ],
     "enriched_category": "Healthcare",
-    "phone_numbers": [
-      "(562) 693-0788",
-      "(949) 830-3743",
-      "(949) 234-0500",
-      "(562) 501-4648"
-    ],
     "business_features": {
       "pricing_available": false,
       "free_trial_available": false,

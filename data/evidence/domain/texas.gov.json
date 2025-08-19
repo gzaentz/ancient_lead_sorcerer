@@ -1,30 +1,20 @@
 {
   "domain": "texas.gov",
   "queries": [
-    "dental practice multiple locations Texas"
+    "regional dental chains independent operators"
   ],
-  "fetched_at": "2025-08-18T21:07:47.602478Z",
+  "fetched_at": "2025-08-18T22:41:18.855421Z",
   "serp_results": [
     {
-      "url": "https://www.dshs.texas.gov/dental-health/find-a-dentist",
-      "title": "Find a Dentist | Texas DSHS",
-      "snippet": "Jan 29, 2025 ... Contact a dental hygiene clinic or dental school nearest you for more information. Dental schools in Texas: Texas A&M University School of\u00a0...",
-      "query": "dental practice multiple locations Texas",
+      "url": "https://www.tdi.texas.gov/company/top40.html",
+      "title": "Top 40 list of insurers in Texas",
+      "snippet": "Jan 22, 2025 ... Top companies based on 2023 written premium and market share ; 33, 81396, Delta Dental Insurance Company ; 34, 71129, Dearborn Life Insurance\u00a0...",
+      "query": "regional dental chains independent operators",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T21:07:26.704531Z",
-      "domain": "texas.gov"
-    },
-    {
-      "url": "https://www.tceq.texas.gov/permitting/wastewater/pretreatment/dental-office-wastewater-discharge-rule",
-      "title": "Dental Offices: Wastewater Discharge Rule - Texas Commission on ...",
-      "snippet": "Mar 25, 2025 ... ... in providing dentistry services at multiple locations; an office that does not discharge amalgam process wastewater into a POTW. Note: TCEQ\u00a0...",
-      "query": "dental practice multiple locations Texas",
-      "page_index": 1,
-      "rank_on_page": 0,
-      "fetched_at": "2025-08-18T21:07:26.814669Z",
+      "fetched_at": "2025-08-18T22:41:02.373874Z",
       "domain": "texas.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "39b7a77de5a3759ba22b23165a9f6d4ed5339bac534b001a18b275231f47c203"
+  "scoring_prompt_fingerprint": "1aeb5b5b198de397abb3aa327f4fb8d67d14ac845009ebd695406d07f8b3f41c"
 }

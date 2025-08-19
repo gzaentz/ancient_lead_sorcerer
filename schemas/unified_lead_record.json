@@ -360,58 +360,68 @@
         "evidence_urls": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "url": {
+            "oneOf": [
+              {
                 "type": "string",
                 "format": "uri",
                 "maxLength": 2048,
-                "description": "URL of the evidence page"
+                "description": "Simple URL string"
               },
-              "title": {
-                "type": "string",
-                "maxLength": 2048,
-                "description": "Title of the evidence page"
-              },
-              "snippet": {
-                "type": "string",
-                "maxLength": 2048,
-                "description": "Snippet/description of the evidence page"
-              },
-              "query": {
-                "type": "string",
-                "maxLength": 2048,
-                "description": "Search query that led to this evidence"
-              },
-              "page_index": {
-                "type": "integer",
-                "minimum": 1,
-                "description": "Page number where this result was found"
-              },
-              "rank_on_page": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Rank position on the page"
-              },
-              "fetched_at": {
-                "type": "string",
-                "format": "date-time",
-                "description": "ISO-8601 UTC timestamp when this was fetched"
-              },
-              "domain": {
-                "type": "string",
-                "format": "hostname",
-                "description": "Normalized domain of the evidence page"
+              {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048,
+                    "description": "URL of the evidence page"
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Title of the evidence page"
+                  },
+                  "snippet": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Snippet/description of the evidence page"
+                  },
+                  "query": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Search query that led to this evidence"
+                  },
+                  "page_index": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Page number where this result was found"
+                  },
+                  "rank_on_page": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Rank position on the page"
+                  },
+                  "fetched_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO-8601 UTC timestamp when this was fetched"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "format": "hostname",
+                    "description": "Normalized domain of the evidence page"
+                  }
+                },
+                "required": ["url", "title", "snippet", "query", "page_index", "rank_on_page", "fetched_at", "domain"],
+                "additionalProperties": false
               }
-            },
-            "required": ["url", "title", "snippet", "query", "page_index", "rank_on_page", "fetched_at", "domain"],
-            "additionalProperties": false
+            ]
           },
           "maxItems": 100,
-          "description": "Evidence supporting company data (SERP results)"
-                 }
+          "description": "Evidence supporting company data (SERP results or simple URLs)"
+        }
        },
-       "additionalProperties": false
+       "additionalProperties": true
      },
      "contacts": {
        "type": "array",

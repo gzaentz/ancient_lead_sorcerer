@@ -1,20 +1,20 @@
 {
   "domain": "hhs.gov",
   "queries": [
-    "dental practice group multiple locations United States"
+    "regional dental practice chains non-PE backed"
   ],
-  "fetched_at": "2025-08-18T02:00:23.509521Z",
+  "fetched_at": "2025-08-18T22:41:18.833302Z",
   "serp_results": [
     {
-      "url": "https://ocrportal.hhs.gov/ocr/breach",
-      "title": "U.S. Department of Health and Human Services Office for Civil ...",
-      "snippet": "... Medical and Dental Center (OTMDC), VA, Healthcare Provider, 2567, 07/13/2025 ... Orange County Radiation Oncology Medical Group, CA, Healthcare Provider, 1911\u00a0...",
-      "query": "dental practice group multiple locations United States",
+      "url": "https://www.hhs.gov/sites/default/files/hhs-consolidation-health-care-markets-rfi-response-report.pdf",
+      "title": "HHS Consolidation in Health Care Markets RFI Response",
+      "snippet": "Jan 14, 2025 ... ... PE-backed anesthesiologist physician management companies compared to non-PE backed equivalents.61 In addition to these sharp price\u00a0...",
+      "query": "regional dental practice chains non-PE backed",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:00:08.989824Z",
+      "fetched_at": "2025-08-18T22:40:03.824383Z",
       "domain": "hhs.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "9ed6dcceeb302c89a44e938857685e7a3d50e49a55004bb3a089cf3087a53307"
+  "scoring_prompt_fingerprint": "c90930398b31f779456e5dbb361e4d78208be7c09bc4a53bc067335c1e8d375c"
 }

@@ -1,20 +1,20 @@
 {
   "domain": "ca.gov",
   "queries": [
-    "dental practice multiple locations California"
+    "regional dental chains independent operators"
   ],
-  "fetched_at": "2025-08-18T20:26:21.221490Z",
+  "fetched_at": "2025-08-18T22:41:18.850421Z",
   "serp_results": [
     {
-      "url": "https://www.dbc.ca.gov/licensees/dds/permits/additional_office.shtml",
-      "title": "Application for Additional Dental Office Permit - Dental Board of ...",
-      "snippet": "The Dental Board of California (Board) issues an Additional Office (AO) ... After approval, the permit will arrive to the practice location within 30 days.",
-      "query": "dental practice multiple locations California",
+      "url": "https://www.dir.ca.gov/dlse/faq_independentcontractor.htm",
+      "title": "Independent contractors",
+      "snippet": "Independent contractor versus employee. espa\u00f1ol \u00b7 1 - What is the ABC test? \u00b7 2 - Why does California use the ABC test? \u00b7 3 - How do you apply the ABC test to\u00a0...",
+      "query": "regional dental chains independent operators",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T20:25:57.403852Z",
+      "fetched_at": "2025-08-18T22:41:01.959025Z",
       "domain": "ca.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "78bd521643b3ab5206eddefefe590b9bf255afe8825866ea6b6d47b925b0ee7e"
+  "scoring_prompt_fingerprint": "e5e222f3daae3f88ee6ee9cb53ed81c342919bf305c0b9244a3416b9004be4b3"
 }

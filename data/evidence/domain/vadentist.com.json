@@ -1,20 +1,20 @@
 {
   "domain": "vadentist.com",
   "queries": [
-    "dental practice group multiple locations United States"
+    "multi-office dental practices family owned"
   ],
-  "fetched_at": "2025-08-18T02:00:23.510523Z",
+  "fetched_at": "2025-08-18T22:41:18.843422Z",
   "serp_results": [
     {
       "url": "https://vadentist.com/",
       "title": "VA Family Dentistry: A Team Approach to Dental Care in Richmond ...",
-      "snippet": "... care. Learn More About Us\u2192. location marker. Our Locations. With multiple locations in Central Virginia, there's sure to be one close to you. Locations. dentist\u00a0...",
-      "query": "dental practice group multiple locations United States",
+      "snippet": "We're a multi-specialty practice. Virginia Family Dentistry aims to provide lifelong patients with the most comprehensive dental care possible \u2013 all in one\u00a0...",
+      "query": "multi-office dental practices family owned",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T02:00:09.060560Z",
+      "fetched_at": "2025-08-18T22:40:33.311343Z",
       "domain": "vadentist.com"
     }
   ],
-  "scoring_prompt_fingerprint": "4b385cec5261196e8f072d7e2240bca3faf1c34758c3c73feac732e271845c58"
+  "scoring_prompt_fingerprint": "4213589ca169e47a20629b33ad885640d717c17d7a5aa3c0d10f908d2abaa0aa"
 }

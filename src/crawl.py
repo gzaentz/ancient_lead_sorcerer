@@ -61,32 +61,39 @@ FIRECRAWL_EXTRACT_SCHEMA = {
         "company": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "description": {"type": "string"},
-                "industry": {"type": "string"},
-                "hq_location": {"type": "string"},
-                "socials": {
-                    "type": "object",
-                    "properties": {"linkedin": {"type": "string"}},
+                "name": {"type": "string", "description": "Company name"},
+                "description": {
+                    "type": "string",
+                    "description": "Business description",
                 },
-                "careers_url": {"type": "string"},
-                "blog_url": {"type": "string"},
             },
         },
-        "employees": {
+        "team_members": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
-                    "full_name": {"type": "string"},
-                    "role": {"type": "string"},
-                    "linkedin": {"type": "string"},
-                    "email": {"type": "string"},
+                    "name": {"type": "string", "description": "Full name"},
+                    "role": {"type": "string", "description": "Job title/role"},
                 },
             },
+            "description": "Staff members and their contact information",
         },
     },
 }
+
+# Firecrawl extraction prompt - guides the extractor to populate our schema
+FIRECRAWL_EXTRACT_PROMPT = (
+    "Extract structured company and team data for this domain in JSON matching the provided schema. "
+    "Rules:\n"
+    "- Use only on-domain pages (no external sites).\n"
+    "- Prefer pages like /about, /team, /staff, /leadership, /contact.\n"
+    "- Do NOT invent data; use nulls when unknown.\n"
+    "- Normalize social links to full absolute URLs.\n"
+    "- Extract up to 15 team_members most likely to be executives, directors, editors, or leads.\n"
+    "- Emails should be plain strings; do not obfuscate.\n"
+    "- Company fields to prioritize: name, description, industry/sector, hq_location, careers_url, blog_url, socials.*.\n"
+)
 
 
 # ============================================================================
@@ -471,8 +478,8 @@ class CrawlTool:
 
                 # Check if this is clearly NOT a dental practice
                 company = record.get("company", {})
-                industry = company.get("industry", "").lower()
-                name = company.get("name", "").lower()
+                industry = (company.get("industry") or "").lower()
+                name = (company.get("name") or "").lower()
 
                 # Only reject if we have clear evidence it's not dental-related
                 is_dental_related = (
@@ -500,6 +507,12 @@ class CrawlTool:
                         "crawled",
                         "Not clearly dental-related - needs further validation",
                     )
+
+                # Initialize provenance if not exists
+                if "provenance" not in record:
+                    record["provenance"] = {}
+                if "evidence_paths" not in record["provenance"]:
+                    record["provenance"]["evidence_paths"] = {}
 
                 # Update provenance
                 record["provenance"]["crawled_at"] = now_z()
@@ -611,43 +624,39 @@ class CrawlTool:
         async with self.async_semaphore_pool:
             self.logger.info(f"🔒 Acquired semaphore for domain: {domain}")
             try:
-                # Single attempt over HTTPS only (avoid duplicate spend on HTTP fallback)
-                url = f"https://{domain}"
-                self.logger.info(f"🌐 Will try URL: {url}")
+                # Multiple pages for comprehensive contact extraction
+                urls_to_extract = [f"https://{domain}"]
+                self.logger.info(f"🌐 Will try URLs: {urls_to_extract}")
+                self.logger.info("📡 Attempting extraction from multiple pages...")
 
-                self.logger.info(f"📡 Attempting extraction from: {url}")
                 try:
-                    # Call Firecrawl extract tool
                     self.logger.info(
-                        f"🤖 Calling Firecrawl API with urls=[{url}] and schema..."
+                        f"🤖 Calling Firecrawl API with urls={urls_to_extract} and schema+prompt..."
                     )
-                    response = await asyncio.wait_for(
-                        asyncio.to_thread(
-                            self.firecrawl_client.extract,
-                            urls=[url],  # Use 'urls' parameter (list)
-                            schema=FIRECRAWL_EXTRACT_SCHEMA,
-                        ),
-                        timeout=20.0,  # 20 second timeout per attempt
+                    response = self.firecrawl_client.extract(
+                        urls=urls_to_extract,  # Multiple URLs for better coverage
+                        schema=FIRECRAWL_EXTRACT_SCHEMA,
+                        prompt=FIRECRAWL_EXTRACT_PROMPT,
                     )
 
                     if response and hasattr(response, "success") and response.success:
                         self.logger.info(
-                            f"✅ Firecrawl extraction successful for {url}"
+                            f"✅ Firecrawl extraction successful for {domain}"
                         )
                         return response.data if hasattr(response, "data") else {}
                     else:
                         self.logger.warning(
-                            f"Firecrawl extract failed for {url}: {response}"
+                            f"Firecrawl extract failed for {domain}: {response}"
                         )
                         raise Exception(
                             "Firecrawl extract returned unsuccessful response"
                         )
 
                 except asyncio.TimeoutError:
-                    self.logger.warning(f"Timeout extracting from {url}")
+                    self.logger.warning(f"Timeout extracting from {domain}")
                     raise Exception("Firecrawl extraction timed out")
                 except Exception as exc:
-                    self.logger.warning(f"Failed to extract from {url}: {exc}")
+                    self.logger.warning(f"Failed to extract from {domain}: {exc}")
                     raise
 
             except Exception as exc:
@@ -678,6 +687,11 @@ class CrawlTool:
         company["name"] = company_data.get("name")
         company["description"] = company_data.get("description")
         company["industry"] = company_data.get("industry")
+        company["hq_location"] = company_data.get("hq_location")
+
+        # Add new contact fields
+        company["emails"] = company_data.get("emails", [])
+        company["phone_numbers"] = company_data.get("phone_numbers", [])
 
         # Initialize company structures
         if "ids" not in company:
@@ -691,8 +705,11 @@ class CrawlTool:
                 "instagram": None,
             }
 
+        # Handle social media links
+        socials_data = company_data.get("socials", {})
+
         # Handle LinkedIn
-        linkedin_url = company_data.get("socials", {}).get("linkedin")
+        linkedin_url = socials_data.get("linkedin")
         if linkedin_url:
             link_type, slug = canonicalize_linkedin(linkedin_url)
             if link_type == "company":
@@ -703,6 +720,11 @@ class CrawlTool:
             elif link_type == "in":
                 # This is a person, not company - skip
                 pass
+
+        # Handle other social platforms
+        for platform in ["twitter", "facebook", "github"]:
+            if socials_data.get(platform):
+                company["socials"][platform] = socials_data[platform]
 
         company["careers_url"] = company_data.get("careers_url")
         company["blog_url"] = company_data.get("blog_url")
@@ -719,15 +741,20 @@ class CrawlTool:
         # Calculate crawl score based on processed data
         self._validate_icp_fit(record, icp_config)
 
-        # Process contacts
-        employees = extracted_data.get("employees", [])
+        # Process contacts from team_members (new schema) or employees (legacy)
+        team_members = extracted_data.get("team_members", [])
+        employees = extracted_data.get("employees", [])  # Legacy support
+        all_members = team_members + employees  # Combine both sources
         contacts = []
 
-        for employee in employees:
-            full_name = employee.get("full_name")
-            role = employee.get("role")
-            linkedin = employee.get("linkedin")
-            email = employee.get("email")
+        for member in all_members:
+            # Handle both new and legacy field names
+            full_name = member.get("name") or member.get("full_name")
+            role = member.get("role")
+            linkedin = member.get("linkedin")
+            email = member.get("email")
+            phone = member.get("phone")
+            department = member.get("department")
 
             if not full_name or not role:
                 continue
@@ -759,14 +786,14 @@ class CrawlTool:
                 "contact_id": contact_id,
                 "full_name": normalized_name,
                 "role": normalized_role,
-                "department": None,
+                "department": department,  # Use extracted department
                 "seniority": None,
                 "role_priority": None,
                 "email": email.lower() if email else None,
                 "email_confidence": None,
                 "email_status": ["unknown"],
                 "email_source": ["provider"],
-                "phone": None,
+                "phone": phone,  # Use extracted phone
                 "linkedin": None,
                 "other_links": [],
                 "evidence_urls": [],

@@ -1,20 +1,20 @@
 {
   "domain": "reddit.com",
   "queries": [
-    "best dental practices NYC"
+    "dental practice networks 5+ locations independent ownership"
   ],
-  "fetched_at": "2025-08-18T01:16:53.919555Z",
+  "fetched_at": "2025-08-18T22:41:18.840302Z",
   "serp_results": [
     {
-      "url": "https://www.reddit.com/r/AskNYC/comments/1cr7c7v/whatre_the_best_dental_officesdentists_i_can_go/",
-      "title": "What're the best dental offices/dentists i can go to in Manhattan or ...",
-      "snippet": "May 13, 2024 ... I have been going to Dr. Amy David on Park, near 79th for a little over 20 years. She's been great and I couldn't recommend her enough.",
-      "query": "best dental practices NYC",
+      "url": "https://www.reddit.com/r/DentalSchool/comments/1hqvtfr/i_own_a_5myear_dental_practice_i_do_all_on_4/",
+      "title": "I own a 5M/year dental practice, I do all on 4 surgeries and other ...",
+      "snippet": "Jan 1, 2025 ... ... locations and have just one huge practice. Then my ... So now it's me and my partner with a practice that could support 5+ dentists.",
+      "query": "dental practice networks 5+ locations independent ownership",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:16:36.581104Z",
+      "fetched_at": "2025-08-18T22:40:19.326221Z",
       "domain": "reddit.com"
     }
   ],
-  "scoring_prompt_fingerprint": "c8cb9e41ccda2e94de26027231d0c49d82ca3793b90ddae47d1b3f17fff26fcb"
+  "scoring_prompt_fingerprint": "e6d1373e20dc8d5bd5a6209e1b98d6f01bf41c57a5178f7fa684b10e578682c9"
 }

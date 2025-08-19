@@ -1,20 +1,20 @@
 {
   "domain": "pacificdentalservices.com",
   "queries": [
-    "regional dental group practices United States"
+    "regional dental chains independent operators"
   ],
-  "fetched_at": "2025-08-18T01:46:57.542837Z",
+  "fetched_at": "2025-08-18T22:41:18.853420Z",
   "serp_results": [
     {
       "url": "https://www.pacificdentalservices.com/",
       "title": "Pacific Dental Services: Transforming the Dental Industry",
-      "snippet": "Practices in 24 states, serving major cities coast to coast. USA map. 15,000 Team Members. Over 15,000 clinical\u00a0...",
-      "query": "regional dental group practices United States",
+      "snippet": "Our vision is to be The Greatest Dental Company in America. Therefore we do everything in our power to support dentists and team members.",
+      "query": "regional dental chains independent operators",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:46:20.866681Z",
+      "fetched_at": "2025-08-18T22:41:02.205321Z",
       "domain": "pacificdentalservices.com"
     }
   ],
-  "scoring_prompt_fingerprint": "b046daa32103ee296f49b352890557fe6ea2edfa212cca2621332e405e71ca2e"
+  "scoring_prompt_fingerprint": "674dbca94a254b7288c35628d16b9aa31208833ace10b8d888bed959ce1068b4"
 }
