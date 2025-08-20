@@ -1,30 +1,20 @@
 {
   "domain": "va.gov",
   "queries": [
-    "regional dental practices multiple locations independent"
+    "dental practice multiple locations Texas"
   ],
-  "fetched_at": "2025-08-18T22:41:18.813038Z",
+  "fetched_at": "2025-08-20T23:11:18.163105Z",
   "serp_results": [
     {
-      "url": "https://www.va.gov//",
-      "title": "VA.gov Home | Veterans Affairs",
-      "snippet": "If you have a service-connected disability, see if you qualify for a housing grant to help you live more independently. ... Visit a medical center or regional\u00a0...",
-      "query": "regional dental practices multiple locations independent",
+      "url": "https://www.va.gov/central-texas-health-care/locations/austin-va-clinic/",
+      "title": "Austin VA Clinic | VA Central Texas Health Care | Veterans Affairs",
+      "snippet": "Jan 21, 2025 ... Learn more about DAV and the other van services available in your county ... If you're eligible for VA dental care, we offer a full range of\u00a0...",
+      "query": "dental practice multiple locations Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:39:03.811941Z",
-      "domain": "va.gov"
-    },
-    {
-      "url": "https://www.va.gov/eastern-colorado-health-care/locations/rocky-mountain-regional-va-medical-center/",
-      "title": "Rocky Mountain Regional VA Medical Center | VA Eastern Colorado ...",
-      "snippet": "May 14, 2025 ... This page contains location details, contact information, a comprehensive list of health services, and how to prepare for your visit.",
-      "query": "regional dental practices multiple locations independent",
-      "page_index": 1,
-      "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:39:03.895141Z",
+      "fetched_at": "2025-08-20T23:11:04.101083Z",
       "domain": "va.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "a9ef8273f6a227674071b56ee7ebd8c6d82077cca4163e58ace18427715fd29d"
+  "scoring_prompt_fingerprint": "abc57f832f48b7513ac8e6d096b6914020a466dc8740d51665c588e92ad0fe94"
 }

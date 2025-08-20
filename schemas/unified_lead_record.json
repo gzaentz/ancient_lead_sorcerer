@@ -64,6 +64,21 @@
                     "maxLength": 2048,
                     "description": "Full address of the location"
                   },
+                  "city": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "City name"
+                  },
+                  "state": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "State or province"
+                  },
+                  "country": {
+                    "type": ["string", "null"],
+                    "maxLength": 2048,
+                    "description": "Country name"
+                  },
                   "is_primary": {
                     "type": ["boolean", "null"],
                     "description": "Whether this is the primary location"
@@ -73,7 +88,7 @@
               }
             ]
           },
-          "maxItems": 50,
+          "maxItems": 100,
           "description": "Additional office locations (strings or detailed objects)"
         },
         "size_hint": {
@@ -266,14 +281,73 @@
           "maxLength": 2048,
           "description": "AI-categorized business type"
         },
+        "number_of_locations": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Total number of office locations"
+        },
+        "founded_year": {
+          "type": ["integer", "null"],
+          "minimum": 1800,
+          "maximum": 2100,
+          "description": "Year company was founded"
+        },
+        "employee_count": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Number of employees or range"
+        },
+        "revenue_range": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Annual revenue range"
+        },
+        "ownership_type": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Private, public, nonprofit, etc."
+        },
+        "company_type": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "LLC, Corp, Partnership, etc."
+        },
+        "specialties": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "maxItems": 50,
+          "description": "Company specialties and focus areas"
+        },
+        "tech_stack": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "maxItems": 100,
+          "description": "Technologies and tools used by the company"
+        },
         "phone_numbers": {
           "type": "array",
           "items": {
             "type": "string",
             "maxLength": 50
           },
-          "maxItems": 20,
+          "maxItems": 50,
           "description": "Company phone numbers"
+        },
+        "emails": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 2048
+          },
+          "maxItems": 50,
+          "description": "Company email addresses (Firecrawl extracted)"
         },
         "company_emails": {
           "type": "array",
@@ -282,7 +356,7 @@
             "format": "email",
             "maxLength": 2048
           },
-          "maxItems": 20,
+          "maxItems": 50,
           "description": "Company email addresses"
         },
         "funding": {
@@ -428,12 +502,17 @@
        "items": {
          "type": "object",
          "properties": {
-           "contact_id": {
-             "type": "string",
-             "format": "uuid",
-             "description": "Unique identifier for this contact"
-           },
-           "role": {
+          "full_name": {
+            "type": ["string", "null"],
+            "maxLength": 2048,
+            "description": "Full name of the contact"
+          },
+          "contact_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for this contact"
+          },
+          "role": {
             "type": ["string", "null"],
             "maxLength": 2048,
             "description": "Job title/role"
@@ -442,6 +521,15 @@
             "type": ["string", "null"],
             "maxLength": 2048,
             "description": "Department within the company"
+          },
+          "decision_maker": {
+            "type": ["boolean", "null"],
+            "description": "Whether this person is a decision maker"
+          },
+          "location": {
+            "type": ["string", "null"],
+            "maxLength": 2048,
+            "description": "Office location if specified"
           },
           "seniority": {
             "type": ["string", "integer", "null"],

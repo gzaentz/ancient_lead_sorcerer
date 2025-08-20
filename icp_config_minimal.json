@@ -1,8 +1,8 @@
 {
   "name": "Dentist Practices Test - Minimal",
-  "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that are not private equity backed and not part of large national franchises",
+  "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that have 1.5M+ EBITDA and want to sell their practice, they should not be private equity backed and not part of large national franchises",
   "queries": [
-    "dental practice multiple locations New York"
+    "dental practice multiple locations Texas"
   ],
   "required_fields": {
     "company": ["name", "hq_location", "number_of_locations"],
@@ -47,5 +47,48 @@
   "exports": {
     "enabled": true
   },
-  "default_country": "US"
+  "default_country": "US",
+  "intent_config": {
+    "purpose": "dental_practice_acquisition",
+    "target_action": "sell_practice",
+    "intent_signals": {
+      "high_intent": [
+        "owner retirement planning",
+        "succession planning",
+        "looking for partners",
+        "transition mode",
+        "no clear family successor",
+        "owner age 60+"
+      ],
+      "medium_intent": [
+        "expansion planning",
+        "growth capital needed",
+        "partnership exploring",
+        "early succession planning",
+        "considering strategic options"
+      ],
+      "low_intent": [
+        "recently acquired",
+        "part of corporate group",
+        "family succession secure",
+        "no exit plans",
+        "committed to independence",
+        "recently expanded"
+      ]
+    },
+    "intent_sources": [
+      "about_pages",
+      "leadership_pages",
+      "careers_pages",
+      "recent_news",
+      "social_media",
+      "team_pages"
+    ],
+    "scoring_rules": {
+      "high_intent_weight": 0.8,
+      "medium_intent_weight": 0.4,
+      "low_intent_weight": -0.3,
+      "base_score": 0.5
+    }
+  }
 }

@@ -3,7 +3,7 @@
   "queries": [
     "dental practice multiple locations Texas"
   ],
-  "fetched_at": "2025-08-18T21:12:37.576743Z",
+  "fetched_at": "2025-08-20T23:11:18.162105Z",
   "serp_results": [
     {
       "url": "https://uthscsa.edu/dental/",
@@ -12,9 +12,9 @@
       "query": "dental practice multiple locations Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T21:12:20.946572Z",
+      "fetched_at": "2025-08-20T23:11:04.058930Z",
       "domain": "uthscsa.edu"
     }
   ],
-  "scoring_prompt_fingerprint": "10abaee266da338fd21ff488938732cb2e9a9cd1b7506cb15524a7789f92be4e"
+  "scoring_prompt_fingerprint": "52fa91ebf3b1c987131b0da8a2037ef3231e633ddbd8fd8cefc2f2806441615b"
 }
