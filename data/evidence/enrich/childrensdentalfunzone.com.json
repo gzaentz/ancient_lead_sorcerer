@@ -1,6 +1,6 @@
 {
   "domain": "childrensdentalfunzone.com",
-  "enriched_at": "2025-08-18T20:26:25.050462Z",
+  "enriched_at": "2025-08-21T01:40:09.806645Z",
   "company_enrichment": {
     "name": "Children's Dental FunZone!",
     "description": "Welcome to Children's Dental Funzone! Our professional and friendly staff is here to ensure that your child's visit is a fun and positive experience. We recommend regular visits for children beginning around their first birthday. Our office is specifically designed to treat infants, children, teenagers, and special needs patients. Our goal is to focus on helping your child achieve a healthy smile and remain cavity-free. Choose From 14 Office Locations Across Southern California!",
@@ -72,8 +72,8 @@
       "instagram": "https://instagram.com/cdfzone",
       "tiktok": "https://www.tiktok.com/@cdfzone"
     },
-    "careers_url": "",
-    "blog_url": "",
+    "careers_url": null,
+    "blog_url": null,
     "tech_stack": [
       "linkedin",
       "dentrix",
@@ -98,15 +98,39 @@
       "linkedin": null,
       "crunchbase": null
     },
+    "number_of_locations": 17,
+    "founded_year": 2000,
+    "employee_count": null,
+    "revenue_range": null,
+    "ownership_type": "Private",
+    "company_type": "Corporation",
+    "specialties": [
+      "Pediatric Dentistry",
+      "Orthodontics",
+      "Preventative Care",
+      "Restorative Treatments",
+      "Cosmetic Dentistry",
+      "Emergency Dental Care",
+      "Orthodontic Planning",
+      "Braces and Aligners"
+    ],
+    "intent": {
+      "business_intent_score": 0.5,
+      "intent_signals": [
+        "No explicit signals indicating intent to sell were found. The company focuses on growth and patient care."
+      ],
+      "intent_category": "low",
+      "timeline_indicator": "Timeline unclear",
+      "decision_maker_intent": "No specific decision maker statements found"
+    },
+    "emails": [],
+    "phone_numbers": [],
     "hq_country": "United States",
     "hq_regions": [
       "Northern America",
       "Northern America",
       "AMER"
     ],
-    "founded_year": 2002,
-    "company_type": "Privately Held",
-    "ownership_type": "Privately Held",
     "followers_count": 438,
     "enriched_summary": "Children's Dental FunZone is a pediatric dentistry company that offers preventive and routine care, restorative treatments, cosmetic and aesthetic orthodontic, planning and consultations, braces and aligners, appliances and accessories, bite and alignment treatments, emergency care, resources, insurance and financing, special offers, and more.",
     "enriched_keywords": [

@@ -25,6 +25,7 @@ from src.common import (
     validate_provider_config,
     load_costs_config,
     round4,
+    now_z,
 )
 from src.domain import DomainTool
 from src.crawl import CrawlTool
@@ -195,6 +196,117 @@ class LeadSorcererOrchestrator:
             f"Refresh policy validated: domain_ttl_days={domain_ttl_days}, max_pages={max_pages}, default_country={default_country}"
         )
 
+    def should_bypass_domain_discovery(self) -> bool:
+        """
+        Check if we should bypass domain discovery and go directly to crawling specific URLs.
+        This saves API costs and enables rapid iteration on known targets.
+
+        Returns:
+            True if we should bypass domain discovery and crawl specific URLs directly
+        """
+        specific_urls = self.icp_config.get("specific_urls", [])
+        self.icp_config.get("bypass_domain_discovery", False)
+
+        # Bypass domain discovery if we have specific URLs
+        # This prioritizes specific targets for rapid iteration and cost optimization
+        has_specific_urls = len(specific_urls) > 0
+
+        # COST OPTIMIZATION: Always bypass when specific URLs are provided
+        # This saves API costs by skipping search queries
+        should_bypass = has_specific_urls
+
+        if should_bypass:
+            self.logger.info(
+                f"🚀 BYPASSING DOMAIN DISCOVERY: {len(specific_urls)} specific URLs provided"
+            )
+            self.logger.info(
+                "💰 Cost optimization: Skipping search queries, going directly to crawl"
+            )
+            self.logger.info(
+                f"📊 Specific URLs: {specific_urls[:3]}{'...' if len(specific_urls) > 3 else ''}"
+            )
+
+        return should_bypass
+
+    def create_lead_records_from_specific_urls(self) -> List[Dict[str, Any]]:
+        """
+        Create lead records directly from specific URLs, bypassing domain discovery.
+        This enables rapid iteration and cost optimization.
+
+        Returns:
+            List of lead records ready for crawling
+        """
+        specific_urls = self.icp_config.get("specific_urls", [])
+        lead_records = []
+
+        for i, url in enumerate(specific_urls):
+            # Extract domain from URL
+            from urllib.parse import urlparse
+
+            parsed = urlparse(url)
+            domain = parsed.netloc
+
+            # Create lead record with complete schema compliance
+            lead_record = {
+                "lead_id": f"specific-url-{i + 1:03d}",
+                "domain": domain,
+                "status": "scored",  # Ready for crawl - skip domain scoring
+                "status_history": [],  # Initialize status history for enrich tool
+                "company": {
+                    "name": f"Practice from {domain}",
+                    "description": f"Direct crawl from specific URL: {url}",
+                },
+                "contacts": [],  # Will be populated by enrich tool
+                "provenance": {
+                    "source": "specific_urls",
+                    "specific_url": url,
+                    "bypassed_domain_discovery": True,
+                    "created_at": now_z(),
+                    # Add missing schema fields for specific URL mode
+                    "queries": [],  # No search queries used
+                    "discovery_evidence": [],  # No discovery performed
+                    "scored_at": now_z(),  # Set to creation time
+                    "crawled_at": None,  # Will be set by crawl tool
+                    "enriched_at": None,  # Will be set by enrich tool
+                    "next_revisit_at": None,  # Will be set by enrich tool
+                    "tool_versions": {
+                        "domain": "bypassed",
+                        "crawl": None,  # Will be set by crawl tool
+                        "enrich": None,  # Will be set by enrich tool
+                    },
+                    "cache": {"hit": False, "key": None},  # No domain cache used
+                    "evidence_paths": {},  # Will be populated by tools
+                },
+                "icp": {
+                    "pre_score": 1.0,  # Assume high value since it's a specific target
+                    "pre_pass": True,
+                    "pre_reason": "Specific URL target - bypassing domain scoring",
+                    "threshold": self.icp_config.get("threshold", 0.1),
+                    "filtering_strict": self.icp_config.get("filtering_strict", False),
+                    # Add missing schema fields for specific URL mode
+                    "pre_flags": [],  # No pre-analysis flags
+                    "scoring_meta": {
+                        "method": "bypass",
+                        "model": "none",
+                        "prompt_fingerprint": "specific-url-bypass",
+                        "temperature": 0.0
+                    },
+                    "crawl_score": None,  # Will be set by crawl tool
+                    "crawl_reason": None,  # Will be set by crawl tool
+                },
+                "audit": [],  # Will be populated by tools
+                "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0},
+            }
+
+            lead_records.append(lead_record)
+
+        self.logger.info(
+            f"📋 Created {len(lead_records)} lead records from specific URLs"
+        )
+        self.logger.info("💰 Cost optimization: Bypassed domain discovery phase")
+
+        return lead_records
+
     async def run_pipeline(self) -> Dict[str, Any]:
         """
         Run the complete Domain → Crawl → Enrich pipeline.
@@ -215,24 +327,55 @@ class LeadSorcererOrchestrator:
             self._validate_testing_flags()
             self._validate_refresh_policy()
 
-            # Step 1: Domain tool - generate and score leads
-            self.logger.info("Running Domain tool...")
-            domain_result = await self.domain_tool.run()
+            # Check if we should bypass domain discovery for specific URLs
+            if self.should_bypass_domain_discovery():
+                # BYPASS MODE: Create lead records directly from specific URLs
+                self.logger.info(
+                    "🚀 BYPASS MODE: Creating lead records from specific URLs"
+                )
+                lead_records = self.create_lead_records_from_specific_urls()
 
-            if domain_result.get("errors"):
-                self.total_errors.extend(domain_result["errors"])
+                # Create mock domain result for consistency
+                domain_result = {
+                    "data": {"lead_records": lead_records},
+                    "errors": [],
+                    "metrics": {
+                        "count_in": 0,
+                        "count_out": len(lead_records),
+                        "duration_ms": 0,
+                        "cost_usd": {
+                            "domain": 0.0,
+                            "crawl": 0.0,
+                            "enrich": 0.0,
+                            "total": 0.0,
+                        },
+                    },
+                }
 
-            lead_records = domain_result.get("data", {}).get("lead_records", [])
-            self.logger.info(f"Domain tool processed {len(lead_records)} leads")
+                # All records from specific URLs are considered "passing"
+                passing_leads = lead_records
+                self.logger.info(
+                    f"💰 Cost savings: Skipped domain discovery for {len(passing_leads)} specific URL targets"
+                )
+            else:
+                # NORMAL MODE: Run domain discovery as usual
+                self.logger.info("📊 NORMAL MODE: Running domain discovery")
+                domain_result = await self.domain_tool.run()
 
-            # Persist domain results (pass + rejects)
+                if domain_result.get("errors"):
+                    self.total_errors.extend(domain_result["errors"])
+
+                lead_records = domain_result.get("data", {}).get("lead_records", [])
+                self.logger.info(f"Domain tool processed {len(lead_records)} leads")
+
+                # Filter to passing leads for next stage
+                passing_leads = [
+                    r for r in lead_records if r.get("icp", {}).get("pre_pass")
+                ]
+                self.logger.info(f"Filtered to {len(passing_leads)} passing leads")
+
+            # Persist domain results (pass + rejects) - works for both modes
             self._persist_domain_results(lead_records)
-
-            # Filter to passing leads for next stage
-            passing_leads = [
-                r for r in lead_records if r.get("icp", {}).get("pre_pass")
-            ]
-            self.logger.info(f"Filtered to {len(passing_leads)} passing leads")
 
             # Check testing flags for additional processing
             testing = self.icp_config.get("testing", {})
@@ -548,7 +691,11 @@ class LeadSorcererOrchestrator:
         if isinstance(obj, dict):
             for key, value in obj.items():
                 field_path = f"{prefix}.{key}" if prefix else key
-                if isinstance(value, (dict, list)):
+
+                # Special handling for contacts array - include best contact fields
+                if key == "contacts" and isinstance(value, list) and value:
+                    self._add_best_contact_fields(fields)
+                elif isinstance(value, (dict, list)):
                     self._collect_fields(value, field_path, fields)
                 else:
                     fields.add(field_path)
@@ -563,10 +710,62 @@ class LeadSorcererOrchestrator:
                 field_path = prefix
                 fields.add(field_path)
 
+    def _add_best_contact_fields(self, fields: set) -> None:
+        """Add best contact fields to CSV export."""
+        contact_fields = [
+            "best_contact.full_name",
+            "best_contact.role",
+            "best_contact.email",
+            "best_contact.phone",
+            "best_contact.decision_maker",
+            "best_contact.linkedin",
+            "best_contact.department",
+            "best_contact.seniority",
+            "best_contact.location",
+        ]
+        fields.update(contact_fields)
+
+    def _get_best_contact_field(self, record: Dict[str, Any], field_name: str) -> str:
+        """Get field value from the best contact."""
+        try:
+            # Get best contact ID
+            best_contact_id = record.get("best_contact_id")
+            if not best_contact_id:
+                return ""
+
+            # Find the best contact in contacts array
+            contacts = record.get("contacts", [])
+            best_contact = None
+            for contact in contacts:
+                if contact.get("contact_id") == best_contact_id:
+                    best_contact = contact
+                    break
+
+            if not best_contact:
+                return ""
+
+            # Get the requested field value
+            value = best_contact.get(field_name)
+            if value is None:
+                return ""
+            elif isinstance(value, bool):
+                return str(value).lower()
+            elif isinstance(value, list):
+                return "|".join(str(v) if v is not None else "" for v in value)
+            else:
+                return str(value)
+        except Exception:
+            return ""
+
     def _get_field_value(self, record: Dict[str, Any], field_path: str) -> str:
         """Get field value from record using dot notation."""
         try:
             keys = field_path.split(".")
+
+            # Special handling for best_contact fields
+            if keys[0] == "best_contact" and len(keys) > 1:
+                return self._get_best_contact_field(record, keys[1])
+
             value = record
             for key in keys:
                 if isinstance(value, dict) and key in value:

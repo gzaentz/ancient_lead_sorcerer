@@ -3,7 +3,7 @@
   "queries": [
     "dental practice multiple locations Texas"
   ],
-  "fetched_at": "2025-08-20T23:11:18.160105Z",
+  "fetched_at": "2025-08-21T01:32:40.160196Z",
   "serp_results": [
     {
       "url": "https://www.dshs.texas.gov/dental-health/find-a-dentist",
@@ -12,7 +12,7 @@
       "query": "dental practice multiple locations Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-20T23:11:03.845013Z",
+      "fetched_at": "2025-08-21T01:32:20.996952Z",
       "domain": "texas.gov"
     },
     {
@@ -22,7 +22,7 @@
       "query": "dental practice multiple locations Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-20T23:11:03.930434Z",
+      "fetched_at": "2025-08-21T01:32:21.081063Z",
       "domain": "texas.gov"
     }
   ],

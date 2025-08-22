@@ -1,0 +1,154 @@
+{
+  "name": "Database Mode Test - Dental Practice Listings",
+  "icp_text": "Test database extraction for individual dental practice listings",
+  "queries": [],
+  "site_type": "information_database",
+  "validation_config": {
+    "industry_keywords": ["dental", "healthcare", "medical", "oral"],
+    "company_name_keywords": ["dentist", "orthodont", "oral", "practice"]
+  },
+  "database_config": {
+    "business_type": "practice",
+    "listing_type": "listing",
+    "field_mappings": {
+      "practice_type": {
+        "target_field": "specialties",
+        "transform": "array"
+      }
+    },
+    "extraction_fields": {
+      "company": [
+        "name",
+        "location",
+        "description",
+        "practice_type",
+        "asking_price",
+        "revenue",
+        "specialties",
+        "years_established"
+      ],
+      "contacts": [
+        "name",
+        "role",
+        "email",
+        "phone",
+        "is_owner",
+        "is_broker",
+        "company"
+      ],
+      "custom_fields": [
+        "listing_id",
+        "listing_status",
+        "broker_company",
+        "key_features"
+      ]
+    },
+    "field_descriptions": {
+      "practice_type": "Type of dental practice (general dentistry, orthodontics, oral surgery, etc.)",
+      "asking_price": "Price the dental practice is listed for sale",
+      "years_established": "How long the practice has been in business",
+      "listing_id": "Unique identifier for this specific practice listing",
+      "listing_status": "Current status of the listing (for sale, under contract, sold, etc.)",
+      "broker_company": "Name of the brokerage company handling the sale",
+      "key_features": "Notable features or highlights of the practice",
+      "is_owner": "Whether this contact is the current practice owner",
+      "is_broker": "Whether this contact is a broker or agent"
+    },
+    "extraction_focus": "dental practice listings for sale",
+    "extraction_instructions": "Extract information about individual dental practices being sold, not about US Dental Practices website. Each URL represents a different dental practice opportunity."
+  },
+  "specific_urls": [
+    "https://www.usdentalpractices.com/dental-practice-for-sale/roslyn-ny/15866868",
+    "https://www.usdentalpractices.com/dental-practice-for-sale/sacramento-ca/10447118",
+    "https://www.usdentalpractices.com/dental-practice-for-sale/sacramento-ca/CA0601"
+  ],
+  "required_fields": ["domain"],
+  "optional_fields": ["company_name", "industry"],
+  "threshold": 0.1,
+  "filtering_strict": false,
+  "mode": "fast",
+  "refresh_policy": {
+    "domain_ttl_days": 1,
+    "crawl_ttl_days": 1,
+    "enrich_ttl_days": 1,
+    "max_pages": 1,
+    "default_country": "US"
+  },
+  "exports": {
+    "enabled": true
+  },
+  "concurrency": {
+    "max_concurrent_requests": 1
+  },
+  "search": {
+    "max_results_per_query": 1
+  },
+  "testing": {
+    "process_rejected": true,
+    "process_low_crawl": true
+  },
+  "caps": {
+    "max_domains_per_run": 1,
+    "max_crawl_per_run": 1,
+    "max_enrich_per_run": 1
+  },
+  "intent_config": {
+    "purpose": "dental_practice_acquisition",
+    "target_action": "sell_practice",
+    "intent_signals": {
+      "high_intent": [
+        "owner retirement planning",
+        "succession planning",
+        "looking for partners",
+        "transition mode",
+        "no clear family successor",
+        "owner age 60+",
+        "practice for sale",
+        "broker listing",
+        "exit planning",
+        "transition assistance",
+        "FOR SALE",
+        "dental practice for sale",
+        "practice transition",
+        "owner exit",
+        "broker listing",
+        "practice listing"
+      ],
+      "medium_intent": [
+        "expansion planning",
+        "growth capital needed",
+        "partnership exploring",
+        "early succession planning",
+        "considering strategic options",
+        "strategic buyer",
+        "growth opportunity"
+      ],
+      "low_intent": [
+        "recently acquired",
+        "part of corporate group",
+        "family succession secure",
+        "no exit plans",
+        "committed to independence",
+        "recently expanded",
+        "not for sale"
+      ]
+    },
+    "intent_sources": [
+      "about_pages",
+      "leadership_pages",
+      "careers_pages",
+      "recent_news",
+      "social_media",
+      "team_pages",
+      "broker_listings",
+      "practice_details",
+      "listing_pages"
+    ],
+    "scoring_rules": {
+      "high_intent_weight": 0.8,
+      "medium_intent_weight": 0.4,
+      "low_intent_weight": -0.3,
+      "base_score": 0.5
+    }
+  }
+}

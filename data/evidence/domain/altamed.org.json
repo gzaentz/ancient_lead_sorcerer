@@ -3,7 +3,7 @@
   "queries": [
     "dental practice multiple locations California"
   ],
-  "fetched_at": "2025-08-18T20:26:21.222491Z",
+  "fetched_at": "2025-08-22T20:11:05.979359Z",
   "serp_results": [
     {
       "url": "https://www.altamed.org/find/facility",
@@ -12,9 +12,9 @@
       "query": "dental practice multiple locations California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T20:25:57.471429Z",
+      "fetched_at": "2025-08-22T20:10:38.387960Z",
       "domain": "altamed.org"
     }
   ],
-  "scoring_prompt_fingerprint": "2724c339b943ad93d5a9cc3c9e488f47ebd8bdc4ad238a181aa37a45c5ce6644"
+  "scoring_prompt_fingerprint": "b9d4eabb60acb04048610b19316a54d21dc657c2462094c0f692609db054339e"
 }

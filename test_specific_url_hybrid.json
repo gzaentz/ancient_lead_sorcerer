@@ -1,11 +1,9 @@
 {
   "name": "Specific URL + Domain Hybrid Test - Enhanced Intent Capture",
   "icp_text": "Test enhanced intent capture on specific dental practice listing + domain base pages",
-  "queries": [
-    "usdentalpractices.com"
-  ],
+    "queries": [],
   "specific_urls": [
-    "https://www.usdentalpractices.com/dental-practice-for-sale/nv/NV8245"
+    "https://www.nuvasmile.com/"
   ],
   "required_fields": ["domain"],
   "optional_fields": ["company_name", "industry"],
@@ -18,6 +16,9 @@
     "enrich_ttl_days": 1,
     "max_pages": 1,
     "default_country": "US"
+  },
+  "exports": {
+    "enabled": true
   },
   "concurrency": {
     "max_concurrent_requests": 1
@@ -33,6 +34,18 @@
     "max_domains_per_run": 1,
     "max_crawl_per_run": 1,
     "max_enrich_per_run": 1
+  },
+  "role_priority": {
+    "ceo": 1,
+    "owner": 1,
+    "president": 1,
+    "vp": 2,
+    "vice president": 2,
+    "director": 3,
+    "head": 3,
+    "manager": 4,
+    "lead": 5,
+    "default": 99
   },
   "intent_config": {
     "purpose": "dental_practice_acquisition",

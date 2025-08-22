@@ -945,11 +945,21 @@ async def enrich_company_data(
         try:
             enriched_data = await coresignal_client.enrich_company(domain)
         except Exception as exc:
-            logging.warning(f"Failed to enrich company data for {domain}: {exc}")
+            # Check if it's a credit exhaustion error
+            if "402" in str(exc) or "Payment Required" in str(exc):
+                logging.warning(f"⚠️ CoreSignal API credits exhausted for {domain} - skipping company enrichment")
+            else:
+                logging.warning(f"Failed to enrich company data for {domain}: {exc}")
             return company, 0.0
 
         # Log the raw response for debugging
         logging.info(f"🔍 CoreSignal raw response for {domain}: {enriched_data}")
+        logging.info(f"🔍 CoreSignal response type: {type(enriched_data)}")
+
+        # Defensive programming: ensure enriched_data is a dictionary
+        if not isinstance(enriched_data, dict):
+            logging.warning(f"⚠️ CoreSignal returned non-dict response for {domain}: {type(enriched_data)}")
+            return company, 0.0
 
         if not enriched_data:
             logging.info(
@@ -1610,6 +1620,13 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Get configuration values
         role_priority_config = icp_config.get("role_priority", {})
+        # Ensure role_priority_config is a dictionary
+        if not isinstance(role_priority_config, dict):
+            logging.warning(
+                f"⚠️ role_priority_config is not a dictionary: {type(role_priority_config)}, resetting to empty dict"
+            )
+            role_priority_config = {}
+
         default_country = icp_config.get("default_country", "US")
         run_usd_max = caps.get("run_usd_max", float("inf"))
         company_usd_cap = caps.get("company_usd", 0.02)
@@ -1624,6 +1641,11 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         for record in lead_records:
             try:
+                # Debug logging to see what record contains
+                logging.info(
+                    f"🔍 Processing record: type={type(record)}, content={record}"
+                )
+
                 # Check if we should process this record
                 status = record.get("status", "")
                 if status not in ["enrich_ready", "crawled"]:
@@ -1653,6 +1675,18 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 company = record.get("company", {})
                 contacts = record.get("contacts", [])
 
+                # Debug logging for contacts
+                logging.info(f"🔍 Contacts field type for {domain}: {type(contacts)}")
+                logging.info(f"🔍 Contacts field content for {domain}: {contacts}")
+
+                # Ensure contacts is always a list
+                if not isinstance(contacts, list):
+                    logging.warning(
+                        f"⚠️ Contacts field is not a list for {domain}, resetting to empty list"
+                    )
+                    contacts = []
+                    record["contacts"] = contacts
+
                 # Normalize domain
                 normalized_domain = normalize_domain(domain)
                 record["domain"] = normalized_domain
@@ -1661,12 +1695,19 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 company_cost = 0.0
                 if company_usd_cap > 0:
                     try:
+                        logging.info(
+                            f"🔍 About to call enrich_company_data for {normalized_domain}"
+                        )
                         enriched_company, company_cost = await enrich_company_data(
                             company, normalized_domain, coresignal_client, costs_config
+                        )
+                        logging.info(
+                            f"🔍 enrich_company_data returned: type={type(enriched_company)}, content={enriched_company}"
                         )
                         company_cost = min(company_cost, company_usd_cap)
                         # Update the record's company data
                         record["company"] = enriched_company
+                        company = enriched_company  # Update local company variable
                     except Exception as e:
                         logging.warning(
                             f"⚠️ Company enrichment failed for {normalized_domain}: {e}"
@@ -1674,7 +1715,36 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         # Continue with contact discovery even if company enrichment fails
                         company_cost = 0.0
 
+                # Ensure company is always a dictionary for safety
+                if not isinstance(company, dict):
+                    logging.warning(
+                        f"⚠️ Company data is not a dictionary for {normalized_domain}, resetting to empty dict"
+                    )
+                    company = {}
+                    record["company"] = company
+
+                # Debug logging to see what company contains
+                logging.info(
+                    f"🔍 Company data type for {normalized_domain}: {type(company)}"
+                )
+                logging.info(
+                    f"🔍 Company data content for {normalized_domain}: {company}"
+                )
+                logging.info(
+                    f"🔍 Record company field type: {type(record.get('company'))}"
+                )
+                logging.info(
+                    f"🔍 Record company field content: {record.get('company')}"
+                )
+
                 # Select best contact
+                logging.info(
+                    f"🔍 Contacts type before select_best_contact: {type(contacts)}"
+                )
+                logging.info(
+                    f"🔍 Contacts content before select_best_contact: {contacts}"
+                )
+                logging.info(f"🔍 Role priority config: {role_priority_config}")
                 best_contact_id = select_best_contact(contacts, role_priority_config)
                 record["best_contact_id"] = best_contact_id
 
@@ -1686,24 +1756,50 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     logging.info(
                         f"🔍 No contacts found for {normalized_domain}, attempting contact discovery..."
                     )
-                    discovered_contacts = await discover_contacts_for_domain(
-                        normalized_domain, snovio_client, costs_config, contact_usd_cap
-                    )
+                    try:
+                        discovered_contacts = await discover_contacts_for_domain(
+                            normalized_domain, snovio_client, costs_config, contact_usd_cap
+                        )
 
-                    if discovered_contacts:
-                        contacts = discovered_contacts
-                        record["contacts"] = contacts
-                        logging.info(
-                            f"✅ Discovered {len(contacts)} contacts for {normalized_domain}"
-                        )
-                    else:
-                        logging.warning(
-                            f"⚠️ No contacts discovered for {normalized_domain}"
-                        )
+                        if discovered_contacts:
+                            contacts = discovered_contacts
+                            record["contacts"] = contacts
+                            logging.info(
+                                f"✅ Discovered {len(contacts)} contacts for {normalized_domain}"
+                            )
+                        else:
+                            logging.warning(
+                                f"⚠️ No contacts discovered for {normalized_domain}"
+                            )
+                    except Exception as contact_discovery_error:
+                        # Check if it's a credit exhaustion error
+                        if "402 Payment Required" in str(contact_discovery_error):
+                            logging.warning(
+                                f"⚠️ Snov.io API credits exhausted for {normalized_domain} - skipping contact discovery"
+                            )
+                        else:
+                            logging.warning(
+                                f"⚠️ Contact discovery failed for {normalized_domain}: {contact_discovery_error}"
+                            )
+                        # Continue without contacts rather than failing the entire enrichment
 
                 # Enrich existing or discovered contacts
                 if contacts and contact_usd_cap > 0:
-                    for contact in contacts:
+                    logging.info(
+                        f"🔍 About to enrich {len(contacts)} contacts for {normalized_domain}"
+                    )
+                    for i, contact in enumerate(contacts):
+                        logging.info(
+                            f"🔍 Contact {i}: type={type(contact)}, content={contact}"
+                        )
+
+                        # Check if contact is a dictionary (defensive programming)
+                        if not isinstance(contact, dict):
+                            logging.warning(
+                                f"⚠️ Contact {i} is not a dictionary (type: {type(contact)}), skipping: {contact}"
+                            )
+                            continue
+
                         if contact_cost >= contact_usd_cap:
                             break
 
@@ -1779,12 +1875,21 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 # Update status
 
                 # Check if all required fields are filled
-                required_company_fields = icp_config.get("required_fields", {}).get(
-                    "company", []
-                )
-                required_contact_fields = icp_config.get("required_fields", {}).get(
-                    "contact", []
-                )
+                required_fields = icp_config.get("required_fields", {})
+
+                # Handle both old format (list) and new format (dict)
+                if isinstance(required_fields, list):
+                    # Old format: required_fields is a list, assume all are company fields
+                    required_company_fields = required_fields
+                    required_contact_fields = []
+                elif isinstance(required_fields, dict):
+                    # New format: required_fields is a dict with company/contact keys
+                    required_company_fields = required_fields.get("company", [])
+                    required_contact_fields = required_fields.get("contact", [])
+                else:
+                    # Fallback
+                    required_company_fields = []
+                    required_contact_fields = []
 
                 company_complete = all(
                     company.get(field) for field in required_company_fields
@@ -1837,22 +1942,78 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
             except Exception as exc:
                 # Handle individual record errors
-                error = build_error(
-                    ErrorCode.UNKNOWN,
-                    exc=exc,
-                    tool=TOOL_NAME,
-                    lead_id=record.get("lead_id"),
-                    context={"domain": record.get("domain", "")},
-                )
+
+                # Create a more specific error message based on the actual error
+                if "'list' object has no attribute 'get'" in str(exc):
+                    if "402" in str(exc) or "credits" in str(exc).lower():
+                        error_msg = "API credits exhausted - some enrichment features unavailable"
+                    else:
+                        error_msg = "API response format issue - contact discovery may be unavailable"
+                elif "402" in str(exc) or "Payment Required" in str(exc):
+                    if "Snov.io" in str(exc) or "contact" in str(exc).lower():
+                        error_msg = "Snov.io API credits exhausted - contact discovery skipped"
+                    else:
+                        error_msg = "CoreSignal API credits exhausted - company enrichment limited"
+                else:
+                    error_msg = f"Enrichment failed: {str(exc)}"
+
+                # Ensure record is a dictionary
+                if not isinstance(record, dict):
+                    logging.error(
+                        f"⚠️ Record is not a dictionary: {type(record)}, content: {record}"
+                    )
+                    # Create a minimal error without trying to access record fields
+                    error = build_error(
+                        ErrorCode.UNKNOWN,
+                        exc=exc,
+                        tool=TOOL_NAME,
+                        lead_id="unknown",
+                        context={
+                            "error": "Record is not a dictionary",
+                            "record_type": str(type(record)),
+                        },
+                    )
+                else:
+                    error = build_error(
+                        ErrorCode.UNKNOWN,
+                        exc=exc,
+                        tool=TOOL_NAME,
+                        lead_id=record.get("lead_id"),
+                        context={"domain": record.get("domain", "")},
+                    )
                 errors.append(error)
 
                 # Keep the record but mark as failed
                 record["status"] = "enrich_partial"
-                append_status(
-                    record["status_history"],
-                    "enrich_partial",
-                    f"Enrichment failed: {str(exc)}",
-                )
+
+                # Ensure status_history exists and is a list
+                if "status_history" not in record:
+                    record["status_history"] = []
+                elif not isinstance(record["status_history"], list):
+                    logging.warning(
+                        f"⚠️ status_history is not a list for {record.get('domain', 'unknown')}, resetting to empty list"
+                    )
+                    record["status_history"] = []
+
+                try:
+                    append_status(
+                        record["status_history"],
+                        "enrich_partial",
+                        error_msg,
+                    )
+                except Exception as append_error:
+                    logging.error(
+                        f"⚠️ Failed to append status for {record.get('domain', 'unknown')}: {append_error}"
+                    )
+                    # Create a minimal status entry manually
+                    record["status_history"].append(
+                        {
+                            "status": "enrich_partial",
+                            "ts": now_z(),
+                            "notes": f"Enrichment failed: {str(exc)} (status append also failed: {append_error})",
+                        }
+                    )
+
                 processed_records.append(record)
 
         # Calculate metrics

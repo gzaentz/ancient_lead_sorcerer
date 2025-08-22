@@ -3,7 +3,7 @@
   "queries": [
     "dental practice multiple locations California"
   ],
-  "fetched_at": "2025-08-18T20:26:21.226490Z",
+  "fetched_at": "2025-08-22T20:11:05.984359Z",
   "serp_results": [
     {
       "url": "https://www.cda.org/",
@@ -12,9 +12,9 @@
       "query": "dental practice multiple locations California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T20:25:57.769124Z",
+      "fetched_at": "2025-08-22T20:10:38.648023Z",
       "domain": "cda.org"
     }
   ],
-  "scoring_prompt_fingerprint": "57163fe08fd74933ac3c65273ce20231f01d680d52f47c056a5ca1426e6f93d3"
+  "scoring_prompt_fingerprint": "35c7364907a06db58bfb6603f39ada760be091afba785f3e53ab3aa1214468a8"
 }

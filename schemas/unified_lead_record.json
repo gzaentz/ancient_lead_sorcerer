@@ -179,7 +179,7 @@
         "founded_year": {
           "type": ["integer", "null"],
           "minimum": 1800,
-          "maximum": 2030,
+          "maximum": 2100,
           "description": "Year company was founded"
         },
         "ownership_type": {
@@ -196,16 +196,6 @@
           "type": ["string", "null"],
           "maxLength": 2048,
           "description": "Business operational status (e.g., active, inactive, closed)"
-        },
-        "evidence_urls": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "uri",
-            "maxLength": 2048
-          },
-          "maxItems": 10,
-          "description": "URLs providing evidence for company data"
         },
         "ids": {
           "type": "object",
@@ -286,12 +276,6 @@
           "minimum": 0,
           "description": "Total number of office locations"
         },
-        "founded_year": {
-          "type": ["integer", "null"],
-          "minimum": 1800,
-          "maximum": 2100,
-          "description": "Year company was founded"
-        },
         "employee_count": {
           "type": ["string", "null"],
           "maxLength": 2048,
@@ -301,18 +285,7 @@
           "type": ["string", "null"],
           "maxLength": 2048,
           "description": "Annual revenue range"
-        },
-        "ownership_type": {
-          "type": ["string", "null"],
-          "maxLength": 2048,
-          "description": "Private, public, nonprofit, etc."
-        },
-        "company_type": {
-          "type": ["string", "null"],
-          "maxLength": 2048,
-          "description": "LLC, Corp, Partnership, etc."
-        },
-        "specialties": {
+        },        "specialties": {
           "type": "array",
           "items": {
             "type": "string",
@@ -320,15 +293,6 @@
           },
           "maxItems": 50,
           "description": "Company specialties and focus areas"
-        },
-        "tech_stack": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "maxLength": 2048
-          },
-          "maxItems": 100,
-          "description": "Technologies and tools used by the company"
         },
         "phone_numbers": {
           "type": "array",
@@ -572,7 +536,7 @@
             "maxItems": 2
           },
           "phone": {
-            "type": ["string", "null"],
+            "type": "string",
             "pattern": "^\\+[1-9]\\d{1,14}$",
             "maxLength": 20,
             "description": "E.164 formatted phone number"

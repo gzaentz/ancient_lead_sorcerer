@@ -2,7 +2,7 @@
   "name": "Dentist Practices Test - Minimal",
   "icp_text": "Independent and regional dental practice groups in the United States with 5+ locations that have 1.5M+ EBITDA and want to sell their practice, they should not be private equity backed and not part of large national franchises",
   "queries": [
-    "dental practice multiple locations Texas"
+    "dental practice multiple locations California"
   ],
   "required_fields": {
     "company": ["name", "hq_location", "number_of_locations"],

@@ -1,6 +1,6 @@
 {
   "domain": "phddental.com",
-  "enriched_at": "2025-08-18T20:26:22.334373Z",
+  "enriched_at": "2025-08-21T01:40:05.155356Z",
   "company_enrichment": {
     "name": "PhD Dental",
     "description": "We are currently accepting patients at our Los Angeles, Inglewood, Lynwood, and Pico Rivera locations. Contact one of our convenient locations to book!",
@@ -19,8 +19,8 @@
       "instagram": "https://www.instagram.com/phddental/",
       "youtube": "https://www.youtube.com/channel/UCucGNyp6x3065BbT2rMZx5A?view_as=subscriber"
     },
-    "careers_url": "https://www.phddental.com/careers/cp",
-    "blog_url": "",
+    "careers_url": null,
+    "blog_url": null,
     "tech_stack": [],
     "evidence_urls": [
       "https://phddental.com",
@@ -31,6 +31,42 @@
       "linkedin": null,
       "crunchbase": null
     },
+    "number_of_locations": 7,
+    "founded_year": 1985,
+    "employee_count": "string",
+    "revenue_range": "string",
+    "ownership_type": "string",
+    "company_type": "string",
+    "specialties": [
+      "General Dentistry",
+      "Orthodontics",
+      "Preventative Care",
+      "Cosmetic Dentistry",
+      "Dental Implants",
+      "Children's Dentistry",
+      "Emergency Dental Care",
+      "TMJ and Sleep Apnea"
+    ],
+    "intent": {
+      "business_intent_score": 0.5,
+      "intent_signals": [
+        "No explicit signals of intent to sell were found. The company focuses on growth and patient care."
+      ],
+      "intent_category": "low",
+      "timeline_indicator": "Timeline unclear",
+      "decision_maker_intent": "No specific decision maker statements found"
+    },
+    "emails": [],
+    "phone_numbers": [
+      "(562) 307-9200",
+      "(323) 269-5437",
+      "(310) 631-1111",
+      "(323) 777-7420",
+      "(424) 232-0508",
+      "(562) 205-4591",
+      "(310) 645-0336",
+      "(888) 305-4866"
+    ],
     "hq_country": "United States",
     "hq_regions": [
       "Northern America",
@@ -46,16 +82,6 @@
       "dental practice"
     ],
     "enriched_category": "Healthcare",
-    "phone_numbers": [
-      "(562) 307-9200",
-      "(323) 269-5437",
-      "(310) 631-1111",
-      "(323) 777-7420",
-      "(424) 232-0508",
-      "(562) 205-4591",
-      "(310) 645-0336",
-      "(888) 305-4866"
-    ],
     "business_features": {
       "pricing_available": false,
       "free_trial_available": false,
@@ -72,7 +98,108 @@
     "expired_domain": false,
     "unique_domain": true
   },
-  "contacts_enrichment": [],
+  "contacts_enrichment": [
+    {
+      "contact_id": "a30dd784-f018-5c0f-95f7-877a3603567f",
+      "full_name": "dr. ori levy",
+      "role": "dentist",
+      "department": null,
+      "seniority": 99,
+      "role_priority": 99,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://phddental.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "company_country": "Lynwood, California, United States",
+      "default_country": "US"
+    },
+    {
+      "contact_id": "98842a6a-1c17-5a27-9f9f-4d2e7d90336e",
+      "full_name": "dr. daniel khorshad",
+      "role": "dentist",
+      "department": null,
+      "seniority": 99,
+      "role_priority": 99,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://phddental.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "company_country": "Lynwood, California, United States",
+      "default_country": "US"
+    },
+    {
+      "contact_id": "fb8b4311-0358-5975-b71c-b43b3bda669f",
+      "full_name": "dr. josh ely",
+      "role": "dentist",
+      "department": null,
+      "seniority": 99,
+      "role_priority": 99,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://phddental.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "company_country": "Lynwood, California, United States",
+      "default_country": "US"
+    },
+    {
+      "contact_id": "b43bf3f3-eaff-5df6-91ed-0e935369b86b",
+      "full_name": "dr. pedrum barr",
+      "role": "dentist",
+      "department": null,
+      "seniority": 99,
+      "role_priority": 99,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://phddental.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "company_country": "Lynwood, California, United States",
+      "default_country": "US"
+    }
+  ],
   "costs": {
     "company_usd": 0.01,
     "contact_usd": 0.0,

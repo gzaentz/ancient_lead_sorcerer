@@ -3,7 +3,7 @@
   "queries": [
     "dental practice multiple locations California"
   ],
-  "fetched_at": "2025-08-18T20:26:21.222491Z",
+  "fetched_at": "2025-08-22T20:11:05.979359Z",
   "serp_results": [
     {
       "url": "https://fullersmiles.com/",
@@ -12,9 +12,9 @@
       "query": "dental practice multiple locations California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T20:25:57.514671Z",
+      "fetched_at": "2025-08-22T20:10:38.430147Z",
       "domain": "fullersmiles.com"
     }
   ],
-  "scoring_prompt_fingerprint": "29b5bbfeff908c8f6ea6cc4da432de52d72f99bb84ae7f06b21face6d1f2a599"
+  "scoring_prompt_fingerprint": "f0ec332be99dec330033a9da3c48bc6826e3defb71dde53007cc3d6b334afee9"
 }

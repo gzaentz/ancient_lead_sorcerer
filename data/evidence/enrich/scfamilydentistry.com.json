@@ -1,19 +1,14 @@
 {
   "domain": "scfamilydentistry.com",
-  "enriched_at": "2025-08-18T22:38:19.587215Z",
+  "enriched_at": "2025-08-22T20:11:10.167349Z",
   "company_enrichment": {
-    "name": "JAHANGIRI DDS INC.",
-    "description": "Southern California Family Dentistry is a multi-location dental practice specializing in Implants and Orthodontics. Our offices are conveniently located Whittier (562) 693-0788, Lake Forest (949) 830-3743 and San Clemente (949) 234-0500.",
-    "industry": "Medical Practices",
+    "name": "Southern California Family Dentistry",
+    "description": "Southern California Family Dentistry is a multi-specialty dental practice with offices in Whittier, Lake Forest and San Clemente. We specialize in Dental Implants, Orthodontics, Cosmetic Dentistry, Periodontics, and Sedation Dentistry.",
+    "industry": "Dental Services",
     "naics_keywords": [],
-    "hq_location": "Whittier, California, United States",
-    "locations": [
-      {
-        "address": "14412 WHITTIER BLVD; Whittier, California 90605, us",
-        "is_primary": false
-      }
-    ],
-    "size_hint": "11-50 employees",
+    "hq_location": "Whittier, California, USA",
+    "locations": [],
+    "size_hint": null,
     "socials": {
       "linkedin": null,
       "github": null,
@@ -21,60 +16,135 @@
       "telegram": null,
       "instagram": null
     },
-    "careers_url": "",
-    "blog_url": "",
+    "careers_url": null,
+    "blog_url": null,
     "tech_stack": [],
     "evidence_urls": [
-      "https://scfamilydentistry.com",
-      "http://scfamilydentistry.com",
-      "https://scfamilydentistry.com/"
+      "https://scfamilydentistry.com"
     ],
     "ids": {
       "linkedin": null,
       "crunchbase": null
     },
-    "emails": [],
-    "phone_numbers": [
-      "(562) 693-0788",
-      "(949) 830-3743",
-      "(949) 234-0500",
-      "(562) 501-4648"
+    "number_of_locations": 3,
+    "founded_year": 2018,
+    "employee_count": null,
+    "revenue_range": null,
+    "ownership_type": "Private",
+    "company_type": "Corporation",
+    "specialties": [
+      "Dental Implants",
+      "Orthodontics",
+      "Cosmetic Dentistry",
+      "Periodontics",
+      "Sedation Dentistry",
+      "General Dentistry",
+      "Cleaning and Prevention",
+      "Invisalign\u00ae",
+      "New Teeth in One Day",
+      "Full-Mouth Rehabilitation",
+      "Porcelain Crowns (Caps)",
+      "Porcelain Fixed Bridges",
+      "Dentures & Partial Dentures",
+      "Wisdom Teeth Extractions",
+      "Root Canal Therapy"
     ],
-    "hq_country": "United States",
-    "hq_regions": [
-      "Northern America",
-      "Northern America",
-      "AMER"
-    ],
-    "enriched_summary": "Southern California Family Dentistry is a multi-specialty dental practice specializing in dental implants, orthodontics, cosmetic dentistry, periodontics, and sedation dentistry.",
-    "enriched_keywords": [
-      "dental practice",
-      "periodontics",
-      "cosmetic dentistry",
-      "dental implants",
-      "orthodontics"
-    ],
-    "enriched_category": "Healthcare",
-    "business_features": {
-      "pricing_available": false,
-      "free_trial_available": false,
-      "demo_available": false,
-      "is_downloadable": true,
-      "mobile_apps_exist": false,
-      "online_reviews_exist": false,
-      "api_docs_exist": false
+    "intent": {
+      "business_intent_score": 0.5,
+      "intent_signals": [
+        "No explicit signals indicating a desire to sell, grow, partner, or transition were found.",
+        "The website focuses on services, patient care, and office locations.",
+        "There is no mention of owner retirement, succession planning, or expansion plans.",
+        "The practice appears to be established and focused on current operations."
+      ],
+      "intent_category": "low",
+      "timeline_indicator": "Timeline unclear",
+      "decision_maker_intent": "No specific decision maker statements found"
     },
-    "metadata_title": "Southern California Family Dentistry - Dental Implants and Orthodontics",
-    "metadata_description": "Southern California Family Dentistry is a multi-location dental practice specializing in Implants and Orthodontics. Our offices are conveniently located Whittier (562) 693-0788, Lake Forest (949) 830-3743 and San Clemente (949) 234-0500.",
-    "created_at": "2021-09-22",
-    "last_updated": "2025-08-09",
-    "expired_domain": false,
-    "unique_domain": true
+    "emails": [],
+    "phone_numbers": []
   },
-  "contacts_enrichment": [],
+  "contacts_enrichment": [
+    {
+      "contact_id": "8839fd8a-b881-5b7a-aaf9-5504bd31f2d5",
+      "full_name": "dr hossein jahangiri",
+      "role": "clinical director, scfd & portside dentistry",
+      "department": null,
+      "seniority": 1,
+      "role_priority": 5,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://scfamilydentistry.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "phone": "+15626930788",
+      "company_country": "Whittier, California, USA",
+      "default_country": "US"
+    },
+    {
+      "contact_id": "d1fb2213-4a82-5ec6-91c5-520378a0be9f",
+      "full_name": "dr. dt fields",
+      "role": "dentist",
+      "department": null,
+      "seniority": 99,
+      "role_priority": 99,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://scfamilydentistry.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "company_country": "Whittier, California, USA",
+      "default_country": "US"
+    },
+    {
+      "contact_id": "66c404d4-3bd9-5d6b-b6cb-c7a44df76fd3",
+      "full_name": "dr. noor khedraki",
+      "role": "dentist",
+      "department": null,
+      "seniority": 99,
+      "role_priority": 99,
+      "email": null,
+      "email_confidence": null,
+      "email_status": [
+        "unknown"
+      ],
+      "email_source": [
+        "provider"
+      ],
+      "linkedin": null,
+      "other_links": [],
+      "evidence_urls": [
+        "https://scfamilydentistry.com"
+      ],
+      "decision_maker": true,
+      "location": null,
+      "company_country": "Whittier, California, USA",
+      "default_country": "US"
+    }
+  ],
   "costs": {
-    "company_usd": 0.01,
+    "company_usd": 0.0,
     "contact_usd": 0.0,
-    "total_usd": 0.01
+    "total_usd": 0.0
   }
 }
