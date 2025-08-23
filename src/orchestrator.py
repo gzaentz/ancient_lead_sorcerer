@@ -254,7 +254,7 @@ class LeadSorcererOrchestrator:
                 "status": "scored",  # Ready for crawl - skip domain scoring
                 "status_history": [],  # Initialize status history for enrich tool
                 "company": {
-                    "name": f"Practice from {domain}",
+                    "name": f"{self.icp_config.get('company_name_template', 'Company from {domain}').format(domain=domain)}",
                     "description": f"Direct crawl from specific URL: {url}",
                 },
                 "contacts": [],  # Will be populated by enrich tool

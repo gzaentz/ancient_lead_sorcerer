@@ -44,7 +44,7 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         if not self.api_key:
             raise AuthenticationError("Anymail Finder API key not provided")
 
-        self.base_url = "https://api.anymailfinder.com/v5.0"
+        self.base_url = "https://api.anymailfinder.com/v5.1"
         self._last_request_time = 0.0
         self._min_request_interval = 0.2  # 200ms between requests (5 RPS limit)
 
@@ -81,6 +81,9 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 401:
+            logging.error(
+                f"Anymail Finder 401 response for {operation}: {response.text}"
+            )
             raise AuthenticationError(
                 f"Anymail Finder API authentication failed for {operation}"
             )
@@ -94,6 +97,9 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                 f"Anymail Finder API service unavailable for {operation}"
             )
         else:
+            logging.error(
+                f"Anymail Finder {response.status_code} response for {operation}: {response.text}"
+            )
             error_msg = f"Anymail Finder API error {response.status_code} for {operation}: {response.text}"
             raise CompanyEnrichmentError(error_msg)
 
@@ -111,11 +117,21 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         try:
             await self._rate_limit()
 
-            url = f"{self.base_url}/company/search"
-            params = {"domain": domain, "api_key": self.api_key}
+            # Anymail Finder doesn't have a company search endpoint
+            # We'll use the decision-maker endpoint to find company contacts
+            url = f"{self.base_url}/find-email/decision-maker"
+            payload = {"domain": domain, "decision_maker_category": "ceo"}
+            headers = {
+                "Authorization": self.api_key,
+                "Content-Type": "application/json",
+            }
+
+            logging.info(
+                f"Anymail Finder company enrichment request: {url} with payload: {payload}"
+            )
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params)
+                response = await client.post(url, json=payload, headers=headers)
                 data = await self._handle_response(response, "company enrichment")
 
                 # Map Anymail Finder response to CompanyData
@@ -125,7 +141,7 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                     success=True,
                     data=company_data,
                     provider="anymail_finder",
-                    cost=0.008,  # Anymail Finder cost per company lookup
+                    cost=0.02,  # Anymail Finder decision-maker endpoint costs 2 credits
                 )
 
         except Exception as exc:
@@ -150,11 +166,21 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         try:
             await self._rate_limit()
 
-            url = f"{self.base_url}/search/company"
-            params = {"domain": domain, "api_key": self.api_key}
+            # Anymail Finder doesn't have a company search endpoint
+            # We'll use the decision-maker endpoint to find company contacts
+            url = f"{self.base_url}/find-email/decision-maker"
+            payload = {"domain": domain, "decision_maker_category": "ceo"}
+            headers = {
+                "Authorization": self.api_key,
+                "Content-Type": "application/json",
+            }
+
+            logging.info(
+                f"Anymail Finder contact enrichment request: {url} with payload: {payload}"
+            )
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params)
+                response = await client.post(url, json=payload, headers=headers)
                 data = await self._handle_response(response, "contact enrichment")
 
                 # Map Anymail Finder response to ContactData list
@@ -164,7 +190,7 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                     success=True,
                     data=contacts_data,
                     provider="anymail_finder",
-                    cost=0.015,  # Anymail Finder cost per contact lookup
+                    cost=0.02,  # Anymail Finder decision-maker endpoint costs 2 credits
                 )
 
         except Exception as exc:
@@ -189,16 +215,19 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         try:
             await self._rate_limit()
 
-            url = f"{self.base_url}/search/name"
-            params = {
+            url = f"{self.base_url}/find-email/person"
+            payload = {
                 "domain": domain,
                 "first_name": request.first_name,
                 "last_name": request.last_name,
-                "api_key": self.api_key,
+            }
+            headers = {
+                "Authorization": self.api_key,
+                "Content-Type": "application/json",
             }
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params)
+                response = await client.post(url, json=payload, headers=headers)
                 data = await self._handle_response(response, "email discovery")
 
                 # Map Anymail Finder response to ContactData
@@ -232,36 +261,12 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         """
         company = CompanyData(domain=domain)
 
-        # Extract company data from response
-        company_info = response_data.get("company", {})
-        if not isinstance(company_info, dict):
-            return company
+        # Anymail Finder doesn't provide company data, so we create basic info
+        company.name = domain.split(".")[0].title()  # Extract company name from domain
 
-        # Map core company fields
-        if company_info.get("name"):
-            company.name = company_info["name"]
-
-        if company_info.get("description"):
-            company.description = company_info["description"]
-
-        if company_info.get("industry"):
-            company.industry = company_info["industry"]
-
-        if company_info.get("size"):
-            company.size = company_info["size"]
-
-        if company_info.get("location"):
-            company.address = {"city": company_info["location"]}
-
-        if company_info.get("country"):
-            company.address = company.address or {}
-            company.address["country"] = company_info["country"]
-
-        if company_info.get("website"):
-            company.website = company_info["website"]
-
-        if company_info.get("linkedin_url"):
-            company.linkedin_url = company_info["linkedin_url"]
+        # Try to get company info from the response if available
+        if response_data.get("person_company_name"):
+            company.name = response_data["person_company_name"]
 
         return company
 
@@ -279,47 +284,30 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         """
         contacts = []
 
-        # Extract contacts from response
-        contacts_list = response_data.get("emails", [])
-        if not isinstance(contacts_list, list):
-            return contacts
-
-        for contact_data in contacts_list:
+        # Anymail Finder returns a single contact from decision-maker endpoint
+        if response_data.get("email"):
             contact = ContactData()
 
-            # Map core contact fields
-            if contact_data.get("first_name"):
-                contact.first_name = contact_data["first_name"]
+            # Map core contact fields from the actual API response
+            if response_data.get("person_full_name"):
+                contact.full_name = response_data["person_full_name"]
+                # Try to split full name into first/last
+                name_parts = response_data["person_full_name"].split()
+                if len(name_parts) >= 2:
+                    contact.first_name = name_parts[0]
+                    contact.last_name = " ".join(name_parts[1:])
+                else:
+                    contact.first_name = response_data["person_full_name"]
 
-            if contact_data.get("last_name"):
-                contact.last_name = contact_data["last_name"]
+            if response_data.get("email"):
+                contact.email = response_data["email"]
+                contact.email_status = response_data.get("email_status", "unknown")
 
-            if contact_data.get("full_name"):
-                contact.full_name = contact_data["full_name"]
+            if response_data.get("person_job_title"):
+                contact.job_title = response_data["person_job_title"]
 
-            if contact_data.get("email"):
-                contact.email = contact_data["email"]
-                contact.email_source = ["provider"]
-                contact.email_status = ["unknown"]
-
-            if contact_data.get("phone"):
-                contact.phone = contact_data["phone"]
-
-            if contact_data.get("title"):
-                contact.role = contact_data["title"]
-
-            if contact_data.get("linkedin_url"):
-                contact.linkedin_url = contact_data["linkedin_url"]
-
-            if contact_data.get("department"):
-                contact.department = contact_data["department"]
-
-            if contact_data.get("seniority"):
-                contact.seniority = contact_data["seniority"]
-
-            # Add confidence score if available
-            if contact_data.get("confidence"):
-                contact.email_confidence = contact_data["confidence"]
+            if response_data.get("person_linkedin_url"):
+                contact.linkedin_url = response_data["person_linkedin_url"]
 
             contacts.append(contact)
 
@@ -337,31 +325,26 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         """
         contact = ContactData()
 
-        # Extract email data from response
-        email_info = response_data.get("email", {})
-        if not isinstance(email_info, dict):
-            return contact
+        # Map email-specific fields from the actual API response
+        if response_data.get("email"):
+            contact.email = response_data["email"]
+            contact.email_status = response_data.get("email_status", "unknown")
 
-        # Map email-specific fields
-        if email_info.get("email"):
-            contact.email = email_info["email"]
-            contact.email_source = ["provider"]
-            contact.email_status = ["unknown"]
+        if response_data.get("person_full_name"):
+            contact.full_name = response_data["person_full_name"]
+            # Try to split full name into first/last
+            name_parts = response_data["person_full_name"].split()
+            if len(name_parts) >= 2:
+                contact.first_name = name_parts[0]
+                contact.last_name = " ".join(name_parts[1:])
+            else:
+                contact.first_name = response_data["person_full_name"]
 
-        if email_info.get("confidence"):
-            contact.email_confidence = email_info["confidence"]
+        if response_data.get("person_job_title"):
+            contact.job_title = response_data["person_job_title"]
 
-        if email_info.get("first_name"):
-            contact.first_name = email_info["first_name"]
-
-        if email_info.get("last_name"):
-            contact.last_name = email_info["last_name"]
-
-        if email_info.get("full_name"):
-            contact.full_name = email_info["full_name"]
-
-        if email_info.get("title"):
-            contact.role = email_info["title"]
+        if response_data.get("person_linkedin_url"):
+            contact.linkedin_url = response_data["person_linkedin_url"]
 
         return contact
 

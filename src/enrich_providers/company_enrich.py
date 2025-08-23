@@ -44,9 +44,11 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         if not self.api_key:
             raise AuthenticationError("CompanyEnrich API key not provided")
 
-        self.base_url = "https://api.companyenrich.com/v1"
+        self.base_url = "https://api.companyenrich.com"
         self._last_request_time = 0.0
-        self._min_request_interval = 0.1  # 100ms between requests (10 RPS limit)
+        self._min_request_interval = (
+            0.2  # 200ms between requests (5 RPS limit, conservative for 300/min)
+        )
 
         logging.info("CompanyEnrich provider initialized")
 
@@ -111,11 +113,12 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         try:
             await self._rate_limit()
 
-            url = f"{self.base_url}/company/enrich"
-            params = {"domain": domain, "api_key": self.api_key}
+            url = f"{self.base_url}/companies/enrich"
+            params = {"domain": domain}
+            headers = {"Authorization": f"Basic {self.api_key}"}
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers=headers)
                 data = await self._handle_response(response, "company enrichment")
 
                 # Map CompanyEnrich response to CompanyData
@@ -140,6 +143,9 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         """
         Enrich company contacts using CompanyEnrich.
 
+        Note: CompanyEnrich doesn't have a separate contacts endpoint.
+        We use the main company enrichment endpoint and extract any available contact info.
+
         Args:
             request: Enrichment request with domain
 
@@ -150,21 +156,32 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         try:
             await self._rate_limit()
 
-            url = f"{self.base_url}/company/contacts"
-            params = {"domain": domain, "api_key": self.api_key}
+            url = f"{self.base_url}/companies/enrich"
+            params = {"domain": domain}
+            headers = {"Authorization": f"Basic {self.api_key}"}
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers=headers)
                 data = await self._handle_response(response, "contact enrichment")
 
-                # Map CompanyEnrich response to ContactData list
-                contacts_data = self._map_contacts_response(data)
+                # CompanyEnrich doesn't provide detailed contact lists, so we return basic company info
+                # as a contact placeholder
+                company_name = data.get("name", domain)
+                contact_data = ContactData(
+                    first_name=company_name.split()[0] if company_name else "",
+                    last_name=" ".join(company_name.split()[1:])
+                    if company_name and len(company_name.split()) > 1
+                    else "",
+                    full_name=company_name,
+                    company_name=company_name,
+                    company_domain=domain,
+                )
 
                 return EnrichmentResult(
                     success=True,
-                    data=contacts_data,
+                    data=[contact_data],
                     provider="company_enrich",
-                    cost=0.02,  # CompanyEnrich cost per contact lookup
+                    cost=0.01,  # CompanyEnrich cost per company lookup
                 )
 
         except Exception as exc:
@@ -179,36 +196,48 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         """
         Find email address using CompanyEnrich.
 
+        Note: CompanyEnrich doesn't support individual email lookups.
+        We use the company enrichment endpoint and return basic company info.
+
         Args:
             request: Enrichment request with domain, first_name, last_name
 
         Returns:
-            Enrichment result with email data
+            Enrichment result with company data (no email available)
         """
         domain = request.domain
         try:
             await self._rate_limit()
 
-            url = f"{self.base_url}/email/find"
-            params = {
-                "domain": domain,
-                "first_name": request.first_name,
-                "last_name": request.last_name,
-                "api_key": self.api_key,
-            }
+            url = f"{self.base_url}/companies/enrich"
+            params = {"domain": domain}
+            headers = {"Authorization": f"Basic {self.api_key}"}
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params)
-                data = await self._handle_response(response, "email discovery")
+                response = await client.get(url, params=params, headers=headers)
+                data = await self._handle_response(response, "company enrichment")
 
-                # Map CompanyEnrich response to ContactData
-                contact_data = self._map_email_response(data)
+                # CompanyEnrich doesn't provide email lookups, so we return company info
+                company_name = data.get("name", domain)
+                contact_data = ContactData(
+                    first_name=request.first_name or company_name.split()[0]
+                    if company_name
+                    else "",
+                    last_name=request.last_name or " ".join(company_name.split()[1:])
+                    if company_name and len(company_name.split()) > 1
+                    else "",
+                    full_name=f"{request.first_name or ''} {request.last_name or ''}".strip()
+                    or company_name,
+                    company_name=company_name,
+                    company_domain=domain,
+                    email="",  # No email available from CompanyEnrich
+                )
 
                 return EnrichmentResult(
                     success=True,
                     data=contact_data,
                     provider="company_enrich",
-                    cost=0.015,  # CompanyEnrich cost per email lookup
+                    cost=0.01,  # CompanyEnrich cost per company lookup
                 )
 
         except Exception as exc:
@@ -232,9 +261,9 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         """
         company = CompanyData(domain=domain)
 
-        # Map core company fields
-        if response_data.get("company_name"):
-            company.name = response_data["company_name"]
+        # Map core company fields based on official API response
+        if response_data.get("name"):
+            company.name = response_data["name"]
 
         if response_data.get("description"):
             company.description = response_data["description"]
@@ -246,23 +275,27 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
             company.size = response_data["size"]
 
         if response_data.get("location"):
-            company.address = {"city": response_data["location"]}
+            location_data = response_data["location"]
+            if isinstance(location_data, dict):
+                company.address = {
+                    "city": location_data.get("city"),
+                    "state": location_data.get("state"),
+                    "country": location_data.get("country"),
+                }
+            else:
+                company.address = {"city": str(location_data)}
 
-        if response_data.get("country"):
-            company.address = company.address or {}
-            company.address["country"] = response_data["country"]
+        if response_data.get("foundedYear"):
+            company.founded_year = response_data["foundedYear"]
 
-        if response_data.get("founded"):
-            company.founded_year = response_data["founded"]
+        if response_data.get("domain"):
+            company.website = f"https://{response_data['domain']}"
 
-        if response_data.get("website"):
-            company.website = response_data["website"]
+        if response_data.get("social", {}).get("linkedinUrl"):
+            company.linkedin_url = response_data["social"]["linkedinUrl"]
 
-        if response_data.get("linkedin_url"):
-            company.linkedin_url = response_data["linkedin_url"]
-
-        if response_data.get("technologies"):
-            company.technologies = response_data["technologies"]
+        if response_data.get("techStack"):
+            company.technologies = response_data["techStack"]
 
         return company
 

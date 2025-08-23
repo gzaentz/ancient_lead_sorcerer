@@ -324,7 +324,7 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
 
             # Discover URLs from the domain
             discovered_urls = self._discover_database_urls(
-                domain, max_pages, url_patterns, exclude_patterns
+                domain, max_pages, url_patterns, exclude_patterns, icp_config
             )
             urls_to_extract.extend(discovered_urls)
 
@@ -548,41 +548,20 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         if "field_mappings" not in database_config:
             database_config["field_mappings"] = {}
 
-        # Add backward compatibility for existing dental configurations
+        # Validate that required validation configuration is provided
         validation_config = validated_config["validation_config"]
         if not validation_config.get("industry_keywords") and not validation_config.get(
             "company_name_keywords"
         ):
-            # Check if this looks like a dental configuration (for backward compatibility)
-            site_type = icp_config.get("site_type")
-            specific_urls = icp_config.get("specific_urls", [])
-
-            # If this appears to be a dental-related configuration, add default keywords
-            is_likely_dental = (
-                any("dental" in str(url).lower() for url in specific_urls)
-                or any("practice" in str(url).lower() for url in specific_urls)
-                or site_type == "information_database"
+            self.logger.warning(
+                "⚠️ No validation criteria specified. Consider adding 'industry_keywords' "
+                "or 'company_name_keywords' to validation_config for better ICP filtering."
             )
-
-            if is_likely_dental:
-                validation_config["industry_keywords"] = [
-                    "dental",
-                    "healthcare",
-                    "medical",
-                ]
-                validation_config["company_name_keywords"] = [
-                    "dentist",
-                    "orthodont",
-                    "oral",
-                ]
-                self.logger.info(
-                    "🔧 Applied default dental validation keywords for backward compatibility"
-                )
 
         return validated_config
 
     def _select_listing_for_url(
-        self, listings: List[Dict[str, Any]], target_url: str
+        self, listings: List[Dict[str, Any]], target_url: str, icp_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Select the most appropriate listing for a specific URL.
@@ -590,6 +569,7 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         Args:
             listings: List of extracted listings
             target_url: The specific URL we're processing
+            icp_config: ICP configuration for path keyword mappings
 
         Returns:
             Dict: The best matching listing, or None if no good match
@@ -619,17 +599,22 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
             listing_location = listing.get("company", {}).get("location", "").lower()
 
             # Extract keywords from URL path for matching
+            # Use configurable path keyword mappings if available
             path_keywords = []
-            if "northwest-washington" in target_path:
-                path_keywords.extend(["northwest", "washington"])
-            if "philadelphia" in target_path:
-                path_keywords.append("philadelphia")
-            if "oral-surgeon" in target_path:
-                path_keywords.extend(["oral", "surgeon"])
-            if "endodontic" in target_path:
-                path_keywords.append("endodont")
-            if "south-central-pennsylvania" in target_path:
-                path_keywords.extend(["south", "central", "pennsylvania"])
+            path_keyword_mappings = icp_config.get("path_keyword_mappings", {})
+
+            # Check for exact path matches in configuration
+            for path_pattern, keywords in path_keyword_mappings.items():
+                if path_pattern in target_path:
+                    path_keywords.extend(keywords)
+
+            # Fallback: extract common location patterns (city-state, etc.)
+            if not path_keywords:
+                path_parts = target_path.split("/")
+                for part in path_parts:
+                    if "-" in part and any(c.isalpha() for c in part):
+                        # Potential location: "roslyn-ny", "sacramento-ca"
+                        path_keywords.extend(part.split("-"))
 
             # Calculate match score
             score = 0
@@ -667,6 +652,7 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         max_pages: int,
         url_patterns: List[str],
         exclude_patterns: List[str],
+        icp_config: Dict[str, Any],
     ) -> List[str]:
         """
         Discover database listing URLs from a domain using pattern matching.
@@ -674,7 +660,7 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         Args:
             domain: Domain to discover URLs from
             max_pages: Maximum number of URLs to discover
-            url_patterns: URL patterns to look for (e.g., ["/listing/", "/practice-for-sale/"])
+            url_patterns: URL patterns to look for (e.g., ["/listing/", "/item/"])
             exclude_patterns: URL patterns to exclude (e.g., ["/admin", "/login"])
 
         Returns:
@@ -686,25 +672,36 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
 
         # Default patterns if none specified
         if not url_patterns:
-            url_patterns = [
-                "/listing/",
-                "/practice-for-sale/",
-                "/property/",
-                "/opportunity/",
-            ]
+            # Use configurable default patterns from ICP config, or fall back to generic ones
+            default_patterns = icp_config.get("domain_discovery", {}).get(
+                "default_url_patterns",
+                [
+                    "/listing/",
+                    "/item/",
+                    "/product/",
+                    "/service/",
+                ],
+            )
+            url_patterns = default_patterns
 
         if not exclude_patterns:
             exclude_patterns = ["/admin", "/login", "/search", "/contact", "/about"]
 
         # Sample implementation: Generate some realistic URLs
         # In production, this would involve actual web crawling
-        base_patterns = [
-            f"https://{domain}/dental-practice-for-sale/location-1",
-            f"https://{domain}/dental-practice-for-sale/location-2",
-            f"https://{domain}/dental-practice-for-sale/location-3",
-            f"https://{domain}/listings/practice-1",
-            f"https://{domain}/listings/practice-2",
-        ]
+        # Use configurable URL templates if available, otherwise fall back to generic patterns
+        url_templates = icp_config.get("domain_discovery", {}).get("url_templates", [])
+        if url_templates:
+            base_patterns = [
+                template.format(domain=domain, n=i + 1)
+                for i, template in enumerate(url_templates[:max_pages])
+            ]
+        else:
+            # Generic fallback patterns - no industry-specific terms
+            base_patterns = [
+                f"https://{domain}/listings/location-{i + 1}"
+                for i in range(min(5, max_pages))
+            ]
 
         # Filter based on patterns
         for url in base_patterns[:max_pages]:
@@ -720,14 +717,12 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
             f"🌐 Domain discovery would find {len(discovered_urls)} URLs matching patterns {url_patterns}"
         )
 
-        # For demonstration, return the same working URLs we know exist
-        if domain == "usdentalpractices.com":
-            demo_urls = [
-                "https://www.usdentalpractices.com/dental-practice-for-sale/northwest-washington-general-dentist-practice",
-                "https://www.usdentalpractices.com/dental-practice-for-sale/greater-philadelphia-pa-endodontic-practice",
-                "https://www.usdentalpractices.com/dental-practice-for-sale/oral-surgeon-practice-philadelphia",
-            ]
-            self.logger.info(f"🎆 Using demo URLs for {domain}: {len(demo_urls)} URLs")
+        # Check for demo URLs in configuration if available
+        demo_urls = icp_config.get("demo_urls", {}).get(domain)
+        if demo_urls:
+            self.logger.info(
+                f"🎆 Using configured demo URLs for {domain}: {len(demo_urls)} URLs"
+            )
             return demo_urls[:max_pages]
 
         return discovered_urls[:max_pages]
@@ -1902,7 +1897,7 @@ Remember: Extract unique, valuable information about each individual business op
 
         # Find the listing that matches this record's specific URL
         record_url = record.get("provenance", {}).get("specific_url")
-        primary_listing = self._select_listing_for_url(listings, record_url)
+        primary_listing = self._select_listing_for_url(listings, record_url, icp_config)
 
         if not primary_listing:
             # Fallback to first listing if no URL match found

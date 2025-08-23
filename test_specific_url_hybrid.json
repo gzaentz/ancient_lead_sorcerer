@@ -3,7 +3,7 @@
   "icp_text": "Test enhanced intent capture on specific dental practice listing + domain base pages",
     "queries": [],
   "specific_urls": [
-    "https://www.nuvasmile.com/"
+    "https://baystate-dental.com/"
   ],
   "required_fields": ["domain"],
   "optional_fields": ["company_name", "industry"],

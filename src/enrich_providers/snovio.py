@@ -290,7 +290,11 @@ class SnovioProvider(BaseEnrichmentProvider):
 
     async def _get_access_token(self) -> str:
         """Get access token for Snovio API."""
-        if self._access_token and self._token_expires_at and time.time() < self._token_expires_at:
+        if (
+            self._access_token
+            and self._token_expires_at
+            and time.time() < self._token_expires_at
+        ):
             return self._access_token
 
         url = "https://api.snov.io/v1/oauth/access_token"
@@ -314,7 +318,9 @@ class SnovioProvider(BaseEnrichmentProvider):
             token_data = response.json()
             self._access_token = token_data["access_token"]
             # Snovio tokens typically expire in 1 hour, refresh 5 minutes early
-            self._token_expires_at = time.time() + token_data.get("expires_in", 3600) - 300
+            self._token_expires_at = (
+                time.time() + token_data.get("expires_in", 3600) - 300
+            )
             return self._access_token
 
     async def _handle_snovio_error(self, response: httpx.Response, operation: str):

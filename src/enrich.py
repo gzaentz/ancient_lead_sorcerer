@@ -652,13 +652,18 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                                 ]
                                             )
                                         elif role.lower() == "manager":
-                                            decision_maker_titles.extend(
+                                            # Use configurable manager titles from ICP config, or fall back to generic ones
+                                            manager_titles = icp_config.get(
+                                                "role_priority", {}
+                                            ).get(
+                                                "manager_titles",
                                                 [
-                                                    "Practice Manager",
                                                     "Operations Manager",
                                                     "General Manager",
-                                                ]
+                                                    "Department Manager",
+                                                ],
                                             )
+                                            decision_maker_titles.extend(manager_titles)
 
                                 decision_set = {
                                     t.lower() for t in decision_maker_titles
