@@ -21,6 +21,10 @@ from src.enrich import (
     MailgunClient,
     SnovioClient,
     select_best_contact,
+    select_best_contact_llm,
+    validate_llm_response,
+    extract_contact_id,
+    format_contacts_for_llm,
     enrich_company_data,
     enrich_contact_data,
     write_evidence_file,
@@ -1523,6 +1527,194 @@ class TestMissingRequirements:
         # This test will verify best contact selection
         # Implementation depends on contact selection logic
         pass
+
+
+class TestLLMContactSelection:
+    """Test LLM-based contact selection functionality."""
+
+    def test_validate_llm_response_valid_json(self):
+        """Test LLM response validation with valid JSON."""
+        valid_response = '{"contact_id": "123"}'
+        assert validate_llm_response(valid_response) is True
+
+    def test_validate_llm_response_markdown_json(self):
+        """Test LLM response validation with markdown JSON."""
+        markdown_response = '```json\n{"contact_id": "456"}\n```'
+        assert validate_llm_response(markdown_response) is True
+
+    def test_validate_llm_response_invalid_json(self):
+        """Test LLM response validation with invalid JSON."""
+        invalid_response = 'invalid json'
+        assert validate_llm_response(invalid_response) is False
+
+    def test_validate_llm_response_missing_contact_id(self):
+        """Test LLM response validation with missing contact_id."""
+        missing_id_response = '{"wrong_key": "123"}'
+        assert validate_llm_response(missing_id_response) is False
+
+    def test_validate_llm_response_empty_contact_id(self):
+        """Test LLM response validation with empty contact_id."""
+        empty_id_response = '{"contact_id": ""}'
+        assert validate_llm_response(empty_id_response) is False
+
+    def test_extract_contact_id_valid_response(self):
+        """Test contact ID extraction with valid response."""
+        contacts = [
+            {"contact_id": "123", "name": "John Doe"},
+            {"contact_id": "456", "name": "Jane Smith"}
+        ]
+        response = '{"contact_id": "123"}'
+
+        result = extract_contact_id(response, contacts)
+        assert result == "123"
+
+    def test_extract_contact_id_invalid_contact_id(self):
+        """Test contact ID extraction with invalid contact_id."""
+        contacts = [
+            {"contact_id": "123", "name": "John Doe"},
+            {"contact_id": "456", "name": "Jane Smith"}
+        ]
+        response = '{"contact_id": "789"}'  # Not in contacts list
+
+        result = extract_contact_id(response, contacts)
+        assert result is None
+
+    def test_format_contacts_for_llm_basic(self):
+        """Test basic contact formatting for LLM."""
+        contacts = [
+            {
+                "contact_id": "123",
+                "name": "John Doe",
+                "role": "CEO",
+                "company": "Test Corp",
+                "seniority": 1
+            }
+        ]
+
+        result = format_contacts_for_llm(contacts)
+        assert "John Doe" in result
+        assert "CEO" in result
+        assert "Test Corp" in result
+
+    def test_format_contacts_for_llm_with_role_priorities(self):
+        """Test contact formatting with role priorities."""
+        contacts = [
+            {
+                "contact_id": "123",
+                "name": "John Doe",
+                "role": "CEO",
+                "company": "Test Corp",
+                "seniority": 1
+            }
+        ]
+                role_priority_config = {"ceo": 1, "default": 99}
+
+        result = format_contacts_for_llm(contacts, role_priority_config)
+        assert "Priority: 1" in result
+
+    @pytest.mark.asyncio
+    async def test_select_best_contact_llm_no_icp_config(self):
+        """Test LLM contact selection fallback when no ICP config."""
+        contacts = [
+            {"contact_id": "123", "name": "John Doe", "role": "CEO", "seniority": 1}
+        ]
+        role_priority_config = {"CEO": 1, "default": 99}
+
+        # Should fallback to rule-based selection
+        result = await select_best_contact_llm(contacts, role_priority_config, None)
+        assert result == "123"
+
+    @pytest.mark.asyncio
+    async def test_select_best_contact_llm_no_api_key(self):
+        """Test LLM contact selection fallback when no API key."""
+        contacts = [
+            {"contact_id": "123", "name": "John Doe", "role": "CEO", "seniority": 1}
+        ]
+        role_priority_config = {"CEO": 1, "default": 99}
+        icp_config = {"icp_text": "Tech companies", "icp_type": "default"}
+
+        # Mock environment without API key
+        with patch.dict(os.environ, {}, clear=True):
+            result = await select_best_contact_llm(contacts, role_priority_config, icp_config)
+            assert result == "123"  # Should fallback to rule-based
+
+    @pytest.mark.asyncio
+    async def test_select_best_contact_llm_with_mock_success(self):
+        """Test successful LLM contact selection with mocked API."""
+        contacts = [
+            {"contact_id": "ceo", "name": "CEO Person", "role": "CEO", "seniority": 1},
+            {"contact_id": "manager", "name": "Manager Person", "role": "Manager", "seniority": 3}
+        ]
+        role_priority_config = {"CEO": 1, "Manager": 3, "default": 99}
+        icp_config = {"icp_text": "Technology companies", "icp_type": "default"}
+
+        with patch.dict(os.environ, {"OPENROUTER_KEY": "test_key"}):
+            with patch('src.enrich.LLMContactSelector.select_contact') as mock_select:
+                mock_select.return_value = "ceo"
+
+                result = await select_best_contact_llm(contacts, role_priority_config, icp_config)
+                assert result == "ceo"
+                mock_select.assert_called_once_with(contacts, icp_config, role_priority_config)
+
+    def test_format_contacts_edge_cases(self):
+        """Test contact formatting with edge cases."""
+        # Empty contacts list
+        result = format_contacts_for_llm([])
+        assert result == "No contacts available."
+
+        # Contact with missing fields
+        contacts_missing_fields = [
+            {"contact_id": "incomplete", "name": "Incomplete Person"}
+            # Missing role, company, seniority
+        ]
+        result = format_contacts_for_llm(contacts_missing_fields)
+        assert "Incomplete Person" in result
+        assert "Unknown" in result  # Should handle missing fields gracefully
+
+    def test_extract_contact_id_edge_cases(self):
+        """Test contact ID extraction with edge cases."""
+        contacts = [{"contact_id": "valid", "name": "Valid Person"}]
+
+        # Test with extra whitespace
+        result = extract_contact_id('  {"contact_id": "valid"}  ', contacts)
+        assert result == "valid"
+
+        # Test with extra fields in JSON
+        result = extract_contact_id('{"contact_id": "valid", "extra": "field"}', contacts)
+        assert result == "valid"
+
+        # Test with different quote styles (if LLM returns them)
+        result = extract_contact_id('{\"contact_id\": \"valid\"}', contacts)
+        assert result == "valid"
+
+    def test_validate_llm_response_edge_cases(self):
+        """Test LLM response validation with edge cases."""
+        # Test with extra whitespace and newlines
+        assert validate_llm_response('\n\n  {"contact_id": "123"}  \n\n')
+
+        # Test with different markdown variations
+        assert validate_llm_response('```json\n{"contact_id": "123"}\n```')
+        assert validate_llm_response('```\n{"contact_id": "123"}\n```')
+
+        # Test with nested objects (should still be valid if contact_id is present)
+        assert validate_llm_response('{"contact_id": "123", "metadata": {"confidence": 0.9}}')
+
+    @pytest.mark.asyncio
+    async def test_llm_contact_selector_icp_configuration(self):
+        """Test LLM contact selector with different ICP configurations."""
+        contacts = [{"contact_id": "test", "name": "Test Person", "role": "CEO"}]
+
+        # Test with investment ICP type
+        investment_selector = LLMContactSelector("test_key", "investment")
+        assert investment_selector.icp_type == "investment"
+
+        # Test with healthcare ICP type
+        healthcare_selector = LLMContactSelector("test_key", "healthcare")
+        assert healthcare_selector.icp_type == "healthcare"
+
+        # Test with default ICP type
+        default_selector = LLMContactSelector("test_key", "default")
+        assert default_selector.icp_type == "default"
 
 
 if __name__ == "__main__":

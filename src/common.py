@@ -444,7 +444,7 @@ def append_audit(record: Dict[str, Any], step: str, notes: str) -> None:
 
 def recompute_total_cost(record: Dict[str, Any]) -> None:
     """
-    Recompute cost.total_usd as sum of stage costs.
+    Recompute cost.total_usd as sum of stage costs including LLM costs.
 
     Args:
         record: Lead record to update
@@ -455,8 +455,9 @@ def recompute_total_cost(record: Dict[str, Any]) -> None:
     domain_cost = record["cost"].get("domain_usd", 0.0)
     crawl_cost = record["cost"].get("crawl_usd", 0.0)
     enrich_cost = record["cost"].get("enrich_usd", 0.0)
+    llm_cost = record["cost"].get("llm_usd", 0.0)
 
-    total = domain_cost + crawl_cost + enrich_cost
+    total = domain_cost + crawl_cost + enrich_cost + llm_cost
     record["cost"]["total_usd"] = round4(total)
 
 
@@ -955,6 +956,7 @@ def build_metrics(
             "domain": round4(cost_usd.get("domain", 0.0)) if cost_usd else 0.0,
             "crawl": round4(cost_usd.get("crawl", 0.0)) if cost_usd else 0.0,
             "enrich": round4(cost_usd.get("enrich", 0.0)) if cost_usd else 0.0,
+            "llm": round4(cost_usd.get("llm", 0.0)) if cost_usd else 0.0,
             "total": round4(cost_usd.get("total", 0.0)) if cost_usd else 0.0,
         },
     }

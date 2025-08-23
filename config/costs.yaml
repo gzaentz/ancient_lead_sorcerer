@@ -33,6 +33,14 @@ anymail_finder:
   # - $0.015 per contact lookup
   # - $0.012 per email lookup
 
+apollo:
+  unit: 'credit'
+  usd_per_unit: 0.0150
+  # Apollo pricing:
+  # - 1 credit per search request
+  # - 1 credit per enrichment request
+  # - Bulk operations may have different pricing
+
 openrouter:
   unit: '1k_tokens'
   usd_per_unit: 0.0020

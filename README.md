@@ -132,6 +132,67 @@ The `EnrichmentProviderRouter` intelligently routes requests:
 - **Coresignal**: Company information (legacy)
 - **Snovio**: Contact discovery (legacy)
 
+## LLM-Based Contact Selection
+
+Lead Sorcerer now includes intelligent contact selection using Large Language Models (LLMs) to automatically choose the most relevant contacts based on your ICP business context.
+
+### Key Features
+
+- **Context-Aware Selection**: Understands business context beyond simple rules
+- **ICP-Specific Configuration**: Tailored settings for different industry types
+- **Intelligent Fallback**: Automatically falls back to rule-based selection on LLM failures
+- **Cost Optimization**: Built-in caching and cost tracking
+- **Comprehensive Monitoring**: Detailed metrics and quality analysis
+
+### Supported ICP Types
+
+| ICP Type       | Focus                        | Example Use Cases                       |
+| -------------- | ---------------------------- | --------------------------------------- |
+| **Investment** | Capital allocation decisions | Family offices, VCs, investment funds   |
+| **Healthcare** | Medical practice leadership  | Practice owners, medical directors      |
+| **Technology** | Technical decision-making    | CTOs, engineering leaders               |
+| **Enterprise** | Executive leadership         | C-level executives, business unit heads |
+| **Default**    | General business decisions   | Standard business contacts              |
+
+### Configuration
+
+Enable LLM selection by adding configuration to your ICP file:
+
+```json
+{
+  "icp_type": "investment",
+  "icp_text": "Family offices and VCs investing in AI startups",
+  "llm_config": {
+    "model": "gpt-4o-mini",
+    "temperature": 0.0,
+    "max_tokens": 600,
+    "timeout": 30.0
+  }
+}
+```
+
+### Environment Setup
+
+Add your OpenRouter API key:
+
+```bash
+# Add to your .env file
+OPENROUTER_API_KEY=your-api-key-here
+```
+
+### Performance Benefits
+
+- **Higher Accuracy**: Context-aware selection improves contact relevance
+- **Scalable Intelligence**: Easily adapt to new ICP requirements
+- **Reduced Manual Review**: Better selections reduce manual validation
+- **Cost Effective**: Caching minimizes API usage costs
+
+For detailed configuration and usage information, see:
+
+- [LLM Contact Selection Guide](docs/llm_contact_selection_guide.md)
+- [Enrichment Architecture](docs/enrichment_architecture.md)
+- [Maintenance Procedures](docs/llm_maintenance_procedures.md)
+
 ## Schema Validation & Contract
 
 Each tool validates inputs/outputs against the canonical schema (`schemas/unified_lead_record.json`). On schema validation failure, tools return `SCHEMA_VALIDATION` errors while still returning partial results.
