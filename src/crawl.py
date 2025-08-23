@@ -2034,7 +2034,7 @@ Remember: Extract unique, valuable information about each individual business op
             self._process_database_extracted_data(record, extracted_data, icp_config)
             return
 
-                # Process single company data (existing logic)
+            # Process single company data (existing logic)
         company_data = extracted_data.get("company", {})
         if "company" not in record:
             record["company"] = {}
@@ -2109,7 +2109,7 @@ Remember: Extract unique, valuable information about each individual business op
         company["specialties"] = company_data.get("specialties", [])
         company["tech_stack"] = company_data.get("tech_stack", [])
 
-                # Intent analysis fields
+        # Intent analysis fields
         intent_data = company_data.get("intent", {})
         if intent_data:
             # Enhanced intent processing with better defaults
@@ -2215,7 +2215,7 @@ Remember: Extract unique, valuable information about each individual business op
         # Calculate crawl score based on processed data
         self._validate_icp_fit(record, icp_config)
 
-                # Process contacts from team_members (new schema) or employees (legacy)
+        # Process contacts from team_members (new schema) or employees (legacy)
         team_members = extracted_data.get("team_members", [])
         employees = extracted_data.get("employees", [])  # Legacy support
         all_members = team_members + employees  # Combine both sources
@@ -2292,7 +2292,7 @@ Remember: Extract unique, valuable information about each individual business op
                     # This is a company page, not a person - skip
                     continue
 
-                        # Set seniority and role priority
+            # Set seniority and role priority
             contact["seniority"] = get_seniority_rank(role)
 
             role_priority_config = icp_config.get("role_priority", {})

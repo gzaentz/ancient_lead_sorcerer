@@ -29,7 +29,7 @@ from src.common import (
 )
 from src.domain import DomainTool
 from src.crawl import CrawlTool
-from src.enrich import run_enrich
+from src.enrich_provider_router import create_enrichment_router
 
 # ============================================================================
 # Constants and Configuration
@@ -289,13 +289,18 @@ class LeadSorcererOrchestrator:
                         "method": "bypass",
                         "model": "none",
                         "prompt_fingerprint": "specific-url-bypass",
-                        "temperature": 0.0
+                        "temperature": 0.0,
                     },
                     "crawl_score": None,  # Will be set by crawl tool
                     "crawl_reason": None,  # Will be set by crawl tool
                 },
                 "audit": [],  # Will be populated by tools
-                "cost": {"domain_usd": 0.0, "crawl_usd": 0.0, "enrich_usd": 0.0, "total_usd": 0.0},
+                "cost": {
+                    "domain_usd": 0.0,
+                    "crawl_usd": 0.0,
+                    "enrich_usd": 0.0,
+                    "total_usd": 0.0,
+                },
             }
 
             lead_records.append(lead_record)
@@ -434,14 +439,22 @@ class LeadSorcererOrchestrator:
                     self.logger.info(
                         f"🚀 Running Enrich tool with {len(enrich_ready_leads)} leads..."
                     )
+                    # Initialize enrichment provider router
+                    enrichment_router = create_enrichment_router(self.icp_config)
+
                     enrich_payload = {
                         "lead_records": enrich_ready_leads,
                         "icp_config": self.icp_config,
                         "caps": self.icp_config.get("caps", {}),
+                        "router": enrichment_router,  # Pass router to enrich function
                     }
                     self.logger.info(
                         f"🔍 Enrich payload structure: {len(enrich_payload.get('lead_records', []))} leads, {len(enrich_payload.get('icp_config', {}))} config items"
                     )
+
+                    # Call enrich with router (will be updated in Task 4)
+                    from src.enrich import run_enrich
+
                     enrich_result = await run_enrich(enrich_payload)
 
                     if enrich_result.get("errors"):

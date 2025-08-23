@@ -18,6 +18,8 @@ The orchestrator coordinates these tools, ensuring data flows seamlessly from on
 - **No cross-imports**: Tools are completely isolated from each other
 - **Schema-driven**: All tools validate against `schemas/unified_lead_record.json`
 - **Deterministic IDs**: Uses UUID5 with NAMESPACE_DNS/NAMESPACE_URL for consistency
+- **Modular enrichment**: Enrichment providers are pluggable and configurable via tiers
+- **Provider routing**: Intelligent fallback between enrichment providers based on availability and cost
 
 ## Installation
 
@@ -103,6 +105,32 @@ poetry run orchestrator --config icp_config.json
 1. **Domain** → Generates leads from ICP queries, scores them, and filters by threshold
 2. **Crawl** → Extracts company and contact information from websites
 3. **Enrich** → Fills missing data and verifies contact information
+
+## Enrichment Provider Architecture
+
+The enrichment system uses a modular, tier-based architecture:
+
+### Provider Tiers
+
+- **TIER_0**: Primary providers (CompanyEnrich, Anymail Finder)
+- **TIER_1**: Secondary providers (fallback options)
+- **TIER_2**: Legacy providers (Coresignal, Snovio)
+
+### Provider Router
+
+The `EnrichmentProviderRouter` intelligently routes requests:
+
+- Automatically selects the best available provider
+- Implements fallback logic when primary providers fail
+- Tracks provider health and availability
+- Manages cost optimization across providers
+
+### Available Providers
+
+- **CompanyEnrich**: Company data and contact enrichment
+- **Anymail Finder**: Email discovery and verification
+- **Coresignal**: Company information (legacy)
+- **Snovio**: Contact discovery (legacy)
 
 ## Schema Validation & Contract
 
@@ -246,6 +274,11 @@ Required environment variables:
 - `MAILGUN_SMTP_PW`: Mailgun SMTP password
 - `SNOV_IO_ID`: Snov.io API ID
 - `SNOV_IO_SECRET`: Snov.io API secret
+
+### New Enrichment Providers
+
+- `COMPANY_ENRICH_API_KEY`: CompanyEnrich API key for company data enrichment
+- `ANYMAIL_FINDER_API_KEY`: Anymail Finder API key for email discovery
 
 ## License
 

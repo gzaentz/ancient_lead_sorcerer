@@ -49,14 +49,26 @@ jobs:
           poetry install --no-interaction --no-root
           poetry run pip install coverage[toml]
 
-      - name: Lint with flake8
+      - name: Lint with ruff
+        run: |
+          poetry run ruff check src/ tests/ --output-format=github
+
+      - name: Check code formatting with ruff
+        run: |
+          poetry run ruff format --check src/ tests/
+
+      - name: Lint with flake8 (legacy support)
         run: |
           poetry run flake8 src/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
           poetry run flake8 src/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Type check with mypy
         run: |
-          poetry run mypy src/ --ignore-missing-imports --no-strict-optional
+          poetry run mypy src/ --ignore-missing-imports --no-strict-optional --show-error-codes
+
+      - name: Check enrichment provider tests specifically
+        run: |
+          poetry run pytest tests/test_new_providers.py tests/test_enrich_provider_router.py tests/test_integration.py::TestEnrichmentProviderIntegration -v --tb=short
 
       - name: Run tests with coverage
         run: |

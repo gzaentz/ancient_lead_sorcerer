@@ -38,18 +38,17 @@ from src.common import (
     setup_logging,
     truncate_evidence_arrays,
     validate_envelope,
-    validate_provider_config,
     validate_testing_flags,
 )
+
+from src.enrich_provider_router import create_enrichment_router
+from src.enrich_providers.base import EnrichmentRequest
 
 # Load environment variables
 load_dotenv()
 
 # Debug: Show environment variable status without exposing sensitive data
-coresignal_token = os.getenv("CORESIGNAL_API_TOKEN")
-logging.info(
-    f"🔑 Environment CORESIGNAL_API_TOKEN status: {'SET' if coresignal_token else 'NOT SET'}"
-)
+logging.info("🔑 Environment variables will be checked during router initialization")
 # ============================================================================
 # Constants and Configuration
 # ============================================================================
@@ -75,115 +74,6 @@ MAX_WALL_CLOCK = 45.0
 # ============================================================================
 # Provider Clients
 # ============================================================================
-
-
-class CoresignalClient:
-    """Client for Coresignal API."""
-
-    def __init__(self, api_token: str):
-        self.api_token = api_token
-        self.base_url = "https://api.coresignal.com"
-
-    async def enrich_company(self, domain: str) -> Dict[str, Any]:
-        """
-        Enrich company information using Coresignal.
-
-        Args:
-            domain: Company domain
-
-        Returns:
-            Enriched company data
-        """
-        # Use the exact working configuration from the minimal test script
-        website_param = domain.strip()
-        if not website_param.startswith("http://") and not website_param.startswith(
-            "https://"
-        ):
-            website_param = f"https://{website_param}"
-
-        url = f"{self.base_url}/cdapi/v2/company_clean/enrich"
-        params = {"website": website_param}
-        headers = {
-            "accept": "application/json",
-            "apikey": self.api_token,
-        }
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            try:
-                logging.debug(
-                    f"Calling Coresignal API: {url} with website={website_param}"
-                )
-                response = await client.get(url, params=params, headers=headers)
-                response.raise_for_status()
-                return response.json()
-            except httpx.HTTPStatusError as exc:
-                if exc.response.status_code == 404:
-                    logging.warning(
-                        f"Coresignal: Company not found for {domain} (404) - this is normal for smaller companies"
-                    )
-                    return {}  # Return empty dict instead of raising
-                elif exc.response.status_code == 401:
-                    logging.error(f"Coresignal API authentication failed for {domain}")
-                    raise  # Re-raise authentication errors
-                elif exc.response.status_code == 429:
-                    logging.error(f"Coresignal API rate limit exceeded for {domain}")
-                    raise  # Re-raise rate limit errors
-                else:
-                    logging.error(
-                        f"Coresignal API error for {domain}: {exc.response.status_code} - {exc.response.text}"
-                    )
-                    return {}  # Return empty dict instead of raising
-            except Exception as exc:
-                logging.error(f"Coresignal API exception for {domain}: {exc}")
-                # Re-raise unexpected exceptions that indicate configuration issues
-                if "connection" in str(exc).lower() or "timeout" in str(exc).lower():
-                    raise
-                return {}
-
-    async def enrich_contact(self, linkedin_url: str) -> Dict[str, Any]:
-        """
-        Enrich contact information using Coresignal.
-
-        Note: Coresignal doesn't support direct LinkedIn URL enrichment.
-        This method is maintained for backward compatibility but will raise
-        an error. Use enrich_company_contacts() for contact enrichment.
-
-        Args:
-            linkedin_url: LinkedIn profile URL (not supported by Coresignal)
-
-        Returns:
-            Enriched contact data
-        """
-        raise NotImplementedError(
-            "Coresignal doesn't support direct LinkedIn URL enrichment. "
-            "Use enrich_company_contacts() method instead."
-        )
-
-    async def enrich_company_contacts(self, domain: str) -> Dict[str, Any]:
-        """
-        Enrich company contacts using Coresignal.
-
-        Args:
-            domain: Company domain
-
-        Returns:
-            Enriched company contacts data
-        """
-        url = f"{self.base_url}/v2/people/by-company-domain/{domain}"
-        headers = {"apikey": self.api_token}
-
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-            return response.json()
 
 
 class MailgunClient:
@@ -218,647 +108,15 @@ class MailgunClient:
             return response.json()
 
 
-class SnovioClient:
-    """Client for Snov.io email enrichment."""
-
-    def __init__(self, client_id: str, client_secret: str):
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.base_url = "https://api.snov.io/v2"
-        self._access_token = None
-
-    async def _get_access_token(self) -> str:
-        """Get access token for Snov.io API."""
-        if self._access_token:
-            return self._access_token
-
-        url = "https://api.snov.io/v1/oauth/access_token"
-        data = {
-            "grant_type": "client_credentials",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-        }
-
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            response = await client.post(url, data=data)
-            response.raise_for_status()
-            token_data = response.json()
-            self._access_token = token_data["access_token"]
-            return self._access_token
-
-    async def find_email(
-        self, domain: str, first_name: str, last_name: str
-    ) -> Dict[str, Any]:
-        """
-        Find email address using Snov.io.
-
-        Args:
-            domain: Company domain
-            first_name: Contact's first name
-            last_name: Contact's last name
-
-        Returns:
-            Email discovery result
-        """
-        token = await self._get_access_token()
-        url = f"{self.base_url}/search-profile"
-        params = {
-            "access_token": token,
-            "domain": domain,
-            "firstName": first_name,
-            "lastName": last_name,
-        }
-
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-
-    async def search_profiles(
-        self, domain: str, job_title: str = None
-    ) -> Dict[str, Any]:
-        """
-        Search for profiles in a domain using Snov.io v2 API.
-
-        Args:
-            domain: Company domain
-            job_title: Optional job title to filter by
-
-        Returns:
-            Search results with profile data
-        """
-        token = await self._get_access_token()
-        url = f"{self.base_url}/domain-search/prospects/start"
-
-        # Based on our testing, v2 API accepts 'position' (singular) not 'positions' array
-        data = {
-            "access_token": token,
-            "domain": domain,
-        }
-
-        if job_title:
-            # Use 'position' (singular) as the v2 API expects this format
-            data["position"] = job_title
-
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            response = await client.post(url, data=data)
-            response.raise_for_status()
-            return response.json()
-
-    async def get_prospect_results(self, task_hash: str) -> Dict[str, Any]:
-        """
-        Get results from a domain prospect search task using Snov.io v2 API.
-
-        Args:
-            task_hash: Task hash from search_profiles
-
-        Returns:
-            Domain prospect search results
-        """
-        token = await self._get_access_token()
-        url = f"{self.base_url}/domain-search/prospects/result/{task_hash}"
-        params = {"access_token": token}
-
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-
-    async def get_all_domain_prospects(
-        self, domain: str, max_retries: int = 10, poll_delay_seconds: float = 2.0
-    ) -> Dict[str, Any]:
-        """
-        Start a domain prospect search task without role filtering and poll for results.
-
-        Args:
-            domain: Company domain
-            max_retries: Maximum number of polling attempts
-            poll_delay_seconds: Delay between polling attempts
-
-        Returns:
-            The raw API response from the result endpoint when available, or an
-            empty result structure if not available within retry budget.
-        """
-        token = await self._get_access_token()
-        start_url = f"{self.base_url}/domain-search/prospects/start"
-        start_data = {
-            "access_token": token,
-            "domain": domain,
-        }
-
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(
-                timeout=MAX_WALL_CLOCK,
-                connect=CONNECT_TIMEOUT,
-                read=READ_TIMEOUT,
-                write=None,
-                pool=None,
-            )
-        ) as client:
-            # Kick off the async task
-            start_response = await client.post(start_url, data=start_data)
-            start_response.raise_for_status()
-            start_payload = start_response.json() or {}
-
-        # Extract task hash from either meta.task_hash or data.task_hash
-        task_hash = None
-        if isinstance(start_payload.get("meta"), dict):
-            task_hash = start_payload["meta"].get("task_hash")
-        if not task_hash and isinstance(start_payload.get("data"), dict):
-            task_hash = start_payload["data"].get("task_hash")
-
-        if not task_hash:
-            return {"data": [], "meta": {"domain": domain}, "error": "no_task_hash"}
-
-        # Poll for results
-        for _ in range(max_retries):
-            try:
-                result = await self.get_prospect_results(task_hash)
-                # When ready, the result typically contains a populated data list
-                data_field = result.get("data")
-                if isinstance(data_field, list) and len(data_field) > 0:
-                    return result
-                # Some variants may nest prospects differently; if success flag exists, still return
-                if result.get("success") and data_field is not None:
-                    return result
-            except Exception:
-                # Ignore transient errors while polling
-                pass
-            await asyncio.sleep(poll_delay_seconds)
-
-        # Timed out; return the latest known empty-style structure
-        return {
-            "data": [],
-            "meta": {"domain": domain, "task_hash": task_hash},
-            "error": "timeout",
-        }
-
-
 # ============================================================================
 # Field Mapping Functions
 # ============================================================================
 
 
-def map_coresignal_company_fields(
-    coresignal_response: Dict[str, Any],
-) -> Dict[str, Any]:
-    """
-    Map Coresignal company response to unified schema.
+# Field mapping now handled by router and providers
 
-    Args:
-        coresignal_response: Raw response from Coresignal company API
 
-    Returns:
-        Mapped company data in unified format
-    """
-    if not coresignal_response:
-        logging.warning("Coresignal response is empty or None")
-        return {}
-
-    # Log the actual response structure for debugging
-    logging.debug(f"Coresignal response keys: {list(coresignal_response.keys())}")
-
-    # Coresignal response has fields directly at root level, no company wrapper
-    mapped_data = {}
-
-    # Map core fields directly from response root
-    if coresignal_response.get("name"):
-        mapped_data["name"] = coresignal_response["name"]
-        logging.debug(f"Mapped company name: {coresignal_response['name']}")
-
-    if coresignal_response.get("description"):
-        mapped_data["description"] = coresignal_response["description"]
-        logging.debug(
-            f"Mapped company description: {coresignal_response['description'][:100]}..."
-        )
-
-    if coresignal_response.get("industry"):
-        mapped_data["industry"] = coresignal_response["industry"]
-        logging.debug(f"Mapped company industry: {coresignal_response['industry']}")
-
-    # Map size information - Coresignal uses size_range and size_employees_count
-    if coresignal_response.get("size_range"):
-        mapped_data["size_hint"] = coresignal_response["size_range"]
-        logging.debug(
-            f"Mapped company size from size_range: {coresignal_response['size_range']}"
-        )
-    elif coresignal_response.get("size_employees_count"):
-        # Convert exact count to size hint if size_range not available
-        count = coresignal_response["size_employees_count"]
-        if count <= 10:
-            mapped_data["size_hint"] = "1-10"
-        elif count <= 50:
-            mapped_data["size_hint"] = "11-50"
-        elif count <= 200:
-            mapped_data["size_hint"] = "51-200"
-        elif count <= 500:
-            mapped_data["size_hint"] = "201-500"
-        elif count <= 1000:
-            mapped_data["size_hint"] = "501-1000"
-        else:
-            mapped_data["size_hint"] = "1000+"
-        logging.debug(
-            f"Converted employee count {count} to size_hint: {mapped_data['size_hint']}"
-        )
-
-    # Map location information - Coresignal uses location_hq_raw_address and location_hq_country
-    if coresignal_response.get("location_hq_raw_address"):
-        mapped_data["hq_location"] = coresignal_response["location_hq_raw_address"]
-        logging.debug(
-            f"Mapped HQ location: {coresignal_response['location_hq_raw_address']}"
-        )
-
-    if coresignal_response.get("location_hq_country"):
-        mapped_data["hq_country"] = coresignal_response["location_hq_country"]
-        logging.debug(
-            f"Mapped HQ country: {coresignal_response['location_hq_country']}"
-        )
-
-    if coresignal_response.get("location_hq_regions"):
-        mapped_data["hq_regions"] = coresignal_response["location_hq_regions"]
-        logging.debug(
-            f"Mapped HQ regions: {coresignal_response['location_hq_regions']}"
-        )
-
-    # Map LinkedIn ID to the correct schema field
-    linkedin_id = coresignal_response.get("linkedin_id")
-    if linkedin_id:
-        mapped_data["ids"] = {"linkedin": linkedin_id, "crunchbase": None}
-        logging.debug(f"Mapped LinkedIn company ID: {linkedin_id}")
-
-    # Map additional fields that Coresignal provides to schema-compliant fields
-    if coresignal_response.get("founded"):
-        # Convert founded year to integer if it's a string
-        founded_year = coresignal_response["founded"]
-        try:
-            if isinstance(founded_year, str):
-                mapped_data["founded_year"] = int(founded_year)
-            else:
-                mapped_data["founded_year"] = founded_year
-            logging.debug(f"Mapped founded year: {mapped_data['founded_year']}")
-        except (ValueError, TypeError):
-            logging.warning(
-                f"Could not convert founded year to integer: {founded_year}"
-            )
-
-    # Map company type to both ownership_type and company_type for flexibility
-    if coresignal_response.get("type"):
-        mapped_data["ownership_type"] = coresignal_response["type"]
-        mapped_data["company_type"] = coresignal_response["type"]
-        logging.debug(
-            f"Mapped company type to ownership_type and company_type: {coresignal_response['type']}"
-        )
-
-    # Map sector to industry if industry not already set
-    if coresignal_response.get("sector") and not mapped_data.get("industry"):
-        mapped_data["industry"] = coresignal_response["sector"]
-        logging.debug(f"Mapped sector to industry: {coresignal_response['sector']}")
-
-    # Map specialities to naics_keywords if they exist
-    if coresignal_response.get("specialities"):
-        if isinstance(coresignal_response["specialities"], list):
-            mapped_data["naics_keywords"] = coresignal_response["specialities"]
-        else:
-            mapped_data["naics_keywords"] = [coresignal_response["specialities"]]
-        logging.debug(
-            f"Mapped specialities to naics_keywords: {coresignal_response['specialities']}"
-        )
-
-    # Map technologies to tech_stack if they exist
-    if coresignal_response.get("technologies"):
-        if isinstance(coresignal_response["technologies"], list):
-            # Extract technology names from the technology objects
-            tech_names = []
-            for tech in coresignal_response["technologies"]:
-                if isinstance(tech, dict) and tech.get("technology"):
-                    tech_names.append(tech["technology"])
-                elif isinstance(tech, str):
-                    tech_names.append(tech)
-            if tech_names:
-                mapped_data["tech_stack"] = tech_names
-                logging.debug(f"Mapped technologies to tech_stack: {tech_names}")
-        elif isinstance(coresignal_response["technologies"], str):
-            mapped_data["tech_stack"] = [coresignal_response["technologies"]]
-            logging.debug(
-                f"Mapped technologies to tech_stack: {coresignal_response['technologies']}"
-            )
-
-    # Map website to evidence_urls if it's different from the domain
-    if coresignal_response.get("website"):
-        website = coresignal_response["website"]
-        if website and website not in mapped_data.get("evidence_urls", []):
-            if "evidence_urls" not in mapped_data:
-                mapped_data["evidence_urls"] = []
-            mapped_data["evidence_urls"].append(website)
-        logging.debug(f"Mapped website to evidence_urls: {website}")
-
-    # Map all website variations
-    website_fields = [
-        "websites_main_original",
-        "websites_main",
-        "websites_resolved",
-        "websites_facebook",
-        "websites_twitter",
-        "websites_professional_network",
-    ]
-    for field in website_fields:
-        if coresignal_response.get(field):
-            if "evidence_urls" not in mapped_data:
-                mapped_data["evidence_urls"] = []
-            mapped_data["evidence_urls"].append(coresignal_response[field])
-            logging.debug(
-                f"Mapped {field} to evidence_urls: {coresignal_response[field]}"
-            )
-
-    # Map social media URLs
-    social_fields = [
-        "social_discord_urls",
-        "social_facebook_urls",
-        "social_instagram_urls",
-        "social_professional_network_urls",
-        "social_pinterest_urls",
-        "social_tiktok_urls",
-        "social_twitter_urls",
-        "social_x_urls",
-        "social_youtube_urls",
-        "social_github_urls",
-        "social_reddit_urls",
-    ]
-
-    socials = {}
-    for field in social_fields:
-        if coresignal_response.get(field):
-            urls = coresignal_response[field]
-            if isinstance(urls, list) and urls:
-                # Extract platform name from field name
-                platform = field.replace("social_", "").replace("_urls", "")
-                if platform == "professional_network":
-                    platform = "linkedin"  # Map to LinkedIn
-                elif platform == "x":
-                    platform = "twitter"  # Map X to Twitter for consistency
-
-                socials[platform] = urls[0] if urls else None
-                logging.debug(
-                    f"Mapped {field} to socials.{platform}: {urls[0] if urls else None}"
-                )
-
-    if socials:
-        mapped_data["socials"] = socials
-
-    # Map status if it's a meaningful business status
-    if coresignal_response.get("status"):
-        # Only map if it's a business-relevant status
-        status = coresignal_response["status"]
-        if status.lower() in ["active", "operating", "inactive", "closed", "acquired"]:
-            mapped_data["business_status"] = status
-            logging.debug(f"Mapped business status: {status}")
-
-    # Map additional valuable fields
-    if coresignal_response.get("followers"):
-        mapped_data["followers_count"] = coresignal_response["followers"]
-        logging.debug(f"Mapped followers count: {coresignal_response['followers']}")
-
-    if coresignal_response.get("ticker"):
-        mapped_data["ticker"] = coresignal_response["ticker"]
-        logging.debug(f"Mapped ticker: {coresignal_response['ticker']}")
-
-    if coresignal_response.get("exchange"):
-        mapped_data["exchange"] = coresignal_response["exchange"]
-        logging.debug(f"Mapped exchange: {coresignal_response['exchange']}")
-
-    if coresignal_response.get("enriched_summary"):
-        mapped_data["enriched_summary"] = coresignal_response["enriched_summary"]
-        logging.debug(
-            f"Mapped enriched summary: {coresignal_response['enriched_summary'][:100]}..."
-        )
-
-    if coresignal_response.get("enriched_keywords"):
-        mapped_data["enriched_keywords"] = coresignal_response["enriched_keywords"]
-        logging.debug(
-            f"Mapped enriched keywords: {coresignal_response['enriched_keywords']}"
-        )
-
-    if coresignal_response.get("enriched_b2b"):
-        mapped_data["enriched_b2b_score"] = coresignal_response["enriched_b2b"]
-        logging.debug(f"Mapped B2B score: {coresignal_response['enriched_b2b']}")
-
-    if coresignal_response.get("enriched_category"):
-        mapped_data["enriched_category"] = coresignal_response["enriched_category"]
-        logging.debug(
-            f"Mapped enriched category: {coresignal_response['enriched_category']}"
-        )
-
-    # Map phone numbers and emails
-    if coresignal_response.get("phone_numbers"):
-        mapped_data["phone_numbers"] = coresignal_response["phone_numbers"]
-        logging.debug(f"Mapped phone numbers: {coresignal_response['phone_numbers']}")
-
-    if coresignal_response.get("emails"):
-        mapped_data["company_emails"] = coresignal_response["emails"]
-        logging.debug(f"Mapped company emails: {coresignal_response['emails']}")
-
-    # Map funding information
-    if coresignal_response.get("funding_rounds"):
-        funding_rounds = coresignal_response["funding_rounds"]
-        if isinstance(funding_rounds, list) and funding_rounds:
-            # Take the most recent funding round
-            latest_round = funding_rounds[0]
-            mapped_data["funding"] = {
-                "last_round_type": latest_round.get("last_round_type"),
-                "last_round_date": latest_round.get("last_round_date"),
-                "last_round_amount": latest_round.get("last_round_money_raised"),
-                "total_rounds": latest_round.get("total_rounds_count"),
-                "last_round_investors": latest_round.get("last_round_investors_count"),
-            }
-            logging.debug(f"Mapped funding information: {mapped_data['funding']}")
-
-    # Map locations information
-    if coresignal_response.get("locations_full"):
-        locations = coresignal_response["locations_full"]
-        if isinstance(locations, list):
-            mapped_data["locations"] = []
-            for loc in locations:
-                if isinstance(loc, dict):
-                    location_data = {
-                        "address": loc.get("location_address"),
-                        "is_primary": loc.get("is_primary", False),
-                    }
-                    mapped_data["locations"].append(location_data)
-            logging.debug(f"Mapped {len(mapped_data['locations'])} locations")
-
-    # Map business features
-    business_features = {}
-    feature_fields = [
-        "pricing_available",
-        "free_trial_available",
-        "demo_available",
-        "is_downloadable",
-        "mobile_apps_exist",
-        "online_reviews_exist",
-        "api_docs_exist",
-    ]
-
-    for field in feature_fields:
-        if coresignal_response.get(field) is not None:
-            business_features[field] = coresignal_response[field]
-
-    if business_features:
-        mapped_data["business_features"] = business_features
-        logging.debug(f"Mapped business features: {business_features}")
-
-    # Map metadata
-    if coresignal_response.get("metadata_title"):
-        mapped_data["metadata_title"] = coresignal_response["metadata_title"]
-        logging.debug(f"Mapped metadata title: {coresignal_response['metadata_title']}")
-
-    if coresignal_response.get("metadata_description"):
-        mapped_data["metadata_description"] = coresignal_response[
-            "metadata_description"
-        ]
-        logging.debug(
-            f"Mapped metadata description: {coresignal_response['metadata_description'][:100]}..."
-        )
-
-    # Map timestamps
-    if coresignal_response.get("created_at"):
-        mapped_data["created_at"] = coresignal_response["created_at"]
-        logging.debug(f"Mapped created at: {coresignal_response['created_at']}")
-
-    if coresignal_response.get("last_updated"):
-        mapped_data["last_updated"] = coresignal_response["last_updated"]
-        logging.debug(f"Mapped last updated: {coresignal_response['last_updated']}")
-
-    # Map logo if available
-    if coresignal_response.get("logo"):
-        mapped_data["logo"] = coresignal_response["logo"]
-        logging.debug("Mapped company logo")
-
-    # Map domain information
-    if coresignal_response.get("expired_domain") is not None:
-        mapped_data["expired_domain"] = bool(coresignal_response["expired_domain"])
-        logging.debug(f"Mapped expired domain: {mapped_data['expired_domain']}")
-
-    if coresignal_response.get("unique_domain") is not None:
-        mapped_data["unique_domain"] = bool(coresignal_response["unique_domain"])
-        logging.debug(f"Mapped unique domain: {mapped_data['unique_domain']}")
-
-    # Map professional network source ID
-    if coresignal_response.get("professional_network_source_id"):
-        mapped_data["professional_network_id"] = coresignal_response[
-            "professional_network_source_id"
-        ]
-        logging.debug(
-            f"Mapped professional network ID: {coresignal_response['professional_network_source_id']}"
-        )
-
-    logging.info(
-        f"Successfully mapped {len(mapped_data)} fields from Coresignal response"
-    )
-    return mapped_data
-
-
-def map_coresignal_contact_fields(
-    coresignal_response: Dict[str, Any],
-) -> Dict[str, Any]:
-    """
-    Map Coresignal contact response to unified schema.
-
-    Args:
-        coresignal_response: Raw response from Coresignal people API
-
-    Returns:
-        Mapped contact data in unified format
-    """
-    if not coresignal_response:
-        return {}
-
-    # Extract people data from response
-    people_data = coresignal_response.get("people", [])
-    if not people_data:
-        return {}
-
-    # For now, return the first person found
-    # In a full implementation, this would need to handle multiple contacts
-    person = people_data[0] if people_data else {}
-
-    mapped_data = {}
-
-    # Map core fields
-    if person.get("first_name"):
-        mapped_data["first_name"] = person["first_name"]
-
-    if person.get("last_name"):
-        mapped_data["last_name"] = person["last_name"]
-
-    if person.get("full_name"):
-        mapped_data["full_name"] = person["full_name"]
-
-    if person.get("email"):
-        mapped_data["email"] = person["email"]
-        mapped_data["email_source"] = ["provider"]
-        mapped_data["email_status"] = ["unknown"]  # Will be validated by Mailgun
-
-    if person.get("phone"):
-        mapped_data["phone"] = person["phone"]
-
-    if person.get("title"):
-        mapped_data["role"] = person["title"]
-
-    if person.get("linkedin_url"):
-        mapped_data["linkedin"] = person["linkedin_url"]
-
-    # Map additional fields that Coresignal provides
-    if person.get("role"):
-        mapped_data["role_description"] = person["role"]
-
-    if person.get("seniority"):
-        mapped_data["seniority"] = person["seniority"]
-
-    if person.get("department"):
-        mapped_data["department"] = person["department"]
-
-    if person.get("location"):
-        mapped_data["location"] = person["location"]
-
-    if person.get("experience_years"):
-        mapped_data["experience_years"] = person["experience_years"]
-
-    if person.get("skills"):
-        mapped_data["skills"] = person["skills"]
-
-    return mapped_data
+# Contact field mapping now handled by router and providers
 
 
 # ============================================================================
@@ -922,513 +180,13 @@ def select_best_contact(
     return scored_contacts[0][1] if scored_contacts else None
 
 
-async def enrich_company_data(
-    company: Dict[str, Any],
-    domain: str,
-    coresignal_client: CoresignalClient,
-    costs_config: Dict[str, float],
-) -> tuple[Dict[str, Any], float]:
-    """
-    Enrich company data using Coresignal.
+# Company enrichment now handled by router
 
-    Args:
-        company: Company data to enrich
-        domain: Company domain
-        coresignal_client: Coresignal client
-        costs_config: Costs configuration
 
-    Returns:
-        Tuple of (enriched_company, cost_usd)
-    """
-    try:
-        # Enrich company information
-        try:
-            enriched_data = await coresignal_client.enrich_company(domain)
-        except Exception as exc:
-            # Check if it's a credit exhaustion error
-            if "402" in str(exc) or "Payment Required" in str(exc):
-                logging.warning(f"⚠️ CoreSignal API credits exhausted for {domain} - skipping company enrichment")
-            else:
-                logging.warning(f"Failed to enrich company data for {domain}: {exc}")
-            return company, 0.0
+# Contact enrichment now handled by router
 
-        # Log the raw response for debugging
-        logging.info(f"🔍 CoreSignal raw response for {domain}: {enriched_data}")
-        logging.info(f"🔍 CoreSignal response type: {type(enriched_data)}")
 
-        # Defensive programming: ensure enriched_data is a dictionary
-        if not isinstance(enriched_data, dict):
-            logging.warning(f"⚠️ CoreSignal returned non-dict response for {domain}: {type(enriched_data)}")
-            return company, 0.0
-
-        if not enriched_data:
-            logging.info(
-                f"Coresignal returned empty response for domain: {domain} - this is normal for smaller companies"
-            )
-            return company, 0.0
-
-        # Map Coresignal response to unified schema
-        mapped_data = map_coresignal_company_fields(enriched_data)
-
-        # Log mapping results
-        logging.info(
-            f"✅ CoreSignal field mapping for {domain}: {len(mapped_data)} fields mapped"
-        )
-        logging.info(f"🔍 Mapped fields: {list(mapped_data.keys())}")
-        if not mapped_data:
-            logging.warning(
-                f"No fields were mapped for domain: {domain}. Response keys: {list(enriched_data.keys())}"
-            )
-            return company, 0.0
-
-        # Update company fields - enhance existing data with CoreSignal insights
-        fields_updated = 0
-
-        # Always enhance name if CoreSignal provides it (more authoritative)
-        if mapped_data.get("name"):
-            company["name"] = mapped_data["name"]
-            fields_updated += 1
-
-        # Always enhance description if CoreSignal provides it (more comprehensive)
-        if mapped_data.get("description"):
-            company["description"] = mapped_data["description"]
-            fields_updated += 1
-
-        # Always enhance industry if CoreSignal provides it (more accurate classification)
-        if mapped_data.get("industry"):
-            company["industry"] = mapped_data["industry"]
-            fields_updated += 1
-
-        # Always enhance location if CoreSignal provides it (more detailed address)
-        if mapped_data.get("hq_location"):
-            company["hq_location"] = mapped_data["hq_location"]
-            fields_updated += 1
-
-        # Always enhance size information if CoreSignal provides it (more accurate)
-        if mapped_data.get("size_hint"):
-            company["size_hint"] = mapped_data["size_hint"]
-            fields_updated += 1
-
-        # Add new location fields
-        if mapped_data.get("hq_country"):
-            company["hq_country"] = mapped_data["hq_country"]
-            fields_updated += 1
-
-        if mapped_data.get("hq_regions"):
-            company["hq_regions"] = mapped_data["hq_regions"]
-            fields_updated += 1
-
-        # Add social media information
-        if mapped_data.get("socials"):
-            company["socials"] = mapped_data["socials"]
-            fields_updated += 1
-
-        # Add additional CoreSignal fields
-        if mapped_data.get("founded_year") and not company.get("founded_year"):
-            company["founded_year"] = mapped_data["founded_year"]
-            fields_updated += 1
-
-        if mapped_data.get("company_type") and not company.get("company_type"):
-            company["company_type"] = mapped_data["company_type"]
-            fields_updated += 1
-
-        if mapped_data.get("ownership_type") and not company.get("ownership_type"):
-            company["ownership_type"] = mapped_data["ownership_type"]
-            fields_updated += 1
-
-        if mapped_data.get("sector") and not company.get("sector"):
-            company["sector"] = mapped_data["sector"]
-            fields_updated += 1
-
-        # Add new fields that weren't in the original schema
-        if mapped_data.get("followers_count"):
-            company["followers_count"] = mapped_data["followers_count"]
-            fields_updated += 1
-
-        if mapped_data.get("ticker"):
-            company["ticker"] = mapped_data["ticker"]
-            fields_updated += 1
-
-        if mapped_data.get("exchange"):
-            company["exchange"] = mapped_data["exchange"]
-            fields_updated += 1
-
-        if mapped_data.get("enriched_summary"):
-            company["enriched_summary"] = mapped_data["enriched_summary"]
-            fields_updated += 1
-
-        if mapped_data.get("enriched_keywords"):
-            company["enriched_keywords"] = mapped_data["enriched_keywords"]
-            fields_updated += 1
-
-        if mapped_data.get("enriched_b2b_score"):
-            company["enriched_b2b_score"] = mapped_data["enriched_b2b_score"]
-            fields_updated += 1
-
-        if mapped_data.get("enriched_category"):
-            company["enriched_category"] = mapped_data["enriched_category"]
-            fields_updated += 1
-
-        if mapped_data.get("phone_numbers"):
-            company["phone_numbers"] = mapped_data["phone_numbers"]
-            fields_updated += 1
-
-        if mapped_data.get("company_emails"):
-            company["company_emails"] = mapped_data["company_emails"]
-            fields_updated += 1
-
-        if mapped_data.get("funding"):
-            company["funding"] = mapped_data["funding"]
-            fields_updated += 1
-
-        if mapped_data.get("locations"):
-            company["locations"] = mapped_data["locations"]
-            fields_updated += 1
-
-        if mapped_data.get("business_features"):
-            company["business_features"] = mapped_data["business_features"]
-            fields_updated += 1
-
-        if mapped_data.get("metadata_title"):
-            company["metadata_title"] = mapped_data["metadata_title"]
-            fields_updated += 1
-
-        if mapped_data.get("metadata_description"):
-            company["metadata_description"] = mapped_data["metadata_description"]
-            fields_updated += 1
-
-        if mapped_data.get("created_at"):
-            company["created_at"] = mapped_data["created_at"]
-            fields_updated += 1
-
-        if mapped_data.get("last_updated"):
-            company["last_updated"] = mapped_data["last_updated"]
-            fields_updated += 1
-
-        if mapped_data.get("logo"):
-            company["logo"] = mapped_data["logo"]
-            fields_updated += 1
-
-        if mapped_data.get("expired_domain") is not None:
-            company["expired_domain"] = mapped_data["expired_domain"]
-            fields_updated += 1
-
-        if mapped_data.get("unique_domain") is not None:
-            company["unique_domain"] = mapped_data["unique_domain"]
-            fields_updated += 1
-
-        if mapped_data.get("professional_network_id"):
-            company["professional_network_id"] = mapped_data["professional_network_id"]
-            fields_updated += 1
-
-        # Backfill company.ids if missing
-        if mapped_data.get("ids") and not company.get("ids"):
-            company["ids"] = mapped_data["ids"]
-            fields_updated += 1
-
-        # Add evidence URLs (websites)
-        if mapped_data.get("evidence_urls"):
-            if "evidence_urls" not in company:
-                company["evidence_urls"] = []
-            # Add new URLs that aren't already present
-            for url in mapped_data["evidence_urls"]:
-                if url and url not in company["evidence_urls"]:
-                    company["evidence_urls"].append(url)
-                    fields_updated += 1
-
-        # Add tech stack
-        if mapped_data.get("tech_stack"):
-            company["tech_stack"] = mapped_data["tech_stack"]
-            fields_updated += 1
-
-        # Add NAICS keywords
-        if mapped_data.get("naics_keywords"):
-            company["naics_keywords"] = mapped_data["naics_keywords"]
-            fields_updated += 1
-
-        # Add business status
-        if mapped_data.get("business_status"):
-            company["business_status"] = mapped_data["business_status"]
-            fields_updated += 1
-
-        # Log enrichment results
-        logging.info(
-            f"🎯 CoreSignal enrichment completed for {domain}: {fields_updated} fields updated"
-        )
-        if fields_updated > 0:
-            logging.info(
-                f"📊 Updated fields: {[k for k, v in mapped_data.items() if company.get(k) == v]}"
-            )
-
-        # Calculate cost
-        cost_usd = costs_config.get("coresignal", 0.0)
-
-        return company, cost_usd
-
-    except Exception as exc:
-        logging.error(
-            f"Failed to enrich company data for {domain}: {exc}", exc_info=True
-        )
-        return company, 0.0
-
-
-async def enrich_contact_data(
-    contact: Dict[str, Any],
-    domain: str,
-    coresignal_client: CoresignalClient,
-    mailgun_client: MailgunClient,
-    snovio_client: SnovioClient,
-    costs_config: Dict[str, float],
-) -> tuple[Dict[str, Any], float]:
-    """
-    Enrich contact data using multiple providers.
-
-    Args:
-        contact: Contact data to enrich
-        domain: Company domain
-        coresignal_client: Coresignal client
-        mailgun_client: Mailgun client
-        snovio_client: Snov.io client
-        costs_config: Costs configuration
-
-    Returns:
-        Tuple of (enriched_contact, cost_usd)
-    """
-    total_cost = 0.0
-
-    try:
-        # Enrich via Coresignal company contacts if no email
-        if not contact.get("email"):
-            try:
-                # Try to get company contacts from Coresignal
-                company_contacts = await coresignal_client.enrich_company_contacts(
-                    domain
-                )
-
-                # Increment cost for Coresignal API call regardless of outcome
-                total_cost += costs_config.get("coresignal", 0.0)
-
-                # Map Coresignal response to unified schema
-                mapped_contact = map_coresignal_contact_fields(company_contacts)
-
-                # Try to find a matching contact by name
-                if mapped_contact.get("full_name") and contact.get("full_name"):
-                    if (
-                        mapped_contact["full_name"].lower()
-                        == contact["full_name"].lower()
-                    ):
-                        # Update contact fields
-                        if mapped_contact.get("email") and not contact.get("email"):
-                            contact["email"] = mapped_contact["email"]
-                            contact["email_source"] = ["provider"]
-                            contact["email_status"] = [
-                                "unknown"
-                            ]  # Will be validated by Mailgun
-
-                        if mapped_contact.get("phone") and not contact.get("phone"):
-                            contact["phone"] = mapped_contact["phone"]
-
-                        if mapped_contact.get("role") and not contact.get("role"):
-                            contact["role"] = mapped_contact["role"]
-
-            except Exception as exc:
-                logging.warning(
-                    f"Failed to enrich contact via Coresignal company contacts: {exc}"
-                )
-
-        # Try Snov.io for email discovery if no email
-        if not contact.get("email"):
-            try:
-                full_name = contact.get("full_name", "")
-                if full_name and " " in full_name:
-                    first_name, last_name = full_name.split(" ", 1)
-
-                    email_data = await snovio_client.find_email(
-                        domain, first_name, last_name
-                    )
-
-                    if email_data.get("email"):
-                        contact["email"] = email_data["email"]
-                        contact["email_source"] = ["provider"]
-                        contact["email_status"] = [
-                            "unknown"
-                        ]  # Will be validated by Mailgun
-                        total_cost += costs_config.get("snovio", 0.0)
-
-            except Exception as exc:
-                if "402 Payment Required" in str(exc):
-                    logging.warning(
-                        "Snov.io API credits exhausted - skipping email discovery"
-                    )
-                else:
-                    logging.warning(f"Failed to discover email via Snov.io: {exc}")
-
-        # Validate email if present
-        if contact.get("email"):
-            try:
-                validation_result = await mailgun_client.validate_email(
-                    contact["email"]
-                )
-
-                # Map Mailgun status to our email_status
-                mailgun_status = validation_result.get("result", "unknown")
-                if mailgun_status == "valid":
-                    contact["email_status"] = ["valid"]
-                    contact["email_confidence"] = validation_result.get("score", 0.0)
-                elif mailgun_status == "catch_all":
-                    contact["email_status"] = ["catch_all"]
-                    contact["email_confidence"] = 0.5
-                elif mailgun_status == "invalid":
-                    contact["email_status"] = ["invalid"]
-                    contact["email_confidence"] = 0.0
-                else:
-                    contact["email_status"] = ["unknown"]
-                    contact["email_confidence"] = 0.5
-
-                total_cost += costs_config.get("mailgun", 0.0)
-
-            except Exception as exc:
-                logging.warning(f"Failed to validate email: {exc}")
-                contact["email_status"] = ["unknown"]
-                contact["email_confidence"] = 0.0
-
-        # Normalize phone number if present
-        if contact.get("phone"):
-            try:
-                normalized_phone = parse_phone_number(
-                    contact["phone"],
-                    country_code=contact.get("company_country"),
-                    default_country=contact.get("default_country", "US"),
-                )
-                contact["phone"] = normalized_phone
-            except ValueError:
-                # Keep original phone if parsing fails
-                pass
-
-        return contact, total_cost
-
-    except Exception as exc:
-        logging.warning(f"Failed to enrich contact data: {exc}")
-        return contact, total_cost
-
-
-async def discover_contacts_for_domain(
-    domain: str,
-    snovio_client: SnovioClient,
-    costs_config: Dict[str, float],
-    contact_usd_cap: float,
-) -> List[Dict[str, Any]]:
-    """
-    Discover contacts for a domain using Snov.io.
-
-    Args:
-        domain: Company domain
-        snovio_client: Snov.io client
-        costs_config: Costs configuration
-        contact_usd_cap: Maximum cost allowed for contact discovery
-
-    Returns:
-        List of discovered contacts
-    """
-    try:
-        logging.info(f"🔍 Discovering contacts for domain: {domain}")
-
-        # 1) Start by fetching all prospects Snov.io has for the domain (no role filtering)
-        discovered_contacts = []
-        try:
-            all_prospects_result = await snovio_client.get_all_domain_prospects(domain)
-        except Exception as exc:
-            if "402 Payment Required" in str(exc):
-                logging.warning(
-                    f"⚠️ Snov.io API credits exhausted for {domain} - skipping contact discovery"
-                )
-            else:
-                logging.warning(
-                    f"⚠️ Failed to fetch Snov.io prospects for {domain}: {exc}"
-                )
-            all_prospects_result = {"data": []}
-
-        raw_profiles = []
-        data_field = all_prospects_result.get("data")
-        if isinstance(data_field, list):
-            raw_profiles = data_field
-        elif isinstance(data_field, dict) and "prospects" in data_field:
-            raw_profiles = data_field.get("prospects") or []
-
-        # 2) Filter locally for decision-maker titles
-        decision_maker_titles = [
-            "CEO",
-            "Chief Executive Officer",
-            "President",
-            "Owner",
-            "Founder",
-            "Managing Director",
-            "General Manager",
-            "Practice Manager",
-            "Dental Director",
-            "Clinical Director",
-            "Operations Manager",
-        ]
-
-        # Lower-cased set for matching
-        decision_set = {t.lower() for t in decision_maker_titles}
-
-        total_cost = 0.0
-        snovio_cost_per_search = costs_config.get("snovio", 0.0)
-
-        for profile in raw_profiles:
-            if len(discovered_contacts) >= 5:
-                break
-
-            # Title fields vary by endpoint; check several candidates
-            title_value = (
-                profile.get("jobTitle")
-                or profile.get("position")
-                or profile.get("title")
-                or ""
-            )
-
-            if title_value and title_value.lower() not in decision_set:
-                continue
-
-            contact = {
-                "contact_id": f"discovered_{len(discovered_contacts)}",
-                "first_name": profile.get("firstName", ""),
-                "last_name": profile.get("lastName", ""),
-                "email": profile.get("email", ""),
-                "job_title": title_value,
-                "company": profile.get("company", ""),
-                "linkedin_url": profile.get("linkedinUrl", ""),
-                "location": profile.get("location", ""),
-                "discovery_source": "snovio",
-                "discovery_method": "domain_prospects",
-            }
-
-            # Only add if unique by name/email
-            if not any(
-                c.get("email") == contact["email"]
-                and c.get("first_name") == contact["first_name"]
-                and c.get("last_name") == contact["last_name"]
-                for c in discovered_contacts
-            ):
-                discovered_contacts.append(contact)
-                total_cost += snovio_cost_per_search
-                logging.info(
-                    f"✅ Discovered contact: {contact['first_name']} {contact['last_name']} - {contact['job_title']}"
-                )
-
-        if discovered_contacts:
-            logging.info(
-                f"🎯 Successfully discovered {len(discovered_contacts)} contacts for {domain}"
-            )
-        else:
-            logging.warning(f"❌ No contacts discovered for {domain}")
-
-        return discovered_contacts
-
-    except Exception as exc:
-        logging.error(f"❌ Failed to discover contacts for {domain}: {exc}")
-        return []
+# Contact discovery now handled by router
 
 
 def write_evidence_file(
@@ -1480,6 +238,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Enrichment results with data, errors, and metrics
     """
+    print("🚀🚀🚀 RUN_ENRICH FUNCTION STARTED 🚀🚀🚀", flush=True)
     start_time = time.time()
 
     # Resolve data directory first for logging setup. Child tool will use shared
@@ -1533,10 +292,8 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
             costs_config = load_costs_config()
             logging.info(f"✅ Costs config loaded: {list(costs_config.keys())}")
 
-            required_providers = ["coresignal", "mailgun", "snovio"]
-            logging.info(f"🔍 Validating provider config for: {required_providers}")
-            validate_provider_config(required_providers, costs_config)
-            logging.info("✅ Provider config validation passed")
+            # Provider validation now handled by router
+            logging.info("✅ Provider configuration will be validated by router")
         except (FileNotFoundError, KeyError) as exc:
             return {
                 "data": {"lead_records": []},
@@ -1568,28 +325,19 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Initialize provider clients
         logging.info("🔍 Checking environment variables...")
-        coresignal_token = os.environ.get("CORESIGNAL_API_TOKEN")
         mailgun_login = os.environ.get("MAILGUN_SMTP_LOGIN")
         mailgun_password = os.environ.get("MAILGUN_SMTP_PW")
-        snovio_id = os.environ.get("SNOV_IO_ID")
-        snovio_secret = os.environ.get("SNOV_IO_SECRET")
 
         logging.info(
-            f"🔑 Environment check - Coresignal: {'✅' if coresignal_token else '❌'}, Mailgun: {'✅' if mailgun_login else '❌'}, Snov.io: {'✅' if snovio_id else '❌'}"
+            f"🔑 Environment check - Mailgun: {'✅' if mailgun_login else '❌'}"
         )
 
         # Check which specific environment variables are missing
         missing_vars = []
-        if not coresignal_token:
-            missing_vars.append("CORESIGNAL_API_TOKEN")
         if not mailgun_login:
             missing_vars.append("MAILGUN_SMTP_LOGIN")
         if not mailgun_password:
             missing_vars.append("MAILGUN_SMTP_PW")
-        if not snovio_id:
-            missing_vars.append("SNOV_IO_ID")
-        if not snovio_secret:
-            missing_vars.append("SNOV_IO_SECRET")
 
         if missing_vars:
             return {
@@ -1602,11 +350,8 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                             "error": f"Missing required environment variables: {', '.join(missing_vars)}",
                             "missing_variables": missing_vars,
                             "expected_variables": [
-                                "CORESIGNAL_API_TOKEN",
                                 "MAILGUN_SMTP_LOGIN",
                                 "MAILGUN_SMTP_PW",
-                                "SNOV_IO_ID",
-                                "SNOV_IO_SECRET",
                             ],
                         },
                     )
@@ -1614,9 +359,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "metrics": build_metrics(0, 0, 0),
             }
 
-        coresignal_client = CoresignalClient(coresignal_token)
+        # Initialize enrichment provider router
+        enrichment_router = create_enrichment_router(icp_config)
         mailgun_client = MailgunClient(mailgun_login, mailgun_password)
-        snovio_client = SnovioClient(snovio_id, snovio_secret)
 
         # Get configuration values
         role_priority_config = icp_config.get("role_priority", {})
@@ -1639,8 +384,17 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         enriched_count = 0
         partial_count = 0
 
+        print(
+            f"📋📋📋 ABOUT TO PROCESS {len(lead_records)} LEAD RECORDS 📋📋📋",
+            flush=True,
+        )
         for record in lead_records:
             try:
+                # EARLY DEBUG: Log that we're starting to process a record
+                logging.info(
+                    f"🚀 STARTING RECORD PROCESSING FOR: {record.get('domain', 'UNKNOWN')}"
+                )
+
                 # Debug logging to see what record contains
                 logging.info(
                     f"🔍 Processing record: type={type(record)}, content={record}"
@@ -1698,9 +452,46 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         logging.info(
                             f"🔍 About to call enrich_company_data for {normalized_domain}"
                         )
-                        enriched_company, company_cost = await enrich_company_data(
-                            company, normalized_domain, coresignal_client, costs_config
-                        )
+                        # Use router for company enrichment
+                        request = EnrichmentRequest(domain=normalized_domain)
+                        result = await enrichment_router.enrich_company(request)
+
+                        if result.success and result.data:
+                            # Map the enriched data to company fields
+                            enriched_data = result.data
+                            fields_updated = 0
+
+                            # Update company fields with enriched data
+                            if enriched_data.get("name"):
+                                company["name"] = enriched_data["name"]
+                                fields_updated += 1
+                            if enriched_data.get("description"):
+                                company["description"] = enriched_data["description"]
+                                fields_updated += 1
+                            if enriched_data.get("industry"):
+                                company["industry"] = enriched_data["industry"]
+                                fields_updated += 1
+                            if enriched_data.get("size"):
+                                company["size"] = enriched_data["size"]
+                                fields_updated += 1
+                            if enriched_data.get("address"):
+                                company["address"] = enriched_data["address"]
+                                fields_updated += 1
+                            if enriched_data.get("technologies"):
+                                company["technologies"] = enriched_data["technologies"]
+                                fields_updated += 1
+
+                            logging.info(
+                                f"✅ Company enrichment completed for {normalized_domain}: {fields_updated} fields updated"
+                            )
+                            company_cost = result.cost
+                        else:
+                            logging.warning(
+                                f"Company enrichment failed for {normalized_domain}: {result.error}"
+                            )
+                            company_cost = 0.0
+
+                        enriched_company = company
                         logging.info(
                             f"🔍 enrich_company_data returned: type={type(enriched_company)}, content={enriched_company}"
                         )
@@ -1751,15 +542,245 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 # Enrich contacts (only if within budget)
                 contact_cost = 0.0
 
+                # Log the current state before contact discovery
+                logging.info(
+                    f"🔍 About to start contact discovery logic for {normalized_domain}"
+                )
+                logging.info(f"🔍 Current contacts list: {contacts}")
+                logging.info(f"🔍 Contact USD cap: {contact_usd_cap}")
+                logging.info(
+                    f"🔍 Force contact discovery flag: {icp_config.get('testing', {}).get('force_contact_discovery', False)}"
+                )
+
                 # If no contacts exist, try to discover them using Snov.io
-                if not contacts and contact_usd_cap > 0:
+                if (
+                    not contacts
+                    or icp_config.get("testing", {}).get(
+                        "force_contact_discovery", False
+                    )
+                ) and contact_usd_cap > 0:
+                    # Debug logging to see what's happening
+                    logging.info(f"🔍 DEBUG: contacts list length: {len(contacts)}")
                     logging.info(
-                        f"🔍 No contacts found for {normalized_domain}, attempting contact discovery..."
+                        f"🔍 DEBUG: force_contact_discovery flag: {icp_config.get('testing', {}).get('force_contact_discovery', False)}"
+                    )
+                    logging.info(f"🔍 DEBUG: contact_usd_cap: {contact_usd_cap}")
+
+                    # If force_contact_discovery is enabled, clear existing contacts to force fresh discovery
+                    if icp_config.get("testing", {}).get(
+                        "force_contact_discovery", False
+                    ):
+                        logging.info(
+                            f"🔍 Force contact discovery enabled for {normalized_domain}, clearing existing contacts and starting fresh..."
+                        )
+                        contacts = []
+                        record["contacts"] = contacts
+                        logging.info(
+                            f"🔍 DEBUG: After clearing, contacts list length: {len(contacts)}"
+                        )
+
+                    logging.info(
+                        f"🔍 {'No contacts found' if not contacts else 'Force contact discovery enabled'} for {normalized_domain}, attempting contact discovery..."
                     )
                     try:
-                        discovered_contacts = await discover_contacts_for_domain(
-                            normalized_domain, snovio_client, costs_config, contact_usd_cap
-                        )
+                        # Use router for contact discovery
+                        try:
+                            request = EnrichmentRequest(domain=normalized_domain)
+                            result = await enrichment_router.get_all_domain_prospects(
+                                request
+                            )
+
+                            if result.success and result.data:
+                                prospects_data = result.data
+                                discovered_contacts = []
+
+                                # Process prospects data to extract contacts
+                                if (
+                                    isinstance(prospects_data, dict)
+                                    and "data" in prospects_data
+                                ):
+                                    prospects = prospects_data["data"]
+                                elif isinstance(prospects_data, list):
+                                    prospects = prospects_data
+                                else:
+                                    prospects = []
+
+                                # Build decision-maker titles from role priorities
+                                role_priority = icp_config.get("role_priority", {})
+                                decision_maker_titles = []
+
+                                for role, priority in role_priority.items():
+                                    if priority <= 5:  # Focus on high-priority roles
+                                        decision_maker_titles.append(role.title())
+                                        # Add common variations
+                                        if role.lower() == "ceo":
+                                            decision_maker_titles.extend(
+                                                [
+                                                    "Chief Executive Officer",
+                                                    "Chief Executive",
+                                                ]
+                                            )
+                                        elif role.lower() == "owner":
+                                            decision_maker_titles.extend(
+                                                ["Founder", "Proprietor"]
+                                            )
+                                        elif role.lower() == "president":
+                                            decision_maker_titles.extend(
+                                                [
+                                                    "Chief Executive",
+                                                    "Executive Director",
+                                                ]
+                                            )
+                                        elif role.lower() == "vp":
+                                            decision_maker_titles.extend(
+                                                ["Vice President", "Vice-President"]
+                                            )
+                                        elif role.lower() == "director":
+                                            decision_maker_titles.extend(
+                                                [
+                                                    "Managing Director",
+                                                    "Executive Director",
+                                                    "General Manager",
+                                                ]
+                                            )
+                                        elif role.lower() == "head":
+                                            decision_maker_titles.extend(
+                                                [
+                                                    "Head of",
+                                                    "Department Head",
+                                                    "Division Head",
+                                                ]
+                                            )
+                                        elif role.lower() == "manager":
+                                            decision_maker_titles.extend(
+                                                [
+                                                    "Practice Manager",
+                                                    "Operations Manager",
+                                                    "General Manager",
+                                                ]
+                                            )
+
+                                decision_set = {
+                                    t.lower() for t in decision_maker_titles
+                                }
+
+                                # Process prospects and build contacts
+                                for profile in prospects[:5]:  # Limit to 5 contacts
+                                    title_value = (
+                                        profile.get("jobTitle")
+                                        or profile.get("position")
+                                        or profile.get("title")
+                                        or ""
+                                    )
+
+                                    if (
+                                        title_value
+                                        and title_value.lower() not in decision_set
+                                    ):
+                                        continue
+
+                                    contact = {
+                                        "contact_id": f"discovered_{len(discovered_contacts)}",
+                                        "first_name": profile.get("firstName", ""),
+                                        "last_name": profile.get("lastName", ""),
+                                        "email": "",
+                                        "job_title": title_value,
+                                        "company": profile.get("company", ""),
+                                        "linkedin_url": profile.get("linkedinUrl", ""),
+                                        "location": profile.get("location", ""),
+                                        "discovery_source": "router",
+                                        "discovery_method": "domain_prospects",
+                                    }
+
+                                    # Try to discover email for this prospect
+                                    if (
+                                        profile.get("prospectHash")
+                                        or profile.get("hash")
+                                        or profile.get("id")
+                                    ):
+                                        try:
+                                            prospect_request = EnrichmentRequest(
+                                                prospect_hash=profile.get(
+                                                    "prospectHash"
+                                                )
+                                                or profile.get("hash")
+                                                or profile.get("id")
+                                            )
+                                            email_result = await enrichment_router.search_prospect_email(
+                                                prospect_request
+                                            )
+
+                                            if (
+                                                email_result.success
+                                                and email_result.data
+                                            ):
+                                                email_data = email_result.data
+                                                if (
+                                                    isinstance(email_data, list)
+                                                    and len(email_data) > 0
+                                                ):
+                                                    first_email = email_data[0]
+                                                    if isinstance(
+                                                        first_email, dict
+                                                    ) and first_email.get("email"):
+                                                        contact["email"] = first_email[
+                                                            "email"
+                                                        ]
+                                                        logging.info(
+                                                            f"✅ Found email for {contact['first_name']} {contact['last_name']}: {contact['email']}"
+                                                        )
+                                        except Exception as exc:
+                                            logging.warning(
+                                                f"Email discovery failed for prospect: {exc}"
+                                            )
+
+                                    # Only add if we have identifying info
+                                    has_identifying_info = (
+                                        (contact["first_name"] and contact["last_name"])
+                                        or contact["email"]
+                                        or contact["job_title"]
+                                    )
+
+                                    if has_identifying_info:
+                                        # Check for duplicates
+                                        is_duplicate = any(
+                                            c.get("email") == contact["email"]
+                                            and contact["email"]
+                                            or (
+                                                c.get("first_name")
+                                                == contact["first_name"]
+                                                and c.get("last_name")
+                                                == contact["last_name"]
+                                                and contact["first_name"]
+                                                and contact["last_name"]
+                                            )
+                                            for c in discovered_contacts
+                                        )
+
+                                        if not is_duplicate:
+                                            discovered_contacts.append(contact)
+                                            logging.info(
+                                                f"✅ Discovered contact: {contact['first_name']} {contact['last_name']} - {contact['job_title']} - {contact['email']}"
+                                            )
+
+                                if discovered_contacts:
+                                    logging.info(
+                                        f"🎯 Successfully discovered {len(discovered_contacts)} contacts for {normalized_domain}"
+                                    )
+                                else:
+                                    logging.warning(
+                                        f"❌ No contacts discovered for {normalized_domain}"
+                                    )
+                            else:
+                                discovered_contacts = []
+                                logging.warning(
+                                    f"Contact discovery failed for {normalized_domain}: {result.error}"
+                                )
+                        except Exception as exc:
+                            discovered_contacts = []
+                            logging.warning(
+                                f"Contact discovery failed for {normalized_domain}: {exc}"
+                            )
 
                         if discovered_contacts:
                             contacts = discovered_contacts
@@ -1807,17 +828,122 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         contact["company_country"] = company.get("hq_location")
                         contact["default_country"] = default_country
 
-                        (
-                            enriched_contact,
-                            single_contact_cost,
-                        ) = await enrich_contact_data(
-                            contact,
-                            normalized_domain,
-                            coresignal_client,
-                            mailgun_client,
-                            snovio_client,
-                            costs_config,
-                        )
+                        # Use router for contact enrichment
+                        single_contact_cost = 0.0
+
+                        # Try to enrich contact via router if no email
+                        if not contact.get("email"):
+                            try:
+                                request = EnrichmentRequest(domain=normalized_domain)
+                                result = await enrichment_router.enrich_contacts(
+                                    request
+                                )
+
+                                if result.success and result.data:
+                                    # Update contact with enriched data
+                                    enriched_contact_data = result.data
+                                    if enriched_contact_data.get(
+                                        "email"
+                                    ) and not contact.get("email"):
+                                        contact["email"] = enriched_contact_data[
+                                            "email"
+                                        ]
+                                        contact["email_source"] = ["provider"]
+                                        contact["email_status"] = ["unknown"]
+                                    if enriched_contact_data.get(
+                                        "phone"
+                                    ) and not contact.get("phone"):
+                                        contact["phone"] = enriched_contact_data[
+                                            "phone"
+                                        ]
+                                    if enriched_contact_data.get(
+                                        "role"
+                                    ) and not contact.get("role"):
+                                        contact["role"] = enriched_contact_data["role"]
+
+                                    single_contact_cost += result.cost
+                                    logging.info(
+                                        f"✅ Contact enrichment completed for {normalized_domain}"
+                                    )
+                            except Exception as exc:
+                                logging.warning(
+                                    f"Contact enrichment failed for {normalized_domain}: {exc}"
+                                )
+
+                        # Try to find email if still missing
+                        if (
+                            not contact.get("email")
+                            and contact.get("first_name")
+                            and contact.get("last_name")
+                        ):
+                            try:
+                                request = EnrichmentRequest(
+                                    domain=normalized_domain,
+                                    first_name=contact["first_name"],
+                                    last_name=contact["last_name"],
+                                )
+                                result = await enrichment_router.find_email(request)
+
+                                if result.success and result.data and result.data.email:
+                                    contact["email"] = result.data.email
+                                    contact["email_source"] = ["provider"]
+                                    contact["email_status"] = ["unknown"]
+                                    single_contact_cost += result.cost
+                                    logging.info(
+                                        f"✅ Email discovery completed for {normalized_domain}"
+                                    )
+                            except Exception as exc:
+                                logging.warning(
+                                    f"Email discovery failed for {normalized_domain}: {exc}"
+                                )
+
+                        # Validate email if present
+                        if contact.get("email"):
+                            try:
+                                validation_result = await mailgun_client.validate_email(
+                                    contact["email"]
+                                )
+
+                                # Map Mailgun status to our email_status
+                                mailgun_status = validation_result.get(
+                                    "result", "unknown"
+                                )
+                                if mailgun_status == "valid":
+                                    contact["email_status"] = ["valid"]
+                                    contact["email_confidence"] = validation_result.get(
+                                        "score", 0.0
+                                    )
+                                elif mailgun_status == "catch_all":
+                                    contact["email_status"] = ["catch_all"]
+                                    contact["email_confidence"] = 0.5
+                                elif mailgun_status == "invalid":
+                                    contact["email_status"] = ["invalid"]
+                                    contact["email_confidence"] = 0.0
+                                else:
+                                    contact["email_status"] = ["unknown"]
+                                    contact["email_confidence"] = 0.5
+
+                                single_contact_cost += costs_config.get("mailgun", 0.0)
+
+                            except Exception as exc:
+                                logging.warning(f"Failed to validate email: {exc}")
+                                contact["email_status"] = ["unknown"]
+                                contact["email_confidence"] = 0.0
+
+                        # Normalize phone number if present
+                        if contact.get("phone"):
+                            try:
+                                normalized_phone = parse_phone_number(
+                                    contact["phone"],
+                                    country_code=contact.get("company_country"),
+                                    default_country=contact.get(
+                                        "default_country", "US"
+                                    ),
+                                )
+                                contact["phone"] = normalized_phone
+                            except ValueError:
+                                # Keep original phone if parsing fails
+                                pass
 
                         # Cap individual contact cost
                         single_contact_cost = min(
@@ -1951,7 +1077,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         error_msg = "API response format issue - contact discovery may be unavailable"
                 elif "402" in str(exc) or "Payment Required" in str(exc):
                     if "Snov.io" in str(exc) or "contact" in str(exc).lower():
-                        error_msg = "Snov.io API credits exhausted - contact discovery skipped"
+                        error_msg = (
+                            "Snov.io API credits exhausted - contact discovery skipped"
+                        )
                     else:
                         error_msg = "CoreSignal API credits exhausted - company enrichment limited"
                 else:

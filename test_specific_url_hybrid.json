@@ -28,12 +28,14 @@
   },
   "testing": {
     "process_rejected": true,
-    "process_low_crawl": true
+    "process_low_crawl": true,
+    "force_contact_discovery": true
   },
   "caps": {
     "max_domains_per_run": 1,
     "max_crawl_per_run": 1,
-    "max_enrich_per_run": 1
+    "max_enrich_per_run": 1,
+    "contact_usd": 0.03
   },
   "role_priority": {
     "ceo": 1,

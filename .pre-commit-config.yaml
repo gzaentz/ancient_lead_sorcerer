@@ -20,6 +20,13 @@ repos:
       - id: isort
         args: ['--profile', 'black']
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0
     hooks:
@@ -31,3 +38,5 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [types-all]
+        args:
+          [--ignore-missing-imports, --no-strict-optional, --show-error-codes]
