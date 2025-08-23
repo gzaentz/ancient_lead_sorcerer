@@ -37,7 +37,7 @@ class CoresignalProvider(BaseEnrichmentProvider):
         Args:
             api_token: Coresignal API token. If not provided, will try to load from environment.
         """
-        super().__init__(name="Coresignal", tier=ProviderTier.TIER_2)
+        super().__init__(name="Coresignal", tier=ProviderTier.TIER_1)
 
         # Load API token from environment if not provided
         self.api_token = api_token or os.getenv("CORESIGNAL_API_TOKEN")

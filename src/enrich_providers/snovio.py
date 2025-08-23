@@ -56,6 +56,7 @@ class SnovioProvider(BaseEnrichmentProvider):
         self.read_timeout = 10.0
         self.max_wall_clock = 45.0
         self._access_token = None
+        self._token_expires_at = None
         self._last_request_time = 0.0
         self._min_request_interval = (
             1.0  # Minimum 1 second between requests (60 RPM limit)
@@ -140,7 +141,7 @@ class SnovioProvider(BaseEnrichmentProvider):
 
         except Exception as exc:
             await self._handle_generic_error(exc, "contact enrichment")
-
+        raise
         latency_ms = (time.time() - start_time) * 1000
         self.update_metrics(False, cost=0.0, latency_ms=latency_ms)
 
@@ -203,7 +204,7 @@ class SnovioProvider(BaseEnrichmentProvider):
 
         except Exception as exc:
             await self._handle_generic_error(exc, "finding email")
-
+            raise
         latency_ms = (time.time() - start_time) * 1000
         self.update_metrics(False, cost=0.0, latency_ms=latency_ms)
 
@@ -265,6 +266,7 @@ class SnovioProvider(BaseEnrichmentProvider):
         except Exception as exc:
             await self._handle_generic_error(exc, "email validation")
 
+        raise
         latency_ms = (time.time() - start_time) * 1000
         self.update_metrics(False, cost=0.0, latency_ms=latency_ms)
 
@@ -288,7 +290,7 @@ class SnovioProvider(BaseEnrichmentProvider):
 
     async def _get_access_token(self) -> str:
         """Get access token for Snovio API."""
-        if self._access_token:
+        if self._access_token and self._token_expires_at and time.time() < self._token_expires_at:
             return self._access_token
 
         url = "https://api.snov.io/v1/oauth/access_token"
@@ -311,6 +313,8 @@ class SnovioProvider(BaseEnrichmentProvider):
 
             token_data = response.json()
             self._access_token = token_data["access_token"]
+            # Snovio tokens typically expire in 1 hour, refresh 5 minutes early
+            self._token_expires_at = time.time() + token_data.get("expires_in", 3600) - 300
             return self._access_token
 
     async def _handle_snovio_error(self, response: httpx.Response, operation: str):

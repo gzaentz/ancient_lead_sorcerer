@@ -307,7 +307,7 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
                 contact.phone = contact_data["phone"]
 
             if contact_data.get("title"):
-                contact.role = contact_data["title"]
+                contact.job_title = contact_data["title"]
 
             if contact_data.get("linkedin_url"):
                 contact.linkedin_url = contact_data["linkedin_url"]

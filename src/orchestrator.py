@@ -29,6 +29,7 @@ from src.common import (
 )
 from src.domain import DomainTool
 from src.crawl import CrawlTool
+from src.enrich import run_enrich
 from src.enrich_provider_router import create_enrichment_router
 
 # ============================================================================
@@ -453,8 +454,6 @@ class LeadSorcererOrchestrator:
                     )
 
                     # Call enrich with router (will be updated in Task 4)
-                    from src.enrich import run_enrich
-
                     enrich_result = await run_enrich(enrich_payload)
 
                     if enrich_result.get("errors"):
