@@ -64,35 +64,58 @@ class EnrichmentProviderRouter:
 
     def _initialize_providers(self):
         """Initialize and categorize enrichment providers by tier."""
-        try:
-            # TIER_0: Primary providers (new, high-quality)
-            if self._should_use_provider("company_enrich", ProviderTier.TIER_0):
-                self.providers[ProviderTier.TIER_0].append(CompanyEnrichProvider())
-
-            if self._should_use_provider("anymail_finder", ProviderTier.TIER_0):
+        # TIER_0: Primary providers (new, high-quality)
+        # Note: Anymail Finder is initialized first for contact/email discovery priority
+        if self._should_use_provider("anymail_finder", ProviderTier.TIER_0):
+            try:
                 self.providers[ProviderTier.TIER_0].append(AnymailFinderProvider())
+                logging.info("✅ AnymailFinder provider initialized successfully")
+            except Exception as exc:
+                logging.warning(f"⚠️ Failed to initialize AnymailFinder provider: {exc}")
 
-            # TIER_1: Secondary providers (legacy, reliable)
-            if self._should_use_provider("coresignal", ProviderTier.TIER_1):
+        if self._should_use_provider("company_enrich", ProviderTier.TIER_0):
+            try:
+                self.providers[ProviderTier.TIER_0].append(CompanyEnrichProvider())
+                logging.info("✅ CompanyEnrich provider initialized successfully")
+            except Exception as exc:
+                logging.warning(f"⚠️ Failed to initialize CompanyEnrich provider: {exc}")
+
+        # TIER_1: Secondary providers (legacy, reliable)
+        if self._should_use_provider("coresignal", ProviderTier.TIER_1):
+            try:
                 self.providers[ProviderTier.TIER_1].append(CoresignalProvider())
+                logging.info("✅ Coresignal provider initialized successfully")
+            except Exception as exc:
+                logging.warning(f"⚠️ Failed to initialize Coresignal provider: {exc}")
 
-            if self._should_use_provider("snovio", ProviderTier.TIER_1):
+        if self._should_use_provider("snovio", ProviderTier.TIER_1):
+            try:
                 self.providers[ProviderTier.TIER_1].append(SnovioProvider())
+                logging.info("✅ Snov.io provider initialized successfully")
+            except Exception as exc:
+                logging.warning(f"⚠️ Failed to initialize Snov.io provider: {exc}")
 
-            # TIER_2: Legacy providers (last resort)
-            # Currently no TIER_2 providers, but structure is ready for future use
+        # TIER_2: Legacy providers (last resort)
+        # Currently no TIER_2 providers, but structure is ready for future use
 
-            logging.info(
-                f"Router initialized with {len(self.providers[ProviderTier.TIER_0])} TIER_0, "
-                f"{len(self.providers[ProviderTier.TIER_1])} TIER_1 providers"
-            )
+        logging.info(
+            f"Router initialized with {len(self.providers[ProviderTier.TIER_0])} TIER_0, "
+            f"{len(self.providers[ProviderTier.TIER_1])} TIER_1 providers"
+        )
 
-        except Exception as exc:
-            logging.error(f"Failed to initialize enrichment providers: {exc}")
-            # Ensure we have at least one provider available
-            if not any(self.providers.values()):
-                logging.warning("No providers available, falling back to Coresignal")
+        # Ensure we have at least one provider available
+        if not any(self.providers.values()):
+            logging.warning("No providers available, falling back to Coresignal")
+            try:
                 self.providers[ProviderTier.TIER_1].append(CoresignalProvider())
+                logging.info("✅ Coresignal fallback provider initialized successfully")
+            except Exception as exc:
+                logging.error(
+                    f"❌ Failed to initialize Coresignal fallback provider: {exc}"
+                )
+                logging.error(
+                    "❌ No enrichment providers available - enrichment will fail"
+                )
 
     def _should_use_provider(self, provider_name: str, tier: ProviderTier) -> bool:
         """

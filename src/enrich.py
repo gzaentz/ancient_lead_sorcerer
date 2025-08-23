@@ -13,10 +13,11 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
 import httpx
+from openai import AsyncOpenAI
 # import portalocker  # Removed due to Windows compatibility issues
 
 from src.common import (
@@ -70,6 +71,14 @@ CONNECT_TIMEOUT = 3.0
 READ_TIMEOUT = 10.0
 MAX_WALL_CLOCK = 45.0
 
+# LLM Configuration for contact selection
+LLM_MODEL = "gpt-4o-mini"
+LLM_FALLBACK_MODEL = "gpt-3.5-turbo"
+LLM_TEMPERATURE = 0.0
+LLM_MAX_TOKENS = 500
+LLM_TIMEOUT = 30.0
+LLM_BASE_URL = "https://openrouter.ai/api/v1"
+
 
 # ============================================================================
 # Provider Clients
@@ -119,6 +128,100 @@ class MailgunClient:
 # Contact field mapping now handled by router and providers
 
 
+def parse_contact_names(contacts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Parse full names into first/last names for email discovery.
+
+    Args:
+        contacts: List of contacts with potential full_name fields
+
+    Returns:
+        List of contacts with parsed first_name and last_name fields
+    """
+    for contact in contacts:
+        if not isinstance(contact, dict):
+            continue
+
+        # If contact already has first_name and last_name, skip
+        if contact.get("first_name") and contact.get("last_name"):
+            continue
+
+        # Check for full_name field
+        full_name = contact.get("full_name") or contact.get("name")
+        if not full_name:
+            continue
+
+        # Parse the full name
+        first_name, last_name = parse_full_name(full_name)
+
+        # Update the contact with parsed names
+        contact["first_name"] = first_name
+        contact["last_name"] = last_name
+
+        logging.info(
+            f"✅ Parsed name: '{full_name}' -> first: '{first_name}', last: '{last_name}'"
+        )
+
+    return contacts
+
+
+def parse_full_name(full_name: str) -> Tuple[str, str]:
+    """
+    Parse a full name into first and last names, handling prefixes and suffixes.
+
+    Args:
+        full_name: Full name string (e.g., "mr. david sable", "ms. barbara guggenheim")
+
+    Returns:
+        Tuple of (first_name, last_name)
+    """
+    if not full_name:
+        return "", ""
+
+    # Common name prefixes and suffixes to remove
+    prefixes = [
+        "mr.",
+        "ms.",
+        "mrs.",
+        "dr.",
+        "prof.",
+        "professor",
+        "sir",
+        "madam",
+        "captain",
+        "general",
+    ]
+    suffixes = ["jr.", "sr.", "ii", "iii", "iv", "phd", "mba", "esq", "esquire"]
+
+    # Convert to lowercase for comparison
+    name_lower = full_name.lower().strip()
+
+    # Remove prefixes
+    for prefix in prefixes:
+        if name_lower.startswith(prefix):
+            full_name = full_name[len(prefix) :].strip()
+            break
+
+    # Remove suffixes
+    for suffix in suffixes:
+        if name_lower.endswith(suffix):
+            full_name = full_name[: -len(suffix)].strip()
+            break
+
+    # Split remaining name into parts
+    name_parts = full_name.strip().split()
+
+    if len(name_parts) == 0:
+        return "", ""
+    elif len(name_parts) == 1:
+        return name_parts[0], ""
+    elif len(name_parts) == 2:
+        return name_parts[0], name_parts[1]
+    else:
+        # For names with 3+ parts, first is first name, rest is last name
+        return name_parts[0], " ".join(name_parts[1:])
+
+
 # ============================================================================
 # Core Enrichment Logic
 # ============================================================================
@@ -144,14 +247,16 @@ def select_best_contact(
     scored_contacts = []
     for contact in contacts:
         contact_id = contact.get("contact_id", "")
-        role = contact.get("role", "")
+        # Handle both old and new field names
+        role = contact.get("role") or contact.get("job_title", "")
         seniority = contact.get("seniority", 99)
         email_status = (
             contact.get("email_status", ["unknown"])[0]
             if isinstance(contact.get("email_status"), list)
             else contact.get("email_status", "unknown")
         )
-        linkedin = contact.get("linkedin", "")
+        # Handle both old and new field names
+        linkedin = contact.get("linkedin") or contact.get("linkedin_url", "")
 
         # Get role priority
         role_priority = get_role_priority(role, role_priority_config)
@@ -441,6 +546,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     contacts = []
                     record["contacts"] = contacts
 
+                # Parse full names into first/last names for email discovery
+                contacts = parse_contact_names(contacts)
+
                 # Normalize domain
                 normalized_domain = normalize_domain(domain)
                 record["domain"] = normalized_domain
@@ -461,25 +569,51 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                             enriched_data = result.data
                             fields_updated = 0
 
-                            # Update company fields with enriched data
-                            if enriched_data.get("name"):
-                                company["name"] = enriched_data["name"]
-                                fields_updated += 1
-                            if enriched_data.get("description"):
-                                company["description"] = enriched_data["description"]
-                                fields_updated += 1
-                            if enriched_data.get("industry"):
-                                company["industry"] = enriched_data["industry"]
-                                fields_updated += 1
-                            if enriched_data.get("size"):
-                                company["size"] = enriched_data["size"]
-                                fields_updated += 1
-                            if enriched_data.get("address"):
-                                company["address"] = enriched_data["address"]
-                                fields_updated += 1
-                            if enriched_data.get("technologies"):
-                                company["technologies"] = enriched_data["technologies"]
-                                fields_updated += 1
+                            # Handle both dataclass objects and dictionaries
+                            if hasattr(enriched_data, "__dataclass_fields__"):
+                                # It's a dataclass object, access attributes directly
+                                if enriched_data.name:
+                                    company["name"] = enriched_data.name
+                                    fields_updated += 1
+                                if enriched_data.description:
+                                    company["description"] = enriched_data.description
+                                    fields_updated += 1
+                                if enriched_data.industry:
+                                    company["industry"] = enriched_data.industry
+                                    fields_updated += 1
+                                if enriched_data.size:
+                                    company["size"] = enriched_data.size
+                                    fields_updated += 1
+                                if enriched_data.address:
+                                    company["address"] = enriched_data.address
+                                    fields_updated += 1
+                                if enriched_data.technologies:
+                                    company["technologies"] = enriched_data.technologies
+                                    fields_updated += 1
+                            else:
+                                # It's a dictionary, use .get() method
+                                if enriched_data.get("name"):
+                                    company["name"] = enriched_data["name"]
+                                    fields_updated += 1
+                                if enriched_data.get("description"):
+                                    company["description"] = enriched_data[
+                                        "description"
+                                    ]
+                                    fields_updated += 1
+                                if enriched_data.get("industry"):
+                                    company["industry"] = enriched_data["industry"]
+                                    fields_updated += 1
+                                if enriched_data.get("size"):
+                                    company["size"] = enriched_data["size"]
+                                    fields_updated += 1
+                                if enriched_data.get("address"):
+                                    company["address"] = enriched_data["address"]
+                                    fields_updated += 1
+                                if enriched_data.get("technologies"):
+                                    company["technologies"] = enriched_data[
+                                        "technologies"
+                                    ]
+                                    fields_updated += 1
 
                             logging.info(
                                 f"✅ Company enrichment completed for {normalized_domain}: {fields_updated} fields updated"
@@ -671,73 +805,119 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                                 # Process prospects and build contacts
                                 for profile in prospects[:5]:  # Limit to 5 contacts
-                                    title_value = (
-                                        profile.get("jobTitle")
-                                        or profile.get("position")
-                                        or profile.get("title")
-                                        or ""
-                                    )
+                                    # Handle both ContactData objects and dictionaries
+                                    if hasattr(profile, "__dataclass_fields__"):
+                                        # It's a ContactData object, access attributes directly
+                                        title_value = profile.job_title or ""
+                                        first_name = profile.first_name or ""
+                                        last_name = profile.last_name or ""
+                                        company_name = profile.company_name or ""
+                                        linkedin_url = profile.linkedin_url or ""
+                                        location = profile.location or ""
+                                    else:
+                                        # It's a dictionary, use .get() method
+                                        title_value = (
+                                            profile.get("jobTitle")
+                                            or profile.get("position")
+                                            or profile.get("title")
+                                            or ""
+                                        )
+                                        first_name = profile.get("firstName", "")
+                                        last_name = profile.get("lastName", "")
+                                        company_name = profile.get("company", "")
+                                        linkedin_url = profile.get("linkedinUrl", "")
+                                        location = profile.get("location", "")
 
-                                    if (
-                                        title_value
-                                        and title_value.lower() not in decision_set
-                                    ):
+                                    # Check if title matches any decision-maker role
+                                    is_decision_maker = False
+                                    if title_value:
+                                        title_lower = title_value.lower()
+                                        # Check for exact matches first
+                                        if title_lower in decision_set:
+                                            is_decision_maker = True
+                                        else:
+                                            # Check for partial matches (e.g., "Founder & CEO" contains "founder")
+                                            for decision_title in decision_set:
+                                                if (
+                                                    decision_title in title_lower
+                                                    or title_lower in decision_title
+                                                ):
+                                                    is_decision_maker = True
+                                                    break
+
+                                    if not is_decision_maker:
+                                        logging.info(
+                                            f"🔍 Skipping contact with non-decision-maker title: '{title_value}'"
+                                        )
                                         continue
 
                                     contact = {
                                         "contact_id": f"discovered_{len(discovered_contacts)}",
-                                        "first_name": profile.get("firstName", ""),
-                                        "last_name": profile.get("lastName", ""),
+                                        "first_name": first_name,
+                                        "last_name": last_name,
                                         "email": "",
                                         "job_title": title_value,
-                                        "company": profile.get("company", ""),
-                                        "linkedin_url": profile.get("linkedinUrl", ""),
-                                        "location": profile.get("location", ""),
+                                        "company": company_name,
+                                        "linkedin_url": linkedin_url,
+                                        "location": location,
                                         "discovery_source": "router",
                                         "discovery_method": "domain_prospects",
                                     }
 
                                     # Try to discover email for this prospect
-                                    if (
-                                        profile.get("prospectHash")
-                                        or profile.get("hash")
-                                        or profile.get("id")
-                                    ):
-                                        try:
-                                            prospect_request = EnrichmentRequest(
-                                                prospect_hash=profile.get(
-                                                    "prospectHash"
+                                    if hasattr(profile, "__dataclass_fields__"):
+                                        # ContactData object - check if email is already available
+                                        if profile.email:
+                                            contact["email"] = profile.email
+                                            contact["email_source"] = ["provider"]
+                                            contact["email_status"] = [
+                                                profile.email_status or "unknown"
+                                            ]
+                                            logging.info(
+                                                f"✅ Found email from ContactData: {contact['email']} for {contact['first_name']} {contact['last_name']}"
+                                            )
+                                    else:
+                                        # Dictionary - check for prospect hash
+                                        if (
+                                            profile.get("prospectHash")
+                                            or profile.get("hash")
+                                            or profile.get("id")
+                                        ):
+                                            try:
+                                                prospect_request = EnrichmentRequest(
+                                                    prospect_hash=profile.get(
+                                                        "prospectHash"
+                                                    )
+                                                    or profile.get("hash")
+                                                    or profile.get("id")
                                                 )
-                                                or profile.get("hash")
-                                                or profile.get("id")
-                                            )
-                                            email_result = await enrichment_router.search_prospect_email(
-                                                prospect_request
-                                            )
+                                                email_result = await enrichment_router.search_prospect_email(
+                                                    prospect_request
+                                                )
 
-                                            if (
-                                                email_result.success
-                                                and email_result.data
-                                            ):
-                                                email_data = email_result.data
                                                 if (
-                                                    isinstance(email_data, list)
-                                                    and len(email_data) > 0
+                                                    email_result.success
+                                                    and email_result.data
                                                 ):
-                                                    first_email = email_data[0]
-                                                    if isinstance(
-                                                        first_email, dict
-                                                    ) and first_email.get("email"):
-                                                        contact["email"] = first_email[
-                                                            "email"
-                                                        ]
-                                                        logging.info(
-                                                            f"✅ Found email for {contact['first_name']} {contact['last_name']}: {contact['email']}"
-                                                        )
-                                        except Exception as exc:
-                                            logging.warning(
-                                                f"Email discovery failed for prospect: {exc}"
-                                            )
+                                                    email_data = email_result.data
+                                                    if (
+                                                        isinstance(email_data, list)
+                                                        and len(email_data) > 0
+                                                    ):
+                                                        first_email = email_data[0]
+                                                        if isinstance(
+                                                            first_email, dict
+                                                        ) and first_email.get("email"):
+                                                            contact["email"] = (
+                                                                first_email["email"]
+                                                            )
+                                                            logging.info(
+                                                                f"✅ Found email for {contact['first_name']} {contact['last_name']}: {contact['email']}"
+                                                            )
+                                            except Exception as exc:
+                                                logging.warning(
+                                                    f"Email discovery failed for prospect: {exc}"
+                                                )
 
                                     # Only add if we have identifying info
                                     has_identifying_info = (
@@ -809,6 +989,79 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                             )
                         # Continue without contacts rather than failing the entire enrichment
 
+                # Add standalone email discovery step for the best contact
+                if contacts and len(contacts) > 0:
+                    # Find the best contact for email discovery
+                    best_contact = None
+                    for contact in contacts:
+                        if contact.get("first_name") and contact.get("last_name"):
+                            best_contact = contact
+                            break
+
+                    if best_contact:
+                        first_name = best_contact.get("first_name", "")
+                        last_name = best_contact.get("last_name", "")
+                        logging.info(
+                            f"🔍 Attempting email discovery for best contact: {first_name} {last_name} at {normalized_domain}..."
+                        )
+
+                        try:
+                            # Try to discover email for the best contact
+                            email_request = EnrichmentRequest(
+                                domain=normalized_domain,
+                                first_name=first_name,
+                                last_name=last_name,
+                            )
+                            email_result = await enrichment_router.find_email(
+                                email_request
+                            )
+
+                            if email_result.success and email_result.data:
+                                # Create a contact entry for the discovered email
+                                email_data = email_result.data
+                                if hasattr(email_data, "__dataclass_fields__"):
+                                    # It's a ContactData object
+                                    discovered_email = email_data.email
+                                    email_first_name = email_data.first_name or ""
+                                    email_last_name = email_data.last_name or ""
+                                    job_title = email_data.job_title or ""
+                                else:
+                                    # It's a dictionary
+                                    discovered_email = email_data.get("email", "")
+                                    email_first_name = email_data.get("first_name", "")
+                                    email_last_name = email_data.get("last_name", "")
+                                    job_title = email_data.get("job_title", "")
+
+                                if discovered_email:
+                                    # Create a new contact entry
+                                    email_contact = {
+                                        "contact_id": f"email_discovery_{len(contacts)}",
+                                        "first_name": email_first_name,
+                                        "last_name": email_last_name,
+                                        "email": discovered_email,
+                                        "job_title": job_title,
+                                        "company": company.get("name", ""),
+                                        "discovery_source": "email_discovery",
+                                        "discovery_method": "domain_email_search",
+                                        "email_source": ["provider"],
+                                        "email_status": ["unknown"],
+                                    }
+
+                                    # Add to contacts list
+                                    contacts.append(email_contact)
+                                    logging.info(
+                                        f"✅ Email discovery found: {discovered_email} for {normalized_domain}"
+                                    )
+
+                                    # Add to cost tracking
+                                    single_contact_cost = email_result.cost
+                                    contact_cost += single_contact_cost
+
+                        except Exception as exc:
+                            logging.warning(
+                                f"Standalone email discovery failed for {normalized_domain}: {exc}"
+                            )
+
                 # Enrich existing or discovered contacts
                 if contacts and contact_usd_cap > 0:
                     logging.info(
@@ -847,24 +1100,57 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                 if result.success and result.data:
                                     # Update contact with enriched data
                                     enriched_contact_data = result.data
-                                    if enriched_contact_data.get(
-                                        "email"
-                                    ) and not contact.get("email"):
-                                        contact["email"] = enriched_contact_data[
+
+                                    # Handle both dataclass objects and dictionaries
+                                    if hasattr(
+                                        enriched_contact_data, "__dataclass_fields__"
+                                    ):
+                                        # It's a ContactData object, access attributes directly
+                                        if (
+                                            enriched_contact_data.email
+                                            and not contact.get("email")
+                                        ):
+                                            contact["email"] = (
+                                                enriched_contact_data.email
+                                            )
+                                            contact["email_source"] = ["provider"]
+                                            contact["email_status"] = ["unknown"]
+                                        if (
+                                            enriched_contact_data.phone
+                                            and not contact.get("phone")
+                                        ):
+                                            contact["phone"] = (
+                                                enriched_contact_data.phone
+                                            )
+                                        if (
+                                            enriched_contact_data.job_title
+                                            and not contact.get("job_title")
+                                        ):
+                                            contact["job_title"] = (
+                                                enriched_contact_data.job_title
+                                            )
+                                    else:
+                                        # It's a dictionary, use .get() method
+                                        if enriched_contact_data.get(
                                             "email"
-                                        ]
-                                        contact["email_source"] = ["provider"]
-                                        contact["email_status"] = ["unknown"]
-                                    if enriched_contact_data.get(
-                                        "phone"
-                                    ) and not contact.get("phone"):
-                                        contact["phone"] = enriched_contact_data[
+                                        ) and not contact.get("email"):
+                                            contact["email"] = enriched_contact_data[
+                                                "email"
+                                            ]
+                                            contact["email_source"] = ["provider"]
+                                            contact["email_status"] = ["unknown"]
+                                        if enriched_contact_data.get(
                                             "phone"
-                                        ]
-                                    if enriched_contact_data.get(
-                                        "role"
-                                    ) and not contact.get("role"):
-                                        contact["role"] = enriched_contact_data["role"]
+                                        ) and not contact.get("phone"):
+                                            contact["phone"] = enriched_contact_data[
+                                                "phone"
+                                            ]
+                                        if enriched_contact_data.get(
+                                            "role"
+                                        ) and not contact.get("role"):
+                                            contact["role"] = enriched_contact_data[
+                                                "role"
+                                            ]
 
                                     single_contact_cost += result.cost
                                     logging.info(

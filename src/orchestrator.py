@@ -726,11 +726,11 @@ class LeadSorcererOrchestrator:
         """Add best contact fields to CSV export."""
         contact_fields = [
             "best_contact.full_name",
-            "best_contact.role",
+            "best_contact.job_title",  # Changed from role to job_title
             "best_contact.email",
             "best_contact.phone",
             "best_contact.decision_maker",
-            "best_contact.linkedin",
+            "best_contact.linkedin_url",  # Changed from linkedin to linkedin_url
             "best_contact.department",
             "best_contact.seniority",
             "best_contact.location",
@@ -742,22 +742,42 @@ class LeadSorcererOrchestrator:
         try:
             # Get best contact ID
             best_contact_id = record.get("best_contact_id")
-            if not best_contact_id:
-                return ""
-
-            # Find the best contact in contacts array
             contacts = record.get("contacts", [])
-            best_contact = None
-            for contact in contacts:
-                if contact.get("contact_id") == best_contact_id:
-                    best_contact = contact
-                    break
 
-            if not best_contact:
+            if not contacts:
                 return ""
+
+            # If no best_contact_id is set, use the first contact
+            if not best_contact_id and contacts:
+                best_contact = contacts[0]
+            else:
+                # Find the best contact in contacts array by ID
+                best_contact = None
+                for contact in contacts:
+                    if contact.get("contact_id") == best_contact_id:
+                        best_contact = contact
+                        break
+
+                if not best_contact:
+                    return ""
 
             # Get the requested field value
-            value = best_contact.get(field_name)
+            # Handle field name mapping for backward compatibility
+            if field_name == "role":
+                value = best_contact.get("role") or best_contact.get("job_title")
+            elif field_name == "linkedin":
+                value = best_contact.get("linkedin") or best_contact.get("linkedin_url")
+            elif field_name == "full_name":
+                # Construct full name from first_name and last_name if not present
+                value = best_contact.get("full_name")
+                if not value:
+                    first_name = best_contact.get("first_name", "")
+                    last_name = best_contact.get("last_name", "")
+                    if first_name or last_name:
+                        value = f"{first_name} {last_name}".strip()
+            else:
+                value = best_contact.get(field_name)
+
             if value is None:
                 return ""
             elif isinstance(value, bool):

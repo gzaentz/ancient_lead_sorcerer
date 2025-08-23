@@ -561,7 +561,10 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         return validated_config
 
     def _select_listing_for_url(
-        self, listings: List[Dict[str, Any]], target_url: str, icp_config: Dict[str, Any]
+        self,
+        listings: List[Dict[str, Any]],
+        target_url: str,
+        icp_config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
         Select the most appropriate listing for a specific URL.

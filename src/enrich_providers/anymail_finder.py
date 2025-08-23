@@ -79,7 +79,20 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
             CompanyEnrichmentError: For other API errors
         """
         if response.status_code == 200:
-            return response.json()
+            try:
+                data = response.json()
+                # Ensure we always return a dictionary
+                if not isinstance(data, dict):
+                    logging.warning(
+                        f"Anymail Finder API returned non-dict response for {operation}: {type(data)}"
+                    )
+                    return {}
+                return data
+            except Exception as exc:
+                logging.error(
+                    f"Anymail Finder API response parsing failed for {operation}: {exc}"
+                )
+                return {}
         elif response.status_code == 401:
             logging.error(
                 f"Anymail Finder 401 response for {operation}: {response.text}"
@@ -307,7 +320,10 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                 contact.job_title = response_data["person_job_title"]
 
             if response_data.get("person_linkedin_url"):
-                contact.linkedin_url = response_data["person_linkedin_url"]
+                linkedin_url = response_data["person_linkedin_url"]
+                # Filter out fake/placeholder LinkedIn URLs
+                if self._is_valid_linkedin_url(linkedin_url):
+                    contact.linkedin_url = linkedin_url
 
             contacts.append(contact)
 
@@ -344,7 +360,10 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
             contact.job_title = response_data["person_job_title"]
 
         if response_data.get("person_linkedin_url"):
-            contact.linkedin_url = response_data["person_linkedin_url"]
+            linkedin_url = response_data["person_linkedin_url"]
+            # Filter out fake/placeholder LinkedIn URLs
+            if self._is_valid_linkedin_url(linkedin_url):
+                contact.linkedin_url = linkedin_url
 
         return contact
 
@@ -394,3 +413,48 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
             error="Email validation not supported by Anymail Finder API",
             provider="anymail_finder",
         )
+
+    def _is_valid_linkedin_url(self, linkedin_url: str) -> bool:
+        """
+        Check if a LinkedIn URL is valid and not a placeholder/fake URL.
+
+        Args:
+            linkedin_url: LinkedIn URL to validate
+
+        Returns:
+            True if URL appears to be valid, False if it's a placeholder
+        """
+        if not linkedin_url or not isinstance(linkedin_url, str):
+            return False
+
+        # Check for obvious placeholder patterns
+        placeholder_patterns = [
+            "xxxxxx",  # Common placeholder pattern
+            "placeholder",  # Explicit placeholder text
+            "test",  # Test data
+            "example",  # Example data
+            "dummy",  # Dummy data
+            "fake",  # Fake data
+            "mock",  # Mock data
+            "sample",  # Sample data
+        ]
+
+        linkedin_lower = linkedin_url.lower()
+        for pattern in placeholder_patterns:
+            if pattern in linkedin_lower:
+                return False
+
+        # Check for valid LinkedIn URL structure
+        if not linkedin_url.startswith("https://www.linkedin.com/in/"):
+            return False
+
+        # Check if the profile identifier is reasonable (not just placeholder text)
+        profile_id = linkedin_url.replace("https://www.linkedin.com/in/", "")
+        if (
+            len(profile_id) < 3
+            or profile_id.isdigit()
+            or profile_id in ["profile", "id"]
+        ):
+            return False
+
+        return True
