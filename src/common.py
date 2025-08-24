@@ -1365,6 +1365,36 @@ def validate_testing_flags(icp_config: Dict[str, Any]) -> None:
 # ============================================================================
 
 
+def normalize_role_priority(role_priority_config: Dict[str, Any]) -> Dict[str, int]:
+    """
+    Normalize role_priority configuration by converting keys to lowercase and values to integers.
+
+    Args:
+        role_priority_config: Raw role priority configuration from config file
+
+    Returns:
+        Normalized role priority configuration with lowercase keys and integer values
+    """
+    if not isinstance(role_priority_config, dict):
+        return {}
+
+    normalized = {}
+    for key, value in role_priority_config.items():
+        # Normalize key: strip whitespace and convert to lowercase
+        normalized_key = str(key).strip().lower()
+
+        # Normalize value: convert to integer
+        try:
+            normalized_value = int(value)
+        except (ValueError, TypeError):
+            # If conversion fails, use default priority
+            normalized_value = 99
+
+        normalized[normalized_key] = normalized_value
+
+    return normalized
+
+
 def get_role_priority(role: str, role_priority_config: Dict[str, int]) -> int:
     """
     Get role priority from configuration.

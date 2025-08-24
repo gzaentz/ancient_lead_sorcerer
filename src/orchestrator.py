@@ -26,6 +26,9 @@ from src.common import (
     load_costs_config,
     round4,
     now_z,
+    normalize_role_priority,
+    build_error,
+    ErrorCode,
 )
 from src.domain import DomainTool
 from src.crawl import CrawlTool
@@ -106,7 +109,7 @@ class LeadSorcererOrchestrator:
         """Properly cleanup resources, especially async Apollo client."""
         if hasattr(self, "apollo_tool") and self.apollo_tool is not None:
             try:
-                if hasattr(self.apollo_tool, 'close'):
+                if hasattr(self.apollo_tool, "close"):
                     if asyncio.iscoroutinefunction(self.apollo_tool.close):
                         await self.apollo_tool.close()
                     else:
@@ -120,9 +123,13 @@ class LeadSorcererOrchestrator:
         if hasattr(self, "apollo_tool") and self.apollo_tool is not None:
             try:
                 # Only attempt sync cleanup as fallback
-                if hasattr(self.apollo_tool, 'close') and not asyncio.iscoroutinefunction(self.apollo_tool.close):
+                if hasattr(
+                    self.apollo_tool, "close"
+                ) and not asyncio.iscoroutinefunction(self.apollo_tool.close):
                     self.apollo_tool.close()
-                elif hasattr(self.apollo_tool, 'close') and asyncio.iscoroutinefunction(self.apollo_tool.close):
+                elif hasattr(self.apollo_tool, "close") and asyncio.iscoroutinefunction(
+                    self.apollo_tool.close
+                ):
                     # Schedule async cleanup as last resort
                     try:
                         loop = asyncio.get_event_loop()
@@ -161,11 +168,10 @@ class LeadSorcererOrchestrator:
                 ) from e
             except ImportError as e:
                 import traceback
+
                 self.logger.error(f"Failed to import Apollo lead generation tool: {e}")
                 self.logger.error(f"Full traceback: {traceback.format_exc()}")
-                raise ValueError(
-                    f"Apollo mode import error: {e}"
-                )
+                raise ValueError(f"Apollo mode import error: {e}")
 
             # Still initialize traditional tools for fallback if needed
             self.domain_tool = DomainTool(self.icp_config, self.data_dir)
@@ -229,6 +235,10 @@ class LeadSorcererOrchestrator:
             for field in required_fields:
                 if field not in config:
                     raise ValueError(f"Missing required field: {field}")
+
+            # Normalize role_priority configuration
+            if "role_priority" in config:
+                config["role_priority"] = normalize_role_priority(config["role_priority"])
 
             return config
         except Exception as e:
@@ -453,7 +463,7 @@ class LeadSorcererOrchestrator:
             self.logger.error(f"Pipeline failed: {e}")
             return {
                 "success": False,
-                "error": str(e),
+                "errors": [build_error(ErrorCode.UNKNOWN, exc=e, tool="orchestrator")],
                 "metrics": self._build_error_metrics(),
             }
 

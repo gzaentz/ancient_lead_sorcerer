@@ -91,6 +91,7 @@ class BroadSearchStrategy(SearchStrategy):
     def execute(self, filters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute broad search strategy"""
         import copy
+
         # Simplify filters to increase coverage
         broad_filters = copy.deepcopy(filters)
 
@@ -142,6 +143,7 @@ class FocusedSearchStrategy(SearchStrategy):
     def execute(self, filters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute focused search strategy"""
         import copy
+
         # Apply strict filters for high quality
         focused_filters = copy.deepcopy(filters)
 
@@ -200,6 +202,7 @@ class BalancedSearchStrategy(SearchStrategy):
     def execute(self, filters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute balanced search strategy"""
         import copy
+
         # Apply moderate filters
         balanced_filters = copy.deepcopy(filters)
 

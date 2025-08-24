@@ -482,7 +482,13 @@ class TestApolloIntegration:
             assert result is not None
             assert "success" in result
             # The orchestrator should handle errors gracefully
-            assert result.get("success") is False and "errors" in result
+            assert result.get("success") is False
+            assert "errors" in result
+            assert isinstance(result["errors"], list)
+            assert len(result["errors"]) > 0
+            # Optionally validate specific error semantics
+            first_error = result["errors"][0]
+            assert "message" in first_error or "error" in first_error
 
     @pytest.mark.asyncio
     async def test_apollo_performance_under_load(self, tmp_path):

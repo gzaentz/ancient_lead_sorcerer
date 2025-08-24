@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
-from src.common import PermitManager
+from src.common import PermitManager, get_role_priority
 from src.apollo_client import ApolloClient, create_apollo_client_from_env
 from src.apollo_search_optimizer import AISearchQueryOptimizer, AISearchConfig
 from src.apollo_result_scorer import (
@@ -1169,19 +1169,8 @@ class ApolloLeadGen:
         Returns:
             Role priority (lower = higher priority)
         """
-        role_priority = self.icp_config.get("role_priority", {})
-
-        # Check for exact matches first
-        if job_title.lower() in role_priority:
-            return role_priority[job_title.lower()]
-
-        # Check for partial matches
-        for role, priority in role_priority.items():
-            if role.lower() in job_title.lower() or job_title.lower() in role.lower():
-                return priority
-
-        # Return default priority
-        return role_priority.get("default", 99)
+        role_priority_config = self.icp_config.get("role_priority", {})
+        return get_role_priority(job_title, role_priority_config)
 
     def _validate_lead_quality(self, lead: Dict[str, Any]) -> bool:
         """
