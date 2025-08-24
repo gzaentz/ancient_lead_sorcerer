@@ -461,9 +461,423 @@ def check_cost_thresholds():
         send_alert("WARNING: Approaching monthly budget limit")
 ```
 
-## Quality Assurance
+## Apollo Integration Maintenance
 
-### Selection Quality Metrics
+### Daily Apollo Monitoring
+
+**Frequency**: Every hour during business hours
+
+**Metrics to Monitor**:
+
+```bash
+# Check Apollo system health
+python -c "
+from src.orchestrator import LeadSorcererOrchestrator
+import json
+
+# Load configuration
+with open('icp_config.json') as f:
+    config = json.load(f)
+
+# Check if Apollo is enabled
+apollo_enabled = config.get('lead_generation_mode') == 'apollo' and config.get('apollo', {}).get('enabled', False)
+print(f'Apollo Mode: {\"Enabled\" if apollo_enabled else \"Disabled\"}')
+
+if apollo_enabled:
+    print('Apollo Configuration:')
+    apollo_config = config.get('apollo', {})
+    print(f'  - Search Strategy: {apollo_config.get(\"search\", {}).get(\"strategy\", \"NOT SET\")}')
+    print(f'  - Max Results: {apollo_config.get(\"search\", {}).get(\"max_results\", \"NOT SET\")}')
+    print(f'  - Quality Thresholds: {apollo_config.get(\"enrich\", {}).get(\"quality_thresholds\", {})}')
+"
+```
+
+**Alert Thresholds**:
+
+- API Error Rate > 5%: **WARNING**
+- API Error Rate > 10%: **CRITICAL**
+- Rate Limiting > 10 per hour: **WARNING**
+- Rate Limiting > 50 per hour: **CRITICAL**
+- Credit Usage > 80% of daily limit: **WARNING**
+
+### Apollo API Key Rotation
+
+**Frequency**: Every 90 days or when compromised
+
+**Procedure**:
+
+```bash
+# 1. Generate new API key in Apollo dashboard
+# 2. Update environment variables
+export APOLLO_API_KEY="new_api_key_here"
+
+# 3. Test new key
+poetry run python -c "
+import asyncio
+import os
+from src.apollo_client import ApolloClient
+
+async def test_new_key():
+    client = ApolloClient(api_key=os.getenv('APOLLO_API_KEY'))
+    try:
+        response = await client.search_companies({'per_page': 1})
+        print(f'✅ New API key working: {response.status_code}')
+    except Exception as e:
+        print(f'❌ New API key failed: {e}')
+
+asyncio.run(test_new_key())
+"
+
+# 4. Update .env file
+sed -i 's/APOLLO_API_KEY=.*/APOLLO_API_KEY=new_api_key_here/' .env
+
+# 5. Restart services
+poetry run python -m src.orchestrator --config icp_config.json
+```
+
+**Rollback Plan**:
+
+- Keep old key active for 24 hours
+- Monitor for any issues with new key
+- Revert to old key if problems occur
+
+### Rate Limit Monitoring
+
+**Real-time monitoring**:
+
+```bash
+# Monitor rate limiting in logs
+tail -f logs/*.log | grep -E "(429|rate.limit|too.many.requests)"
+
+# Check current rate limit status
+poetry run python -c "
+import asyncio
+import os
+from src.apollo_client import ApolloClient
+
+async def check_rate_limits():
+    client = ApolloClient(api_key=os.getenv('APOLLO_API_KEY'))
+
+    # Make test requests to check current limits
+    for i in range(5):
+        try:
+            response = await client.search_companies({'per_page': 1})
+            print(f'Request {i+1}: {response.status_code}')
+            if response.status_code == 429:
+                print('⚠️ Rate limit hit!')
+                break
+        except Exception as e:
+            print(f'Request {i+1} failed: {e}')
+        await asyncio.sleep(1)
+
+asyncio.run(check_rate_limits())
+"
+```
+
+**Rate Limit Optimization**:
+
+```python
+# Adjust batch sizes based on rate limits
+def optimize_batch_size(current_error_rate):
+    if current_error_rate > 0.1:  # >10% errors
+        return max(10, current_batch_size // 2)
+    elif current_error_rate < 0.02:  # <2% errors
+        return min(100, current_batch_size * 1.2)
+    else:
+        return current_batch_size
+```
+
+### Credit Usage Tracking
+
+**Daily credit monitoring**:
+
+```bash
+# Check daily credit usage
+poetry run python -c "
+import json
+from datetime import datetime, timedelta
+
+# Load cost tracking data
+try:
+    with open('data/costs/apollo_credits.json') as f:
+        credit_data = json.load(f)
+
+    today = datetime.now().strftime('%Y-%m-%d')
+    daily_usage = credit_data.get(today, 0)
+
+    print(f'Today\'s Apollo credit usage: {daily_usage}')
+
+    if daily_usage > 800:
+        print('⚠️ WARNING: High credit usage today')
+    elif daily_usage > 950:
+        print('🚨 CRITICAL: Approaching daily credit limit')
+
+except FileNotFoundError:
+    print('No credit tracking data found')
+"
+```
+
+**Credit Optimization Strategies**:
+
+```python
+# Implement credit-aware routing
+def optimize_credit_usage(remaining_credits, daily_limit):
+    if remaining_credits < daily_limit * 0.1:  # <10% remaining
+        return {
+            'batch_size': 10,  # Reduce batch size
+            'quality_threshold': 0.9,  # Increase quality threshold
+            'skip_optional_enrichment': True
+        }
+    elif remaining_credits < daily_limit * 0.3:  # <30% remaining
+        return {
+            'batch_size': 25,
+            'quality_threshold': 0.8,
+            'skip_optional_enrichment': False
+        }
+    else:
+        return {
+            'batch_size': 50,
+            'quality_threshold': 0.7,
+            'skip_optional_enrichment': False
+        }
+```
+
+### Error Rate Monitoring
+
+**Error tracking and analysis**:
+
+```bash
+# Monitor Apollo-specific errors
+grep -r "Apollo.*error\|apollo.*failed\|429.*apollo" logs/ | tail -20
+
+# Check error patterns
+poetry run python -c "
+import json
+from collections import Counter
+
+# Analyze recent error logs
+error_patterns = []
+with open('logs/apollo_errors.log', 'r') as f:
+    for line in f:
+        if 'ERROR' in line:
+            error_patterns.append(line.strip())
+
+# Count error types
+error_counts = Counter()
+for error in error_patterns:
+    if '429' in error:
+        error_counts['rate_limit'] += 1
+    elif '401' in error:
+        error_counts['auth_error'] += 1
+    elif '500' in error:
+        error_counts['server_error'] += 1
+    else:
+        error_counts['other'] += 1
+
+print('Error Distribution:')
+for error_type, count in error_counts.most_common():
+    print(f'  {error_type}: {count}')
+"
+```
+
+**Error Response Procedures**:
+
+1. **Rate Limiting (429)**:
+
+   - Implement exponential backoff
+   - Reduce batch sizes
+   - Monitor for patterns
+
+2. **Authentication Errors (401)**:
+
+   - Verify API key validity
+   - Check key permissions
+   - Rotate API key if needed
+
+3. **Server Errors (5xx)**:
+   - Log error details
+   - Implement retry logic
+   - Contact Apollo support if persistent
+
+### Performance Monitoring
+
+**Response time tracking**:
+
+```bash
+# Monitor API response times
+poetry run python -c "
+import asyncio
+import time
+import statistics
+from src.apollo_client import ApolloClient
+import os
+
+async def benchmark_performance():
+    client = ApolloClient(api_key=os.getenv('APOLLO_API_KEY'))
+
+    response_times = []
+    operations = [
+        ('search_companies', {'per_page': 1}),
+        ('search_persons', {'per_page': 1}),
+        ('enrich_company', {'domain': 'example.com'}),
+        ('enrich_person', {'email': 'test@example.com'})
+    ]
+
+    for op_name, params in operations:
+        times = []
+        for _ in range(3):  # 3 test runs
+            start_time = time.time()
+            try:
+                response = await getattr(client, op_name)(params)
+                duration = time.time() - start_time
+                times.append(duration)
+            except Exception as e:
+                print(f'{op_name} failed: {e}')
+
+        if times:
+            avg_time = statistics.mean(times)
+            response_times.append((op_name, avg_time))
+
+    print('Performance Benchmark:')
+    for op_name, avg_time in response_times:
+        status = '✅' if avg_time < 2.0 else '⚠️' if avg_time < 5.0 else '❌'
+        print(f'{status} {op_name}: {avg_time:.2f}s')
+
+asyncio.run(benchmark_performance())
+"
+```
+
+**Performance Optimization**:
+
+```python
+# Implement performance-based routing
+def optimize_performance(current_response_time):
+    if current_response_time > 5.0:  # >5 seconds
+        return {
+            'use_caching': True,
+            'reduce_batch_size': True,
+            'implement_backoff': True
+        }
+    elif current_response_time > 2.0:  # >2 seconds
+        return {
+            'use_caching': True,
+            'reduce_batch_size': False,
+            'implement_backoff': False
+        }
+    else:
+        return {
+            'use_caching': False,
+            'reduce_batch_size': False,
+            'implement_backoff': False
+        }
+```
+
+### Data Quality Monitoring
+
+**Quality metrics tracking**:
+
+```bash
+# Monitor lead quality metrics
+poetry run python -c "
+import json
+from datetime import datetime, timedelta
+
+# Load recent results
+try:
+    with open('data/apollo_results.json') as f:
+        results = json.load(f)
+
+    # Calculate quality metrics
+    total_leads = len(results.get('leads', []))
+    quality_scores = [lead.get('quality_score', 0) for lead in results.get('leads', [])]
+
+    if quality_scores:
+        avg_quality = sum(quality_scores) / len(quality_scores)
+        high_quality = len([s for s in quality_scores if s >= 0.8])
+
+        print(f'Data Quality Metrics:')
+        print(f'  - Total Leads: {total_leads}')
+        print(f'  - Average Quality: {avg_quality:.2f}')
+        print(f'  - High Quality (≥0.8): {high_quality}/{total_leads}')
+
+        if avg_quality < 0.7:
+            print('⚠️ WARNING: Low average quality score')
+
+except FileNotFoundError:
+    print('No Apollo results data found')
+"
+```
+
+**Quality Improvement Process**:
+
+1. **Weekly Quality Review**:
+
+   - Sample 50 recent leads
+   - Manual quality assessment
+   - Identify quality patterns
+   - Adjust thresholds if needed
+
+2. **Threshold Optimization**:
+   - Review quality thresholds monthly
+   - Adjust based on business requirements
+   - Monitor impact on lead volume
+
+### Weekly Apollo Report
+
+**Generate comprehensive report**:
+
+```python
+#!/usr/bin/env python3
+"""Weekly Apollo Performance Report"""
+
+import json
+from datetime import datetime, timedelta
+
+def generate_apollo_weekly_report():
+    report = {
+        "report_date": datetime.now().isoformat(),
+        "period": "7 days",
+        "apollo_metrics": {
+            "total_leads_generated": 0,
+            "total_credits_used": 0,
+            "average_quality_score": 0.0,
+            "error_rate": 0.0,
+            "rate_limit_events": 0
+        },
+        "performance_metrics": {
+            "average_response_time": 0.0,
+            "cache_hit_rate": 0.0,
+            "batch_efficiency": 0.0
+        },
+        "cost_analysis": {
+            "cost_per_lead": 0.0,
+            "daily_cost_trend": [],
+            "budget_utilization": 0.0
+        },
+        "recommendations": []
+    }
+
+    # Generate recommendations based on metrics
+    if report["apollo_metrics"]["error_rate"] > 0.05:
+        report["recommendations"].append("High error rate detected - review API configuration")
+
+    if report["apollo_metrics"]["rate_limit_events"] > 10:
+        report["recommendations"].append("Frequent rate limiting - optimize batch sizes")
+
+    if report["cost_analysis"]["cost_per_lead"] > 0.05:
+        report["recommendations"].append("High cost per lead - review quality thresholds")
+
+    return report
+
+# Generate and save report
+if __name__ == "__main__":
+    report = generate_apollo_weekly_report()
+    with open(f'reports/apollo_weekly_{datetime.now().strftime("%Y%m%d")}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+    print("Weekly Apollo report generated successfully")
+```
+
+## Quality Assurance
 
 **Define quality scoring**:
 

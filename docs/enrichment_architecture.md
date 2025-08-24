@@ -186,6 +186,33 @@ graph TB
 - **Strengths**: LinkedIn integration, contact data
 - **Limitations**: No company data, slower response
 
+#### Apollo Provider (Lead Generation & Enrichment)
+
+- **Tier**: TIER_0 (Primary - Lead Generation)
+- **Capabilities**:
+  - **Lead Generation**: Company and person search with advanced filtering
+  - **Company Enrichment**: Comprehensive company data enrichment
+  - **Contact Enrichment**: Person data enrichment and contact discovery
+  - **Data Quality**: Built-in quality validation and scoring
+- **Cost Structure**:
+  - Search: 1 credit ($0.015) per request
+  - Enrichment: 1 credit ($0.015) per request
+  - Credits can be used for both search and enrichment
+- **Strengths**:
+  - High-quality lead generation with ICP-based filtering
+  - Comprehensive company and contact data
+  - Advanced search strategies (company-first, person-first)
+  - Built-in data quality validation
+  - Can bypass traditional Domain + Crawl pipeline
+- **Limitations**:
+  - Credit-based pricing model
+  - Rate limiting (60 req/min, 1000 req/hour)
+  - Requires Apollo API access
+- **Integration**:
+  - Primary lead generation tool when `lead_generation_mode: "apollo"`
+  - Enrichment provider within traditional pipeline
+  - Supports hybrid workflows with fallback to traditional mode
+
 ## Data Flow Architecture
 
 ```mermaid
@@ -224,11 +251,12 @@ flowchart LR
 
 ### Decision Matrix
 
-| Operation          | Primary Provider | Fallback Provider | No Fallback |
-| ------------------ | ---------------- | ----------------- | ----------- |
-| Company Enrichment | CompanyEnrich    | Coresignal        | ❌          |
-| Contact Discovery  | CompanyEnrich    | Snovio            | ❌          |
-| Email Finding      | Anymail Finder   | None              | ✅          |
+| Operation           | Primary Provider | Fallback Provider | No Fallback |
+| ------------------- | ---------------- | ----------------- | ----------- |
+| Company Enrichment  | CompanyEnrich    | Apollo            | ❌          |
+| Contact Discovery   | CompanyEnrich    | Apollo            | ❌          |
+| Email Finding       | Anymail Finder   | None              | ✅          |
+| **Lead Generation** | **Apollo**       | **Traditional**   | **✅**      |
 
 ### Selection Criteria
 
@@ -267,21 +295,119 @@ flowchart TD
     N --> A
 ```
 
+## Apollo Lead Generation Flow
+
+### Overview
+
+Apollo integration provides an alternative lead generation path that can bypass the traditional Domain + Crawl tools while maintaining all existing functionality. The system supports three modes:
+
+1. **Traditional Mode**: Domain → Crawl → Enrich (default)
+2. **Apollo Mode**: Apollo Search + Enrich (when `lead_generation_mode: "apollo"`)
+3. **Hybrid Mode**: Apollo enrichment within traditional pipeline
+
+### Apollo Pipeline Architecture
+
+```mermaid
+flowchart TD
+    subgraph "Apollo Lead Generation Pipeline"
+        A[ICP Configuration] --> B[Apollo Lead Generation]
+        B --> C[Search Strategy Selection]
+
+        subgraph "Company-First Strategy"
+            D[Company Search] --> E[Person Search]
+            E --> F[Data Enrichment]
+        end
+
+        subgraph "Person-First Strategy"
+            G[Person Search] --> H[Company Enrichment]
+            H --> I[Data Validation]
+        end
+
+        C --> D
+        C --> G
+
+        F --> J[Quality Validation]
+        I --> J
+        J --> K[Unified Schema Mapping]
+        K --> L[Cost Tracking]
+        L --> M[Results Persistence]
+    end
+
+    subgraph "Traditional Pipeline (Fallback)"
+        N[Domain Tool] --> O[Crawl Tool]
+        O --> P[Enrichment Router]
+    end
+
+    B --> N
+```
+
+### Search Strategies
+
+#### Company-First Strategy
+
+1. **Company Search**: Find companies matching ICP criteria
+2. **Person Discovery**: Search for people within those companies
+3. **Data Enrichment**: Enrich both company and person data
+4. **Quality Validation**: Apply quality thresholds and scoring
+
+#### Person-First Strategy
+
+1. **Person Search**: Find people matching ICP criteria
+2. **Company Discovery**: Identify companies from person data
+3. **Company Enrichment**: Enrich company information
+4. **Data Validation**: Validate and score lead quality
+
+### Integration Points
+
+- **Orchestrator**: Dynamically switches between Apollo and traditional pipelines
+- **Enrichment Router**: Apollo serves as TIER_0 enrichment provider
+- **Data Mapper**: Converts Apollo data to unified lead record schema
+- **Quality Engine**: Applies ICP-based quality validation
+- **Cost Tracker**: Monitors Apollo credit usage and costs
+
 ## Configuration Management
 
 ### ICP Configuration
 
 ```json
 {
+  "lead_generation_mode": "apollo",
   "enrichment_providers": {
     "tiers": {
-      "TIER_0": ["company_enrich", "anymail_finder"],
+      "TIER_0": ["company_enrich", "anymail_finder", "apollo"],
       "TIER_1": [],
       "TIER_2": ["coresignal", "snovio"]
     },
     "fallback_enabled": true,
     "cost_optimization": true,
     "health_monitoring": true
+  },
+  "apollo": {
+    "enabled": true,
+    "search": {
+      "strategy": "company_first",
+      "company_filters": {
+        "industry": ["Technology", "SaaS"],
+        "size": ["11-50", "51-200"],
+        "location": ["United States"],
+        "technologies": ["Python", "AWS"],
+        "funding_stage": ["Series A", "Series B"]
+      },
+      "person_filters": {
+        "job_titles": ["CEO", "CTO", "VP Engineering"],
+        "seniority": ["C-Level", "VP"],
+        "departments": ["Engineering", "Sales"]
+      },
+      "max_results": 100
+    },
+    "enrich": {
+      "enabled": true,
+      "quality_thresholds": {
+        "min_employee_count": 10,
+        "min_funding_stage": "Seed",
+        "required_technologies": ["Python"]
+      }
+    }
   }
 }
 ```

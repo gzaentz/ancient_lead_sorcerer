@@ -3,7 +3,7 @@ Enrichment Providers Package for Lead Sorcerer.
 
 This package contains all enrichment provider implementations including:
 - Legacy providers (Coresignal, Snovio)
-- New providers (CompanyEnrich, Anymail Finder)
+- New providers (CompanyEnrich, Anymail Finder, Apollo)
 - Base interfaces and typed exceptions
 - Provider router for fallback logic
 
@@ -24,6 +24,7 @@ from .coresignal import CoresignalProvider
 from .snovio import SnovioProvider
 from .company_enrich import CompanyEnrichProvider
 from .anymail_finder import AnymailFinderProvider
+from .apollo import ApolloEnrichProvider
 
 __all__ = [
     # Base classes and exceptions
@@ -40,6 +41,7 @@ __all__ = [
     # New primary providers
     "CompanyEnrichProvider",
     "AnymailFinderProvider",
+    "ApolloEnrichProvider",
 ]
 
 __version__ = "1.0.0"

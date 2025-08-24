@@ -55,6 +55,7 @@ class LeadSorcererOrchestrator:
     - Persist results to JSONL files
     - Handle exports when enabled
     - Manage concurrency and batch processing
+    - Support both traditional and Apollo lead generation modes
     """
 
     def __init__(self, config_path: str, batch_size: int = DEFAULT_BATCH_SIZE):
@@ -93,14 +94,90 @@ class LeadSorcererOrchestrator:
         )
         self.permit_manager = PermitManager(max_concurrent)
 
-        # Initialize tools
-        self.domain_tool = DomainTool(self.icp_config, self.data_dir)
-        self.crawl_tool = CrawlTool(self.data_dir)
+        # Initialize tools based on lead generation mode
+        self._initialize_tools()
 
         # Track metrics
         self.start_time = None
         self.total_errors = []
         self.total_unknown_errors = 0
+
+    def __del__(self):
+        """Cleanup method to close Apollo tool if it exists."""
+        if hasattr(self, "apollo_tool") and self.apollo_tool is not None:
+            try:
+                # Check if close method is async and handle accordingly
+                if asyncio.iscoroutinefunction(self.apollo_tool.close):
+                    # For async close methods, we can't await in __del__, so just log
+                    pass
+                else:
+                    self.apollo_tool.close()
+            except Exception:
+                pass  # Ignore cleanup errors
+
+    def _initialize_tools(self) -> None:
+        """Initialize tools based on lead generation mode."""
+        lead_generation_mode = self.icp_config.get(
+            "lead_generation_mode", "traditional"
+        )
+
+        if lead_generation_mode == "apollo":
+            # Apollo mode: Initialize Apollo lead generation tool
+            try:
+                from src.apollo_lead_gen import ApolloLeadGen
+
+                self.apollo_tool = ApolloLeadGen(self.icp_config, self.data_dir)
+                self.logger.info("✅ Apollo lead generation tool initialized")
+            except ImportError as e:
+                self.logger.error(f"Failed to import Apollo lead generation tool: {e}")
+                raise ValueError(
+                    "Apollo mode requires Apollo lead generation tool to be available"
+                )
+
+            # Still initialize traditional tools for fallback if needed
+            self.domain_tool = DomainTool(self.icp_config, self.data_dir)
+            self.crawl_tool = CrawlTool(self.data_dir)
+
+        else:
+            # Traditional mode: Initialize traditional tools
+            self.domain_tool = DomainTool(self.icp_config, self.data_dir)
+            self.crawl_tool = CrawlTool(self.data_dir)
+            self.apollo_tool = None
+
+    def _detect_lead_generation_mode(self) -> str:
+        """
+        Detect the lead generation mode from ICP configuration.
+
+        Returns:
+            Lead generation mode: "traditional", "specific_urls", or "apollo"
+        """
+        mode = self.icp_config.get("lead_generation_mode", "traditional")
+
+        if mode not in ["traditional", "specific_urls", "apollo"]:
+            self.logger.warning(
+                f"Invalid lead_generation_mode: {mode}, defaulting to 'traditional'"
+            )
+            mode = "traditional"
+
+        self.logger.info(f"🔍 Lead generation mode detected: {mode}")
+        return mode
+
+    def _should_run_apollo_pipeline(self) -> bool:
+        """
+        Determine if we should run the Apollo pipeline.
+
+        Returns:
+            True if Apollo mode is enabled and Apollo tool is available
+        """
+        mode = self._detect_lead_generation_mode()
+        should_run = mode == "apollo" and self.apollo_tool is not None
+
+        if should_run:
+            self.logger.info("🚀 Apollo pipeline mode enabled")
+        else:
+            self.logger.info(f"📊 Traditional pipeline mode (mode: {mode})")
+
+        return should_run
 
     def _load_icp_config(self) -> Dict[str, Any]:
         """Load and validate ICP configuration."""
@@ -315,7 +392,7 @@ class LeadSorcererOrchestrator:
 
     async def run_pipeline(self) -> Dict[str, Any]:
         """
-        Run the complete Domain → Crawl → Enrich pipeline.
+        Run the complete lead generation pipeline.
 
         Returns:
             Pipeline results with metrics and summary
@@ -333,58 +410,53 @@ class LeadSorcererOrchestrator:
             self._validate_testing_flags()
             self._validate_refresh_policy()
 
-            # Check if we should bypass domain discovery for specific URLs
-            if self.should_bypass_domain_discovery():
-                # BYPASS MODE: Create lead records directly from specific URLs
-                self.logger.info(
-                    "🚀 BYPASS MODE: Creating lead records from specific URLs"
-                )
-                lead_records = self.create_lead_records_from_specific_urls()
-
-                # Create mock domain result for consistency
-                domain_result = {
-                    "data": {"lead_records": lead_records},
-                    "errors": [],
-                    "metrics": {
-                        "count_in": 0,
-                        "count_out": len(lead_records),
-                        "duration_ms": 0,
-                        "cost_usd": {
-                            "domain": 0.0,
-                            "crawl": 0.0,
-                            "enrich": 0.0,
-                            "total": 0.0,
-                        },
-                    },
-                }
-
-                # All records from specific URLs are considered "passing"
-                passing_leads = lead_records
-                self.logger.info(
-                    f"💰 Cost savings: Skipped domain discovery for {len(passing_leads)} specific URL targets"
-                )
+            # Determine pipeline mode and execute accordingly
+            if self._should_run_apollo_pipeline():
+                return await self._run_apollo_pipeline()
             else:
-                # NORMAL MODE: Run domain discovery as usual
-                self.logger.info("📊 NORMAL MODE: Running domain discovery")
-                domain_result = await self.domain_tool.run()
+                return await self._run_traditional_pipeline()
 
-                if domain_result.get("errors"):
-                    self.total_errors.extend(domain_result["errors"])
+        except Exception as e:
+            self.logger.error(f"Pipeline failed: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "metrics": self._build_error_metrics(),
+            }
 
-                lead_records = domain_result.get("data", {}).get("lead_records", [])
-                self.logger.info(f"Domain tool processed {len(lead_records)} leads")
+    async def _run_apollo_pipeline(self) -> Dict[str, Any]:
+        """
+        Run the Apollo lead generation pipeline.
 
-                # Filter to passing leads for next stage
-                passing_leads = [
-                    r for r in lead_records if r.get("icp", {}).get("pre_pass")
-                ]
-                self.logger.info(f"Filtered to {len(passing_leads)} passing leads")
+        Returns:
+            Pipeline results with metrics and summary
+        """
+        self.logger.info("🚀 Running Apollo lead generation pipeline")
 
-            # Persist domain results (pass + rejects) - works for both modes
-            self._persist_domain_results(lead_records)
+        try:
+            # Step 1: Apollo lead generation
+            self.logger.info(
+                f"About to call Apollo tool.run() - apollo_tool: {self.apollo_tool}"
+            )
+            self.logger.info(f"Apollo tool type: {type(self.apollo_tool)}")
 
-            # Check testing flags for additional processing
-            testing = self.icp_config.get("testing", {})
+            apollo_result = await self.apollo_tool.run()
+            self.logger.info(f"Apollo tool.run() completed, result: {apollo_result}")
+
+            if apollo_result.get("errors"):
+                self.total_errors.extend(apollo_result["errors"])
+
+            lead_records = apollo_result.get("data", {}).get("lead_records", [])
+            self.logger.info(f"Apollo tool processed {len(lead_records)} leads")
+
+            # Persist Apollo results
+            self._persist_apollo_results(lead_records)
+
+            # Filter to passing leads for next stage
+            passing_leads = [
+                r for r in lead_records if r.get("icp", {}).get("pre_pass")
+            ]
+            self.logger.info(f"Filtered to {len(passing_leads)} passing leads")
 
             # Step 2: Crawl tool - extract company and contact data
             crawl_result = None
@@ -404,25 +476,14 @@ class LeadSorcererOrchestrator:
                 crawled_leads = crawl_result.get("data", {}).get("lead_records", [])
                 self.logger.info(f"Crawl tool processed {len(crawled_leads)} leads")
 
-                # Add detailed logging for pipeline flow
-                self.logger.info(
-                    f"🔍 Pipeline Debug: Found {len(crawled_leads)} crawled leads"
-                )
-                status_counts = {}
-                for lead in crawled_leads:
-                    status = lead.get("status", "unknown")
-                    status_counts[status] = status_counts.get(status, 0) + 1
-                self.logger.info(f"📊 Crawled leads status breakdown: {status_counts}")
-
                 # Filter to enrich_ready leads
                 enrich_ready_leads = [
                     r for r in crawled_leads if r.get("status") == "enrich_ready"
                 ]
-                self.logger.info(
-                    f"🔍 Pipeline Debug: Found {len(enrich_ready_leads)} enrich_ready leads"
-                )
+                self.logger.info(f"Found {len(enrich_ready_leads)} enrich_ready leads")
 
                 # Check testing flags for additional processing
+                testing = self.icp_config.get("testing", {})
                 process_low_crawl = testing.get("process_low_crawl", False)
 
                 if process_low_crawl:
@@ -438,22 +499,19 @@ class LeadSorcererOrchestrator:
                 # Step 3: Enrich tool - fill missing data and verify contacts
                 if enrich_ready_leads:
                     self.logger.info(
-                        f"🚀 Running Enrich tool with {len(enrich_ready_leads)} leads..."
+                        f"Running Enrich tool with {len(enrich_ready_leads)} leads..."
                     )
-                    # Initialize enrichment provider router
+
+                    # Initialize enrichment provider router (includes Apollo provider)
                     enrichment_router = create_enrichment_router(self.icp_config)
 
                     enrich_payload = {
                         "lead_records": enrich_ready_leads,
                         "icp_config": self.icp_config,
                         "caps": self.icp_config.get("caps", {}),
-                        "router": enrichment_router,  # Pass router to enrich function
+                        "router": enrichment_router,
                     }
-                    self.logger.info(
-                        f"🔍 Enrich payload structure: {len(enrich_payload.get('lead_records', []))} leads, {len(enrich_payload.get('icp_config', {}))} config items"
-                    )
 
-                    # Call enrich with router (will be updated in Task 4)
                     enrich_result = await run_enrich(enrich_payload)
 
                     if enrich_result.get("errors"):
@@ -481,7 +539,7 @@ class LeadSorcererOrchestrator:
 
             # Calculate final metrics
             final_metrics = self._calculate_final_metrics(
-                domain_result, crawl_result, enrich_result
+                apollo_result, crawl_result, enrich_result
             )
 
             # Log summary
@@ -492,16 +550,190 @@ class LeadSorcererOrchestrator:
                 "metrics": final_metrics,
                 "total_errors": len(self.total_errors),
                 "unknown_error_count": self.total_unknown_errors,
-                "errors": self.total_errors,  # Include actual error details
+                "errors": self.total_errors,
             }
 
         except Exception as e:
-            self.logger.error(f"Pipeline failed: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "metrics": self._build_error_metrics(),
+            self.logger.error(f"Apollo pipeline failed: {e}")
+
+            # Check if fallback to traditional flow is enabled
+            apollo_config = self.icp_config.get("apollo", {})
+            fallback_enabled = apollo_config.get("fallback", {}).get(
+                "to_traditional_flow", False
+            )
+
+            if fallback_enabled:
+                self.logger.info(
+                    "🔄 Apollo pipeline failed, falling back to traditional flow"
+                )
+                return await self._run_traditional_pipeline()
+            else:
+                raise
+
+    async def _run_traditional_pipeline(self) -> Dict[str, Any]:
+        """
+        Run the traditional Domain → Crawl → Enrich pipeline.
+
+        Returns:
+            Pipeline results with metrics and summary
+        """
+        self.logger.info("📊 Running traditional lead generation pipeline")
+
+        # Check if we should bypass domain discovery for specific URLs
+        if self.should_bypass_domain_discovery():
+            # BYPASS MODE: Create lead records directly from specific URLs
+            self.logger.info("🚀 BYPASS MODE: Creating lead records from specific URLs")
+            lead_records = self.create_lead_records_from_specific_urls()
+
+            # Create mock domain result for consistency
+            domain_result = {
+                "data": {"lead_records": lead_records},
+                "errors": [],
+                "metrics": {
+                    "count_in": 0,
+                    "count_out": len(lead_records),
+                    "duration_ms": 0,
+                    "cost_usd": {
+                        "domain": 0.0,
+                        "crawl": 0.0,
+                        "enrich": 0.0,
+                        "total": 0.0,
+                    },
+                },
             }
+
+            # All records from specific URLs are considered "passing"
+            passing_leads = lead_records
+            self.logger.info(
+                f"💰 Cost savings: Skipped domain discovery for {len(passing_leads)} specific URL targets"
+            )
+        else:
+            # NORMAL MODE: Run domain discovery as usual
+            self.logger.info("📊 NORMAL MODE: Running domain discovery")
+            domain_result = await self.domain_tool.run()
+
+            if domain_result.get("errors"):
+                self.total_errors.extend(domain_result["errors"])
+
+            lead_records = domain_result.get("data", {}).get("lead_records", [])
+            self.logger.info(f"Domain tool processed {len(lead_records)} leads")
+
+            # Filter to passing leads for next stage
+            passing_leads = [
+                r for r in lead_records if r.get("icp", {}).get("pre_pass")
+            ]
+            self.logger.info(f"Filtered to {len(passing_leads)} passing leads")
+
+        # Persist domain results (pass + rejects) - works for both modes
+        self._persist_domain_results(lead_records)
+
+        # Check testing flags for additional processing
+        testing = self.icp_config.get("testing", {})
+
+        # Step 2: Crawl tool - extract company and contact data
+        crawl_result = None
+        enrich_result = None
+
+        if passing_leads:
+            self.logger.info("Running Crawl tool...")
+            crawl_payload = {
+                "lead_records": passing_leads,
+                "icp_config": self.icp_config,
+            }
+            crawl_result = await self.crawl_tool.run(crawl_payload)
+
+            if crawl_result.get("errors"):
+                self.total_errors.extend(crawl_result["errors"])
+
+            crawled_leads = crawl_result.get("data", {}).get("lead_records", [])
+            self.logger.info(f"Crawl tool processed {len(crawled_leads)} leads")
+
+            # Add detailed logging for pipeline flow
+            self.logger.info(
+                f"🔍 Pipeline Debug: Found {len(crawled_leads)} crawled leads"
+            )
+            status_counts = {}
+            for lead in crawled_leads:
+                status = lead.get("status", "unknown")
+                status_counts[status] = status_counts.get(status, 0) + 1
+            self.logger.info(f"📊 Crawled leads status breakdown: {status_counts}")
+
+            # Filter to enrich_ready leads
+            enrich_ready_leads = [
+                r for r in crawled_leads if r.get("status") == "enrich_ready"
+            ]
+            self.logger.info(
+                f"🔍 Pipeline Debug: Found {len(enrich_ready_leads)} enrich_ready leads"
+            )
+
+            # Check testing flags for additional processing
+            process_low_crawl = testing.get("process_low_crawl", False)
+
+            if process_low_crawl:
+                # Include crawled leads that don't meet threshold
+                low_crawl_leads = [
+                    r for r in crawled_leads if r.get("status") == "crawled"
+                ]
+                enrich_ready_leads.extend(low_crawl_leads)
+                self.logger.info(
+                    f"Including {len(low_crawl_leads)} low-crawl leads due to testing flag"
+                )
+
+            # Step 3: Enrich tool - fill missing data and verify contacts
+            if enrich_ready_leads:
+                self.logger.info(
+                    f"🚀 Running Enrich tool with {len(enrich_ready_leads)} leads..."
+                )
+                # Initialize enrichment provider router
+                enrichment_router = create_enrichment_router(self.icp_config)
+
+                enrich_payload = {
+                    "lead_records": enrich_ready_leads,
+                    "icp_config": self.icp_config,
+                    "caps": self.icp_config.get("caps", {}),
+                    "router": enrichment_router,  # Pass router to enrich function
+                }
+                self.logger.info(
+                    f"🔍 Enrich payload structure: {len(enrich_payload.get('lead_records', []))} leads, {len(enrich_payload.get('icp_config', {}))} config items"
+                )
+
+                # Call enrich with router (will be updated in Task 4)
+                enrich_result = await run_enrich(enrich_payload)
+
+                if enrich_result.get("errors"):
+                    self.total_errors.extend(enrich_result["errors"])
+
+                enriched_leads = enrich_result.get("lead_records", [])
+                self.logger.info(f"Enrich tool processed {len(enriched_leads)} leads")
+
+                # Update the main lead records with enriched data
+                self._update_lead_records_with_enriched_data(
+                    lead_records, enriched_leads
+                )
+            else:
+                self.logger.info("No leads ready for enrichment")
+        else:
+            self.logger.info("No passing leads to crawl")
+
+        # Handle exports if enabled
+        if self.icp_config.get("exports", {}).get("enabled", False):
+            self._export_leads(lead_records)
+
+        # Calculate final metrics
+        final_metrics = self._calculate_final_metrics(
+            domain_result, crawl_result, enrich_result
+        )
+
+        # Log summary
+        self._log_pipeline_summary(final_metrics)
+
+        return {
+            "success": True,
+            "metrics": final_metrics,
+            "total_errors": len(self.total_errors),
+            "unknown_error_count": self.total_unknown_errors,
+            "errors": self.total_errors,  # Include actual error details
+        }
 
     def _persist_domain_results(self, lead_records: List[Dict[str, Any]]) -> None:
         """Persist domain results to JSONL files."""
@@ -533,6 +765,37 @@ class LeadSorcererOrchestrator:
 
         except Exception as e:
             self.logger.error(f"Failed to persist domain results: {e}")
+
+    def _persist_apollo_results(self, lead_records: List[Dict[str, Any]]) -> None:
+        """Persist Apollo results to JSONL files."""
+        try:
+            # Ensure data directory exists
+            Path(self.data_dir).mkdir(parents=True, exist_ok=True)
+
+            # Write all Apollo results
+            all_file = Path(self.data_dir) / "apollo_all.jsonl"
+            with open(all_file, "a", encoding="utf-8") as f:
+                for record in lead_records:
+                    f.write(json.dumps(record) + "\n")
+
+            # Write only passing results
+            pass_file = Path(self.data_dir) / "apollo_pass.jsonl"
+            passing_records = [
+                r for r in lead_records if r.get("icp", {}).get("pre_pass")
+            ]
+            with open(pass_file, "a", encoding="utf-8") as f:
+                for record in passing_records:
+                    f.write(json.dumps(record) + "\n")
+
+            self.logger.info(
+                f"Persisted {len(lead_records)} total Apollo leads, {len(passing_records)} passing leads"
+            )
+
+            # Check if rotation is needed
+            self._check_and_rotate_sinks(all_file, pass_file)
+
+        except Exception as e:
+            self.logger.error(f"Failed to persist Apollo results: {e}")
 
     def _check_and_rotate_sinks(self, all_file: Path, pass_file: Path) -> None:
         """
@@ -836,65 +1099,142 @@ class LeadSorcererOrchestrator:
             int((time.time() - self.start_time) * 1000) if self.start_time else 0
         )
 
-        # Aggregate cost metrics
-        total_domain_cost = (
-            domain_result.get("metrics", {}).get("cost_usd", {}).get("domain", 0.0)
-        )
-        total_crawl_cost = (
-            crawl_result.get("metrics", {}).get("cost_usd", {}).get("crawl", 0.0)
-            if crawl_result
-            else 0.0
-        )
-        total_enrich_cost = (
-            enrich_result.get("metrics", {}).get("cost_usd", {}).get("enrich", 0.0)
-            if enrich_result
-            else 0.0
-        )
+        # Determine if this is Apollo or traditional mode
+        lead_generation_mode = self._detect_lead_generation_mode()
+        is_apollo_mode = lead_generation_mode == "apollo"
 
-        # Count leads at each stage
-        domain_count = len(domain_result.get("data", {}).get("lead_records", []))
-        crawl_count = (
-            len(crawl_result.get("data", {}).get("lead_records", []))
-            if crawl_result
-            else 0
-        )
-        enrich_count = (
-            len(enrich_result.get("data", {}).get("lead_records", []))
-            if enrich_result
-            else 0
-        )
+        if is_apollo_mode:
+            # Apollo mode: domain_result is actually apollo_result
+            apollo_result = domain_result
 
-        # Calculate pass rates
-        domain_pass_rate = domain_result.get("metrics", {}).get("pass_rate")
-        crawl_pass_rate = (
-            crawl_result.get("metrics", {}).get("pass_rate") if crawl_result else None
-        )
-        enrich_pass_rate = (
-            enrich_result.get("metrics", {}).get("pass_rate") if enrich_result else None
-        )
+            # Aggregate cost metrics for Apollo mode
+            total_apollo_cost = (
+                apollo_result.get("metrics", {}).get("cost_usd", {}).get("apollo", 0.0)
+            )
+            total_crawl_cost = (
+                crawl_result.get("metrics", {}).get("cost_usd", {}).get("crawl", 0.0)
+                if crawl_result
+                else 0.0
+            )
+            total_enrich_cost = (
+                enrich_result.get("metrics", {}).get("cost_usd", {}).get("enrich", 0.0)
+                if enrich_result
+                else 0.0
+            )
 
-        return {
-            "duration_ms": duration_ms,
-            "lead_counts": {
-                "domain": domain_count,
-                "crawl": crawl_count,
-                "enrich": enrich_count,
-            },
-            "pass_rates": {
-                "domain": domain_pass_rate,
-                "crawl": crawl_pass_rate,
-                "enrich": enrich_pass_rate,
-            },
-            "cost_usd": {
-                "domain": round4(total_domain_cost),
-                "crawl": round4(total_crawl_cost),
-                "enrich": round4(total_enrich_cost),
-                "total": round4(
-                    total_domain_cost + total_crawl_cost + total_enrich_cost
-                ),
-            },
-            "health": {"unknown_error_count": self.total_unknown_errors},
-        }
+            # Count leads at each stage for Apollo mode
+            apollo_count = len(apollo_result.get("data", {}).get("lead_records", []))
+            crawl_count = (
+                len(crawl_result.get("data", {}).get("lead_records", []))
+                if crawl_result
+                else 0
+            )
+            enrich_count = (
+                len(enrich_result.get("data", {}).get("lead_records", []))
+                if enrich_result
+                else 0
+            )
+
+            # Calculate pass rates for Apollo mode
+            apollo_pass_rate = apollo_result.get("metrics", {}).get("pass_rate")
+            crawl_pass_rate = (
+                crawl_result.get("metrics", {}).get("pass_rate")
+                if crawl_result
+                else None
+            )
+            enrich_pass_rate = (
+                enrich_result.get("metrics", {}).get("pass_rate")
+                if enrich_result
+                else None
+            )
+
+            return {
+                "duration_ms": duration_ms,
+                "lead_counts": {
+                    "apollo": apollo_count,
+                    "crawl": crawl_count,
+                    "enrich": enrich_count,
+                },
+                "pass_rates": {
+                    "apollo": apollo_pass_rate,
+                    "crawl": crawl_pass_rate,
+                    "enrich": enrich_pass_rate,
+                },
+                "cost_usd": {
+                    "apollo": round4(total_apollo_cost),
+                    "crawl": round4(total_crawl_cost),
+                    "enrich": round4(total_enrich_cost),
+                    "total": round4(
+                        total_apollo_cost + total_crawl_cost + total_enrich_cost
+                    ),
+                },
+                "health": {"unknown_error_count": self.total_unknown_errors},
+            }
+        else:
+            # Traditional mode: domain_result is actually domain_result
+            # Aggregate cost metrics
+            total_domain_cost = (
+                domain_result.get("metrics", {}).get("cost_usd", {}).get("domain", 0.0)
+            )
+            total_crawl_cost = (
+                crawl_result.get("metrics", {}).get("cost_usd", {}).get("crawl", 0.0)
+                if crawl_result
+                else 0.0
+            )
+            total_enrich_cost = (
+                enrich_result.get("metrics", {}).get("cost_usd", {}).get("enrich", 0.0)
+                if enrich_result
+                else 0.0
+            )
+
+            # Count leads at each stage
+            domain_count = len(domain_result.get("data", {}).get("lead_records", []))
+            crawl_count = (
+                len(crawl_result.get("data", {}).get("lead_records", []))
+                if crawl_result
+                else 0
+            )
+            enrich_count = (
+                len(enrich_result.get("data", {}).get("lead_records", []))
+                if enrich_result
+                else 0
+            )
+
+            # Calculate pass rates
+            domain_pass_rate = domain_result.get("metrics", {}).get("pass_rate")
+            crawl_pass_rate = (
+                crawl_result.get("metrics", {}).get("pass_rate")
+                if crawl_result
+                else None
+            )
+            enrich_pass_rate = (
+                enrich_result.get("metrics", {}).get("pass_rate")
+                if enrich_result
+                else None
+            )
+
+            return {
+                "duration_ms": duration_ms,
+                "lead_counts": {
+                    "domain": domain_count,
+                    "crawl": crawl_count,
+                    "enrich": enrich_count,
+                },
+                "pass_rates": {
+                    "domain": domain_pass_rate,
+                    "crawl": crawl_pass_rate,
+                    "enrich": enrich_pass_rate,
+                },
+                "cost_usd": {
+                    "domain": round4(total_domain_cost),
+                    "crawl": round4(total_crawl_cost),
+                    "enrich": round4(total_enrich_cost),
+                    "total": round4(
+                        total_domain_cost + total_crawl_cost + total_enrich_cost
+                    ),
+                },
+                "health": {"unknown_error_count": self.total_unknown_errors},
+            }
 
     def _build_error_metrics(self) -> Dict[str, Any]:
         """Build metrics for error cases."""
@@ -912,28 +1252,61 @@ class LeadSorcererOrchestrator:
     def _log_pipeline_summary(self, metrics: Dict[str, Any]) -> None:
         """Log pipeline completion summary."""
         duration_seconds = metrics["duration_ms"] / 1000
-        domains_per_hour = (
-            (metrics["lead_counts"]["domain"] / duration_seconds * 3600)
-            if duration_seconds > 0
-            else 0
-        )
-        cost_per_qualified = (
-            (metrics["cost_usd"]["total"] / metrics["lead_counts"]["enrich"])
-            if metrics["lead_counts"]["enrich"] > 0
-            else 0
-        )
 
-        self.logger.info(f"Pipeline completed in {duration_seconds:.2f}s")
-        self.logger.info(
-            f"Processed {metrics['lead_counts']['domain']} domains, {metrics['lead_counts']['enrich']} enriched"
-        )
-        self.logger.info(f"Performance: {domains_per_hour:.1f} domains/hour")
-        self.logger.info(
-            f"Cost: ${metrics['cost_usd']['total']:.4f} (${cost_per_qualified:.4f}/qualified lead)"
-        )
-        self.logger.info(
-            f"Errors: {len(self.total_errors)} total, {self.total_unknown_errors} unknown"
-        )
+        # Determine if this is Apollo or traditional mode
+        lead_generation_mode = self._detect_lead_generation_mode()
+        is_apollo_mode = lead_generation_mode == "apollo"
+
+        if is_apollo_mode:
+            # Apollo mode summary
+            apollo_per_hour = (
+                (metrics["lead_counts"]["apollo"] / duration_seconds * 3600)
+                if duration_seconds > 0
+                else 0
+            )
+            cost_per_qualified = (
+                (metrics["cost_usd"]["total"] / metrics["lead_counts"]["enrich"])
+                if metrics["lead_counts"]["enrich"] > 0
+                else 0
+            )
+
+            self.logger.info(f"Apollo pipeline completed in {duration_seconds:.2f}s")
+            self.logger.info(
+                f"Processed {metrics['lead_counts']['apollo']} Apollo leads, {metrics['lead_counts']['enrich']} enriched"
+            )
+            self.logger.info(f"Performance: {apollo_per_hour:.1f} Apollo leads/hour")
+            self.logger.info(
+                f"Cost: ${metrics['cost_usd']['total']:.4f} (${cost_per_qualified:.4f}/qualified lead)"
+            )
+            self.logger.info(
+                f"Errors: {len(self.total_errors)} total, {self.total_unknown_errors} unknown"
+            )
+        else:
+            # Traditional mode summary
+            domains_per_hour = (
+                (metrics["lead_counts"]["domain"] / duration_seconds * 3600)
+                if duration_seconds > 0
+                else 0
+            )
+            cost_per_qualified = (
+                (metrics["cost_usd"]["total"] / metrics["lead_counts"]["enrich"])
+                if metrics["lead_counts"]["enrich"] > 0
+                else 0
+            )
+
+            self.logger.info(
+                f"Traditional pipeline completed in {duration_seconds:.2f}s"
+            )
+            self.logger.info(
+                f"Processed {metrics['lead_counts']['domain']} domains, {metrics['lead_counts']['enrich']} enriched"
+            )
+            self.logger.info(f"Performance: {domains_per_hour:.1f} domains/hour")
+            self.logger.info(
+                f"Cost: ${metrics['cost_usd']['total']:.4f} (${cost_per_qualified:.4f}/qualified lead)"
+            )
+            self.logger.info(
+                f"Errors: {len(self.total_errors)} total, {self.total_unknown_errors} unknown"
+            )
 
 
 # ============================================================================

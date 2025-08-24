@@ -9,7 +9,6 @@ Authoritative specifications: BRD §333-336, §410-439
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
@@ -91,7 +90,7 @@ LLM_ICP_CONFIGS = {
         "temperature": LLM_TEMPERATURE,
         "max_tokens": LLM_MAX_TOKENS,
         "timeout": LLM_TIMEOUT,
-        "prompt_template": "base_contact_selection.txt"
+        "prompt_template": "base_contact_selection.txt",
     },
     "investment": {
         "model": "gpt-4o-mini",
@@ -99,7 +98,7 @@ LLM_ICP_CONFIGS = {
         "temperature": 0.0,
         "max_tokens": 600,
         "timeout": 30.0,
-        "prompt_template": "investment_contact_selection.txt"
+        "prompt_template": "investment_contact_selection.txt",
     },
     "healthcare": {
         "model": "gpt-4o-mini",
@@ -107,7 +106,7 @@ LLM_ICP_CONFIGS = {
         "temperature": 0.0,
         "max_tokens": 500,
         "timeout": 30.0,
-        "prompt_template": "healthcare_contact_selection.txt"
+        "prompt_template": "healthcare_contact_selection.txt",
     },
     "dental": {
         "model": "gpt-4o-mini",
@@ -115,7 +114,7 @@ LLM_ICP_CONFIGS = {
         "temperature": 0.0,
         "max_tokens": 500,
         "timeout": 30.0,
-        "prompt_template": "healthcare_contact_selection.txt"
+        "prompt_template": "healthcare_contact_selection.txt",
     },
     "technology": {
         "model": "gpt-4o-mini",
@@ -123,7 +122,7 @@ LLM_ICP_CONFIGS = {
         "temperature": 0.1,
         "max_tokens": 700,
         "timeout": 30.0,
-        "prompt_template": "technology_contact_selection.txt"
+        "prompt_template": "technology_contact_selection.txt",
     },
     "enterprise": {
         "model": "gpt-4o-mini",
@@ -131,8 +130,8 @@ LLM_ICP_CONFIGS = {
         "temperature": 0.0,
         "max_tokens": 800,
         "timeout": 45.0,
-        "prompt_template": "enterprise_contact_selection.txt"
-    }
+        "prompt_template": "enterprise_contact_selection.txt",
+    },
 }
 
 # Retry configuration
@@ -149,7 +148,7 @@ FALLBACK_METRICS = {
     "llm_failures": 0,
     "llm_none_responses": 0,
     "invalid_contact_ids": 0,
-    "total_fallbacks": 0
+    "total_fallbacks": 0,
 }
 
 # LLM performance monitoring
@@ -165,7 +164,7 @@ LLM_PERFORMANCE_METRICS = {
     "cache_hits": 0,
     "cache_misses": 0,
     "total_response_time_ms": 0,
-    "average_response_time_ms": 0
+    "average_response_time_ms": 0,
 }
 
 
@@ -177,10 +176,13 @@ LLM_PERFORMANCE_METRICS = {
 class LLMContactSelector:
     """LLM-based contact selection using OpenRouter."""
 
-    def __init__(self, api_key: str, icp_type: str = "default", icp_config: Optional[Dict[str, Any]] = None):
-        self.client = AsyncOpenAI(
-            api_key=api_key, base_url=LLM_BASE_URL
-        )
+    def __init__(
+        self,
+        api_key: str,
+        icp_type: str = "default",
+        icp_config: Optional[Dict[str, Any]] = None,
+    ):
+        self.client = AsyncOpenAI(api_key=api_key, base_url=LLM_BASE_URL)
 
         # Get configuration for this ICP type with potential overrides
         if icp_config:
@@ -194,7 +196,9 @@ class LLMContactSelector:
         self.max_tokens = config["max_tokens"]
         self.timeout = config["timeout"]
         self.icp_type = icp_type
-        self.prompt_template = config.get("prompt_template", "base_contact_selection.txt")
+        self.prompt_template = config.get(
+            "prompt_template", "base_contact_selection.txt"
+        )
 
         # Initialize cache
         self._cache = {}
@@ -205,7 +209,10 @@ class LLMContactSelector:
         self.cost_details = []
 
     async def select_contact(
-        self, contacts: List[Dict[str, Any]], icp_config: Dict[str, Any], role_priority_config: Optional[Dict[str, int]] = None
+        self,
+        contacts: List[Dict[str, Any]],
+        icp_config: Dict[str, Any],
+        role_priority_config: Optional[Dict[str, int]] = None,
     ) -> Optional[str]:
         """
         Select best contact using LLM.
@@ -221,13 +228,15 @@ class LLMContactSelector:
         cache_key = self._generate_cache_key(contacts, icp_config)
         cached_result = self._get_cached_result(cache_key)
         if cached_result is not None:
-            logging.info(f"💾 Using cached LLM result for contact selection")
+            logging.info("💾 Using cached LLM result for contact selection")
             track_llm_performance_metric("cache_hits")
             return cached_result
 
         track_llm_performance_metric("cache_misses")
 
-        prompt = self._build_contact_selection_prompt(contacts, icp_config, role_priority_config)
+        prompt = self._build_contact_selection_prompt(
+            contacts, icp_config, role_priority_config
+        )
 
         # Try with retries
         for attempt in range(LLM_MAX_RETRIES):
@@ -287,14 +296,20 @@ class LLMContactSelector:
 
                     # Log failed LLM call
                     self._log_llm_call(prompt, content, model_used, False)
-                    logging.warning(f"⚠️ LLM ({model_used}) returned invalid response, falling back to rule-based")
+                    logging.warning(
+                        f"⚠️ LLM ({model_used}) returned invalid response, falling back to rule-based"
+                    )
                     return None
 
             except TimeoutException:
                 track_llm_performance_metric("timeout_errors")
-                logging.warning(f"⏰ LLM request timed out (attempt {attempt + 1}/{LLM_MAX_RETRIES})")
+                logging.warning(
+                    f"⏰ LLM request timed out (attempt {attempt + 1}/{LLM_MAX_RETRIES})"
+                )
                 if attempt < LLM_MAX_RETRIES - 1:
-                    await asyncio.sleep(LLM_RETRY_DELAY * (2 ** attempt))  # Exponential backoff
+                    await asyncio.sleep(
+                        LLM_RETRY_DELAY * (2**attempt)
+                    )  # Exponential backoff
                     continue
                 else:
                     logging.error("⏰ LLM request timed out after all retries")
@@ -303,21 +318,31 @@ class LLMContactSelector:
             except HTTPStatusError as e:
                 if e.response.status_code == 429:
                     track_llm_performance_metric("rate_limit_errors")
-                    logging.warning(f"🚫 LLM rate limit exceeded (attempt {attempt + 1}/{LLM_MAX_RETRIES})")
+                    logging.warning(
+                        f"🚫 LLM rate limit exceeded (attempt {attempt + 1}/{LLM_MAX_RETRIES})"
+                    )
                     if attempt < LLM_MAX_RETRIES - 1:
-                        await asyncio.sleep(LLM_RETRY_DELAY * (2 ** attempt))  # Exponential backoff
+                        await asyncio.sleep(
+                            LLM_RETRY_DELAY * (2**attempt)
+                        )  # Exponential backoff
                         continue
                     else:
                         logging.error("🚫 LLM rate limit exceeded after all retries")
                         return None
                 elif e.response.status_code >= 500:
                     track_llm_performance_metric("server_errors")
-                    logging.warning(f"🔧 LLM server error: {e.response.status_code} (attempt {attempt + 1}/{LLM_MAX_RETRIES})")
+                    logging.warning(
+                        f"🔧 LLM server error: {e.response.status_code} (attempt {attempt + 1}/{LLM_MAX_RETRIES})"
+                    )
                     if attempt < LLM_MAX_RETRIES - 1:
-                        await asyncio.sleep(LLM_RETRY_DELAY * (2 ** attempt))  # Exponential backoff
+                        await asyncio.sleep(
+                            LLM_RETRY_DELAY * (2**attempt)
+                        )  # Exponential backoff
                         continue
                     else:
-                        logging.error(f"🔧 LLM server error after all retries: {e.response.status_code}")
+                        logging.error(
+                            f"🔧 LLM server error after all retries: {e.response.status_code}"
+                        )
                         return None
                 else:
                     track_llm_performance_metric("failed_calls")
@@ -326,12 +351,18 @@ class LLMContactSelector:
 
             except Exception as e:
                 track_llm_performance_metric("failed_calls")
-                logging.warning(f"❌ LLM contact selection failed (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {str(e)}")
+                logging.warning(
+                    f"❌ LLM contact selection failed (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {str(e)}"
+                )
                 if attempt < LLM_MAX_RETRIES - 1:
-                    await asyncio.sleep(LLM_RETRY_DELAY * (2 ** attempt))  # Exponential backoff
+                    await asyncio.sleep(
+                        LLM_RETRY_DELAY * (2**attempt)
+                    )  # Exponential backoff
                     continue
                 else:
-                    logging.error(f"❌ LLM contact selection failed after all retries: {str(e)}")
+                    logging.error(
+                        f"❌ LLM contact selection failed after all retries: {str(e)}"
+                    )
                     return None
 
         return None
@@ -355,7 +386,9 @@ class LLMContactSelector:
 
             # Calculate cost based on OpenRouter pricing (configured in costs.yaml)
             # Standard rate: $0.002 per 1k tokens
-            cost_per_1k_tokens = 0.002  # This should match costs.yaml openrouter.usd_per_unit
+            cost_per_1k_tokens = (
+                0.002  # This should match costs.yaml openrouter.usd_per_unit
+            )
             cost_usd = (total_tokens / 1000.0) * cost_per_1k_tokens
 
             # Build cost tracking information
@@ -364,13 +397,15 @@ class LLMContactSelector:
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "total_tokens": total_tokens,
-                "cost_usd": cost_usd
+                "cost_usd": cost_usd,
             }
 
             # Log cost information
-            logging.info(f"💰 LLM costs - Model: {model_used}, "
-                        f"Prompt: {prompt_tokens}, Completion: {completion_tokens}, "
-                        f"Total: {total_tokens} tokens, Cost: ${cost_usd:.4f}")
+            logging.info(
+                f"💰 LLM costs - Model: {model_used}, "
+                f"Prompt: {prompt_tokens}, Completion: {completion_tokens}, "
+                f"Total: {total_tokens} tokens, Cost: ${cost_usd:.4f}"
+            )
 
             return cost_info
 
@@ -381,7 +416,7 @@ class LLMContactSelector:
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
                 "total_tokens": 0,
-                "cost_usd": 0.0
+                "cost_usd": 0.0,
             }
 
     def _log_llm_call(self, prompt: str, response: str, model_used: str, success: bool):
@@ -409,7 +444,7 @@ class LLMContactSelector:
                 "response_length": len(response),
                 "quality_score": quality_metrics["format_compliance"],
                 "quality_issues": quality_metrics["issues"],
-                "timestamp": time.time()
+                "timestamp": time.time(),
             }
 
             if success:
@@ -419,20 +454,28 @@ class LLMContactSelector:
 
                 # Log quality metrics for successful calls
                 if quality_metrics["format_compliance"] < 1.0:
-                    logging.warning(f"⚠️ LLM response quality issues: {quality_metrics['issues']}")
+                    logging.warning(
+                        f"⚠️ LLM response quality issues: {quality_metrics['issues']}"
+                    )
                 else:
-                    logging.info(f"✅ LLM response quality: {quality_metrics['format_compliance']:.2f}")
+                    logging.info(
+                        f"✅ LLM response quality: {quality_metrics['format_compliance']:.2f}"
+                    )
             else:
                 logging.warning(f"📝 LLM call failed - {log_data}")
                 logging.debug(f"🔍 LLM prompt: {redacted_prompt}")
 
                 # Log quality metrics for failed calls
-                logging.warning(f"❌ LLM response quality issues: {quality_metrics['issues']}")
+                logging.warning(
+                    f"❌ LLM response quality issues: {quality_metrics['issues']}"
+                )
 
         except Exception as e:
             logging.warning(f"⚠️ Failed to log LLM call: {str(e)}")
 
-    def _generate_cache_key(self, contacts: List[Dict[str, Any]], icp_config: Dict[str, Any]) -> str:
+    def _generate_cache_key(
+        self, contacts: List[Dict[str, Any]], icp_config: Dict[str, Any]
+    ) -> str:
         """
         Generate cache key for contacts and ICP config.
         Guards against very large contact lists by not caching them.
@@ -447,7 +490,9 @@ class LLMContactSelector:
         try:
             # Guard against very large contact lists
             if len(contacts) > LLM_CACHE_MAX_CONTACT_LIST_SIZE:
-                logging.info(f"📏 Contact list too large for caching ({len(contacts)} > {LLM_CACHE_MAX_CONTACT_LIST_SIZE}), skipping cache")
+                logging.info(
+                    f"📏 Contact list too large for caching ({len(contacts)} > {LLM_CACHE_MAX_CONTACT_LIST_SIZE}), skipping cache"
+                )
                 return ""
 
             # Create a hash of the contacts and ICP config
@@ -456,12 +501,14 @@ class LLMContactSelector:
             # Extract key fields for caching (limit to first 10 contacts)
             contact_data = []
             for contact in contacts[:10]:
-                contact_data.append({
-                    "contact_id": contact.get("contact_id"),
-                    "role": contact.get("role") or contact.get("job_title"),
-                    "seniority": contact.get("seniority"),
-                    "company": contact.get("company")
-                })
+                contact_data.append(
+                    {
+                        "contact_id": contact.get("contact_id"),
+                        "role": contact.get("role") or contact.get("job_title"),
+                        "seniority": contact.get("seniority"),
+                        "company": contact.get("company"),
+                    }
+                )
 
             # Create cache key from contacts and ICP config
             cache_data = {
@@ -469,7 +516,7 @@ class LLMContactSelector:
                 "icp_type": icp_config.get("icp_type", "default"),
                 "icp_text_hash": hashlib.md5(
                     icp_config.get("icp_text", "").encode()
-                ).hexdigest()[:8]
+                ).hexdigest()[:8],
             }
 
             return hashlib.sha256(
@@ -537,7 +584,8 @@ class LLMContactSelector:
 
             # Remove expired entries
             expired_keys = [
-                key for key, timestamp in self._cache_timestamps.items()
+                key
+                for key, timestamp in self._cache_timestamps.items()
                 if current_time - timestamp > LLM_CACHE_TTL
             ]
 
@@ -550,7 +598,7 @@ class LLMContactSelector:
                 # Sort by timestamp and remove oldest entries
                 sorted_items = sorted(
                     self._cache_timestamps.items(),
-                    key=lambda x: x[1]  # Sort by timestamp
+                    key=lambda x: x[1],  # Sort by timestamp
                 )
 
                 # Remove oldest entries until we're under the limit
@@ -560,7 +608,9 @@ class LLMContactSelector:
                     del self._cache[key_to_remove]
                     del self._cache_timestamps[key_to_remove]
 
-                logging.info(f"🧹 Cache size limit enforced, removed {entries_to_remove} oldest entries")
+                logging.info(
+                    f"🧹 Cache size limit enforced, removed {entries_to_remove} oldest entries"
+                )
 
         except Exception as e:
             logging.warning(f"⚠️ Failed to cleanup cache: {str(e)}")
@@ -576,7 +626,7 @@ class LLMContactSelector:
             "total_cost_usd": self.total_cost,
             "cost_details": self.cost_details.copy(),
             "total_calls": len(self.cost_details),
-            "total_tokens": sum(detail["total_tokens"] for detail in self.cost_details)
+            "total_tokens": sum(detail["total_tokens"] for detail in self.cost_details),
         }
 
     def _redact_pii(self, text: str) -> str:
@@ -592,18 +642,23 @@ class LLMContactSelector:
         # Simple PII redaction - replace emails and phone numbers
 
         # Redact email addresses
-        text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]', text)
+        text = re.sub(
+            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL]", text
+        )
 
         # Redact phone numbers
-        text = re.sub(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', '[PHONE]', text)
+        text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[PHONE]", text)
 
         # Redact names (simple heuristic)
-        text = re.sub(r'\b[A-Z][a-z]+ [A-Z][a-z]+\b', '[NAME]', text)
+        text = re.sub(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b", "[NAME]", text)
 
         return text
 
     def _build_contact_selection_prompt(
-        self, contacts: List[Dict[str, Any]], icp_config: Dict[str, Any], role_priority_config: Optional[Dict[str, Any]] = None
+        self,
+        contacts: List[Dict[str, Any]],
+        icp_config: Dict[str, Any],
+        role_priority_config: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Build prompt for contact selection with role priorities and business context.
@@ -625,9 +680,13 @@ class LLMContactSelector:
         # Add role priority context to the prompt if available
         role_context = ""
         if role_priority_config:
-            high_priority_roles = [role for role, priority in role_priority_config.items() if priority <= 2]
+            high_priority_roles = [
+                role for role, priority in role_priority_config.items() if priority <= 2
+            ]
             if high_priority_roles:
-                role_context = f"\nHigh Priority Roles: {', '.join(high_priority_roles[:5])}"
+                role_context = (
+                    f"\nHigh Priority Roles: {', '.join(high_priority_roles[:5])}"
+                )
 
         # Load and use prompt template from file
         try:
@@ -637,10 +696,20 @@ class LLMContactSelector:
             prompt = prompt.replace("{role_context}", role_context)
             return prompt
         except Exception as e:
-            logging.warning(f"⚠️ Failed to load prompt template, using fallback: {str(e)}")
-            return self._get_fallback_prompt(icp_text, formatted_contacts, icp_type, role_context)
+            logging.warning(
+                f"⚠️ Failed to load prompt template, using fallback: {str(e)}"
+            )
+            return self._get_fallback_prompt(
+                icp_text, formatted_contacts, icp_type, role_context
+            )
 
-    def _get_fallback_prompt(self, icp_text: str, formatted_contacts: str, icp_type: str, role_context: str = "") -> str:
+    def _get_fallback_prompt(
+        self,
+        icp_text: str,
+        formatted_contacts: str,
+        icp_type: str,
+        role_context: str = "",
+    ) -> str:
         """
         Get fallback prompt when template loading fails.
 
@@ -709,12 +778,6 @@ Contacts:
 
 Return ONLY a JSON response in this exact format:
 {{ "contact_id": "123" }}"""
-
-
-
-
-
-
 
 
 class MailgunClient:
@@ -882,10 +945,10 @@ def validate_llm_response(llm_response: str) -> bool:
         start_marker = cleaned_response.find("```")
         if start_marker != -1:
             # Find the end of the opening markdown block
-            first_newline = cleaned_response.find('\n', start_marker)
+            first_newline = cleaned_response.find("\n", start_marker)
             if first_newline != -1:
                 # Remove everything before the content
-                cleaned_response = cleaned_response[first_newline + 1:]
+                cleaned_response = cleaned_response[first_newline + 1 :]
 
         # Find the end of the markdown block
         end_marker = cleaned_response.rfind("```")
@@ -918,7 +981,9 @@ def validate_llm_response(llm_response: str) -> bool:
         return False
 
 
-def extract_contact_id(llm_response: str, contacts: List[Dict[str, Any]]) -> Optional[str]:
+def extract_contact_id(
+    llm_response: str, contacts: List[Dict[str, Any]]
+) -> Optional[str]:
     """
     Extract contact ID from LLM response with validation.
     Handles various response formats gracefully.
@@ -945,10 +1010,10 @@ def extract_contact_id(llm_response: str, contacts: List[Dict[str, Any]]) -> Opt
             start_marker = cleaned_response.find("```")
             if start_marker != -1:
                 # Find the end of the opening markdown block
-                first_newline = cleaned_response.find('\n', start_marker)
+                first_newline = cleaned_response.find("\n", start_marker)
                 if first_newline != -1:
                     # Remove everything before the content
-                    cleaned_response = cleaned_response[first_newline + 1:]
+                    cleaned_response = cleaned_response[first_newline + 1 :]
 
             # Find the end of the markdown block
             end_marker = cleaned_response.rfind("```")
@@ -968,7 +1033,9 @@ def extract_contact_id(llm_response: str, contacts: List[Dict[str, Any]]) -> Opt
             logging.info(f"✅ Valid contact_id extracted: {contact_id}")
             return contact_id
         else:
-            logging.warning(f"⚠️ LLM returned contact_id {contact_id} not found in contacts list")
+            logging.warning(
+                f"⚠️ LLM returned contact_id {contact_id} not found in contacts list"
+            )
             # Track invalid contact_id fallback
             track_fallback_metric("invalid_contact_ids")
             return None
@@ -980,7 +1047,7 @@ def extract_contact_id(llm_response: str, contacts: List[Dict[str, Any]]) -> Opt
 
 def format_contacts_for_llm(
     contacts: List[Dict[str, Any]],
-    role_priority_config: Optional[Dict[str, int]] = None
+    role_priority_config: Optional[Dict[str, int]] = None,
 ) -> str:
     """
     Format contacts for LLM consumption with role priorities and business context.
@@ -996,7 +1063,9 @@ def format_contacts_for_llm(
         return "No contacts available."
 
     formatted = []
-    for i, contact in enumerate(contacts[:10]):  # Cap at 10 contacts to avoid token limits
+    for i, contact in enumerate(
+        contacts[:10]
+    ):  # Cap at 10 contacts to avoid token limits
         contact_id = contact.get("contact_id", f"contact_{i}")
         name = contact.get("name", "Unknown")
         role = contact.get("role") or contact.get("job_title", "Unknown")
@@ -1024,7 +1093,7 @@ def format_contacts_for_llm(
 
         # Build comprehensive contact description
         contact_description = (
-            f"{i+1}. ID: {contact_id} | "
+            f"{i + 1}. ID: {contact_id} | "
             f"Name: {name} | "
             f"Role: {role} | "
             f"Company: {company} | "
@@ -1038,14 +1107,14 @@ def format_contacts_for_llm(
         formatted.append(contact_description)
 
     if len(contacts) > 10:
-        formatted.append(f"... and {len(contacts) - 10} more contacts (showing first 10)")
+        formatted.append(
+            f"... and {len(contacts) - 10} more contacts (showing first 10)"
+        )
 
     return "\n".join(formatted)
 
 
-async def llm_with_fallback(
-    fn_llm, fn_rule_based, *args, **kwargs
-) -> Any:
+async def llm_with_fallback(fn_llm, fn_rule_based, *args, **kwargs) -> Any:
     """
     Execute LLM function with fallback to rule-based function.
 
@@ -1078,7 +1147,7 @@ async def llm_with_fallback(
 async def select_best_contact_llm(
     contacts: List[Dict[str, Any]],
     role_priority_config: Dict[str, int],
-    icp_config: Optional[Dict[str, Any]] = None
+    icp_config: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Optional[str], Dict[str, Any]]:
     """
     Select best contact using LLM with fallback to rule-based.
@@ -1092,17 +1161,32 @@ async def select_best_contact_llm(
         Tuple of (Contact ID of best contact, Cost information)
     """
     if not contacts:
-        return None, {"total_cost_usd": 0.0, "cost_details": [], "total_calls": 0, "total_tokens": 0}
+        return None, {
+            "total_cost_usd": 0.0,
+            "cost_details": [],
+            "total_calls": 0,
+            "total_tokens": 0,
+        }
 
     if not icp_config:
         logging.info("ℹ️ No ICP config provided, using rule-based selection")
-        return select_best_contact(contacts, role_priority_config), {"total_cost_usd": 0.0, "cost_details": [], "total_calls": 0, "total_tokens": 0}
+        return select_best_contact(contacts, role_priority_config), {
+            "total_cost_usd": 0.0,
+            "cost_details": [],
+            "total_calls": 0,
+            "total_tokens": 0,
+        }
 
     # Get OpenRouter API key from environment
     api_key = os.getenv("OPENROUTER_KEY")
     if not api_key:
         logging.warning("⚠️ No OPENROUTER_KEY found, using rule-based selection")
-        return select_best_contact(contacts, role_priority_config), {"total_cost_usd": 0.0, "cost_details": [], "total_calls": 0, "total_tokens": 0}
+        return select_best_contact(contacts, role_priority_config), {
+            "total_cost_usd": 0.0,
+            "cost_details": [],
+            "total_calls": 0,
+            "total_tokens": 0,
+        }
 
     # Get ICP type for configuration
     icp_type = icp_config.get("icp_type", "default")
@@ -1112,12 +1196,19 @@ async def select_best_contact_llm(
 
     # Create wrapper functions for proper parameter passing
     async def llm_function(contacts_param, icp_param):
-        result = await llm_selector.select_contact(contacts_param, icp_param, role_priority_config)
+        result = await llm_selector.select_contact(
+            contacts_param, icp_param, role_priority_config
+        )
         return result, llm_selector.get_cost_info()
 
     def fallback_function(contacts_param, _):
         track_llm_performance_metric("fallback_to_rule_based")
-        return select_best_contact(contacts_param, role_priority_config), {"total_cost_usd": 0.0, "cost_details": [], "total_calls": 0, "total_tokens": 0}
+        return select_best_contact(contacts_param, role_priority_config), {
+            "total_cost_usd": 0.0,
+            "cost_details": [],
+            "total_calls": 0,
+            "total_tokens": 0,
+        }
 
     # Try LLM selection with fallback
     try:
@@ -1148,7 +1239,9 @@ def track_fallback_metric(metric_type: str):
         FALLBACK_METRICS["total_fallbacks"] += 1
 
         # Log the metric for monitoring
-        logging.info(f"📊 FALLBACK_METRIC: {metric_type} - Total: {FALLBACK_METRICS[metric_type]}")
+        logging.info(
+            f"📊 FALLBACK_METRIC: {metric_type} - Total: {FALLBACK_METRICS[metric_type]}"
+        )
 
     # Log current fallback statistics
     logging.info(f"📊 FALLBACK_STATS: {FALLBACK_METRICS}")
@@ -1175,7 +1268,9 @@ def track_llm_performance_metric(metric_type: str, value: int = 1):
     global LLM_PERFORMANCE_METRICS
     if metric_type in LLM_PERFORMANCE_METRICS:
         LLM_PERFORMANCE_METRICS[metric_type] += value
-        logging.debug(f"📊 LLM_PERFORMANCE: {metric_type} - Total: {LLM_PERFORMANCE_METRICS[metric_type]}")
+        logging.debug(
+            f"📊 LLM_PERFORMANCE: {metric_type} - Total: {LLM_PERFORMANCE_METRICS[metric_type]}"
+        )
     else:
         logging.warning(f"⚠️ Unknown LLM performance metric type: {metric_type}")
 
@@ -1190,7 +1285,9 @@ def get_llm_performance_metrics() -> Dict[str, Any]:
     metrics = LLM_PERFORMANCE_METRICS.copy()
     # Calculate average response time
     if metrics["total_calls"] > 0:
-        metrics["average_response_time_ms"] = metrics["total_response_time_ms"] / metrics["total_calls"]
+        metrics["average_response_time_ms"] = (
+            metrics["total_response_time_ms"] / metrics["total_calls"]
+        )
     return metrics
 
 
@@ -1201,7 +1298,9 @@ def reset_llm_performance_metrics():
         LLM_PERFORMANCE_METRICS[key] = 0
 
 
-def analyze_llm_response_quality(response: str, expected_format: str = "json") -> Dict[str, Any]:
+def analyze_llm_response_quality(
+    response: str, expected_format: str = "json"
+) -> Dict[str, Any]:
     """
     Analyze the quality of LLM responses for monitoring and improvement.
 
@@ -1217,7 +1316,7 @@ def analyze_llm_response_quality(response: str, expected_format: str = "json") -
         "is_valid_json": False,
         "has_contact_id": False,
         "format_compliance": 0.0,
-        "issues": []
+        "issues": [],
     }
 
     try:
@@ -1251,7 +1350,9 @@ def analyze_llm_response_quality(response: str, expected_format: str = "json") -
     if quality_metrics["format_compliance"] < 1.0:
         logging.warning(f"📊 LLM response quality issues: {quality_metrics['issues']}")
     else:
-        logging.debug(f"📊 LLM response quality: {quality_metrics['format_compliance']:.2f}")
+        logging.debug(
+            f"📊 LLM response quality: {quality_metrics['format_compliance']:.2f}"
+        )
 
     return quality_metrics
 
@@ -1274,7 +1375,11 @@ def get_llm_monitoring_summary() -> Dict[str, Any]:
     # Calculate cache hit rate
     cache_hits = performance_metrics.get("cache_hits", 0)
     cache_misses = performance_metrics.get("cache_misses", 0)
-    cache_hit_rate = (cache_hits / (cache_hits + cache_misses) * 100) if (cache_hits + cache_misses) > 0 else 0
+    cache_hit_rate = (
+        (cache_hits / (cache_hits + cache_misses) * 100)
+        if (cache_hits + cache_misses) > 0
+        else 0
+    )
 
     return {
         "fallback_metrics": fallback_metrics,
@@ -1282,8 +1387,13 @@ def get_llm_monitoring_summary() -> Dict[str, Any]:
         "calculated_metrics": {
             "success_rate_percent": round(success_rate, 2),
             "cache_hit_rate_percent": round(cache_hit_rate, 2),
-            "fallback_rate_percent": round((fallback_metrics.get("total_fallbacks", 0) / total_calls * 100) if total_calls > 0 else 0, 2)
-        }
+            "fallback_rate_percent": round(
+                (fallback_metrics.get("total_fallbacks", 0) / total_calls * 100)
+                if total_calls > 0
+                else 0,
+                2,
+            ),
+        },
     }
 
 
@@ -1298,8 +1408,10 @@ def load_prompt_template(template_name: str) -> str:
         Template content as string
     """
     try:
-        template_path = Path(__file__).parent.parent / "config" / "prompts" / template_name
-        with open(template_path, 'r', encoding='utf-8') as f:
+        template_path = (
+            Path(__file__).parent.parent / "config" / "prompts" / template_name
+        )
+        with open(template_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
         logging.warning(f"⚠️ Prompt template {template_name} not found, using default")
@@ -1361,7 +1473,14 @@ def get_icp_llm_config(icp_type: str, icp_config: Dict[str, Any]) -> Dict[str, A
         base_config.update(llm_overrides)
 
     # Ensure all required fields are present
-    required_fields = ["model", "fallback_model", "temperature", "max_tokens", "timeout", "prompt_template"]
+    required_fields = [
+        "model",
+        "fallback_model",
+        "temperature",
+        "max_tokens",
+        "timeout",
+        "prompt_template",
+    ]
     for field in required_fields:
         if field not in base_config:
             base_config[field] = LLM_ICP_CONFIGS["default"][field]
@@ -1377,7 +1496,7 @@ def test_llm_response_handling():
     # Test contacts
     test_contacts = [
         {"contact_id": "123", "name": "John Doe", "role": "CEO"},
-        {"contact_id": "456", "name": "Jane Smith", "role": "CTO"}
+        {"contact_id": "456", "name": "Jane Smith", "role": "CTO"},
     ]
 
     # Test various response formats
@@ -1385,10 +1504,10 @@ def test_llm_response_handling():
         '{"contact_id": "123"}',  # Valid JSON
         '```json\n{"contact_id": "456"}\n```',  # Markdown JSON
         '{"contact_id": "789"}',  # Invalid contact_id
-        '{"wrong_key": "123"}',   # Missing contact_id
-        'invalid json',            # Invalid JSON
-        '{"contact_id": ""}',     # Empty contact_id
-        '{"contact_id": null}',   # Null contact_id
+        '{"wrong_key": "123"}',  # Missing contact_id
+        "invalid json",  # Invalid JSON
+        '{"contact_id": ""}',  # Empty contact_id
+        '{"contact_id": null}',  # Null contact_id
     ]
 
     print("🧪 Testing LLM response handling...")
@@ -1397,7 +1516,7 @@ def test_llm_response_handling():
         is_valid = validate_llm_response(response)
         contact_id = extract_contact_id(response, test_contacts)
 
-        print(f"Test {i+1}: {response[:30]}...")
+        print(f"Test {i + 1}: {response[:30]}...")
         print(f"  Valid: {is_valid}")
         print(f"  Contact ID: {contact_id}")
         print()
@@ -1427,7 +1546,7 @@ def test_prompt_variations():
 
         # Test prompt template loading
         try:
-            template = load_prompt_template(config['prompt_template'])
+            template = load_prompt_template(config["prompt_template"])
             print(f"  ✅ Template loaded successfully ({len(template)} chars)")
         except Exception as e:
             print(f"  ❌ Template loading failed: {str(e)}")
@@ -1446,30 +1565,26 @@ def test_icp_configuration_overrides():
     test_icp_config = {
         "icp_type": "investment",
         "icp_text": "Test investment ICP",
-        "llm_config": {
-            "temperature": 0.2,
-            "max_tokens": 800,
-            "timeout": 60.0
-        }
+        "llm_config": {"temperature": 0.2, "max_tokens": 800, "timeout": 60.0},
     }
 
     # Get merged configuration
     merged_config = get_icp_llm_config("investment", test_icp_config)
 
-    print(f"📋 Base investment config:")
+    print("📋 Base investment config:")
     print(f"  Temperature: {LLM_ICP_CONFIGS['investment']['temperature']}")
     print(f"  Max Tokens: {LLM_ICP_CONFIGS['investment']['max_tokens']}")
     print(f"  Timeout: {LLM_ICP_CONFIGS['investment']['timeout']}")
 
-    print(f"\n📋 Merged config with overrides:")
+    print("\n📋 Merged config with overrides:")
     print(f"  Temperature: {merged_config['temperature']}")
     print(f"  Max Tokens: {merged_config['max_tokens']}")
     print(f"  Timeout: {merged_config['timeout']}")
 
     # Verify overrides are applied
-    assert merged_config['temperature'] == 0.2, "Temperature override not applied"
-    assert merged_config['max_tokens'] == 800, "Max tokens override not applied"
-    assert merged_config['timeout'] == 60.0, "Timeout override not applied"
+    assert merged_config["temperature"] == 0.2, "Temperature override not applied"
+    assert merged_config["max_tokens"] == 800, "Max tokens override not applied"
+    assert merged_config["timeout"] == 60.0, "Timeout override not applied"
 
     print("✅ Configuration overrides working correctly!")
 
@@ -1917,7 +2032,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     f"🔍 Contacts content before contact selection: {contacts}"
                 )
                 logging.info(f"🔍 Role priority config: {role_priority_config}")
-                logging.info(f"🔍 ICP config available for LLM selection: {bool(icp_config)}")
+                logging.info(
+                    f"🔍 ICP config available for LLM selection: {bool(icp_config)}"
+                )
 
                 # Use LLM-based contact selection with fallback to rule-based
                 best_contact_id, llm_cost_info = await select_best_contact_llm(
@@ -2533,7 +2650,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     "llm_contact_selection": {
                         "best_contact_id": best_contact_id,
                         "llm_cost_info": llm_cost_info,
-                        "selection_method": "llm" if llm_cost_info.get("total_calls", 0) > 0 else "rule_based"
+                        "selection_method": "llm"
+                        if llm_cost_info.get("total_calls", 0) > 0
+                        else "rule_based",
                     },
                     "costs": {
                         "company_usd": company_cost,
@@ -2711,7 +2830,10 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "domain": 0.0,
                 "crawl": 0.0,
                 "enrich": total_cost,
-                "llm": sum(record.get("cost", {}).get("llm_usd", 0.0) for record in processed_records),
+                "llm": sum(
+                    record.get("cost", {}).get("llm_usd", 0.0)
+                    for record in processed_records
+                ),
                 "total": total_cost,
             },
         )

@@ -86,16 +86,39 @@ All three tools must accept JSON in, return JSON out with a top-level { "data": 
 Never crash the pipeline: accumulate per-item errors; return partials; set status.
 Each stage that changes status must append a status event to status_history[] with { status, ts, notes }
 
+**Apollo Integration Data Flow**
+When `lead_generation_mode: "apollo"` is configured:
+icp_config.json → ApolloLeadGen.run(config)
+→ lead_records[] (directly enriched with company + contacts + apollo.apollo_score)
+→ Enrich.run({ lead_records, icp_config, caps }) [optional enrichment]
+→ lead_records[] (final enriched data with costs)
+
+**Hybrid Mode Data Flow**
+Traditional pipeline with Apollo enrichment:
+icp_config.json → Domain.run(config) → Crawl.run() → ApolloEnrichProvider.enrich() → lead_records[]
+Apollo serves as TIER_0 enrichment provider alongside CompanyEnrich and AnymailFinder.
+
 State Machine (Authoritative)
 Allowed transitions:
 Domain-generated records start with status "scored". Status "new" is reserved exclusively for externally imported leads; no current tool emits it. Each tool MUST add an initial status_history entry the first time it sets or changes status. No other transitions permitted. Every transition MUST append {status, ts, notes} to status_history[].
+
+**Traditional Pipeline:**
 new → scored → crawled → enrich_ready → enriched
 scored → crawl_failed
 crawled → enrich_partial
+
+**Apollo Pipeline:**
+new → apollo_generated → enriched
+apollo_generated → enrich_partial
+
+**Hybrid Mode:**
+new → scored → crawled → enrich_ready → enriched (with Apollo enrichment)
+
 Gates:
 Domain: new→scored
 Crawl: scored→crawled; MAY set crawled→enrich_ready iff (icp.crawl_score ≥ icp.threshold AND required_fields.company satisfied)
 Enrich: enrich_ready→enriched OR crawled→enrich_partial
+ApolloLeadGen: new→apollo_generated; MAY set apollo_generated→enrich_ready iff (apollo.apollo_score ≥ icp.threshold AND required_fields.company satisfied)
 
 Canonical JSON (unified_lead_record.json)
 All tools load the canonical schema from schemas/unified_lead_record.json and validate I/O against it.
@@ -165,6 +188,12 @@ company._ (as defined in canonical schema), company.evidence*urls (≤10), conta
 Enrich MAY set/update:
 best_contact_id, contacts[*].email, email_status, email_source, email_confidence, phone, linkedin, other_links (append-only semantics), company.ids backfill, provenance.enriched_at, provenance.tool_versions.enrich, provenance.next_revisit_at (if changed; max-rule), cost.enrich_usd, cost.total_usd, status to enriched|enrich_partial
 
+**ApolloLeadGen MAY set/update:**
+company.\_ (as defined in canonical schema), contacts[] (create/update; dedupe by contact_id), icp.apollo_score, icp.apollo_reason, icp.apollo_pass, provenance.apollo_generated_at, provenance.tool_versions.apollo, provenance.next_revisit_at (max-rule), cost.apollo_usd, cost.total_usd, status to apollo_generated|enrich_ready, apollo.{ search_strategy, company_filters, person_filters, quality_thresholds, search_results, enrichment_results }
+
+**ApolloEnrichProvider MAY set/update:**
+contacts[*].email, email_status, email_source, email_confidence, phone, linkedin, company.ids backfill, provenance.enriched_at, provenance.tool_versions.apollo_enrich, cost.apollo_enrich_usd, cost.total_usd
+
 ICP JSON (icp.json)
 {
 "name": "<icp_name>",
@@ -221,7 +250,36 @@ ICP JSON (icp.json)
 "enabled": true
 },
 
-"default_country": "<ISO-3166 country code>"
+"default_country": "<ISO-3166 country code>",
+
+"lead_generation_mode": "traditional | apollo | specific_urls",
+"apollo": {
+"enabled": true,
+"search": {
+"strategy": "company_first | person_first",
+"company_filters": {
+"industry": ["Technology", "SaaS"],
+"size": ["11-50", "51-200"],
+"location": ["United States"],
+"technologies": ["Python", "AWS"],
+"funding_stage": ["Series A", "Series B"]
+},
+"person_filters": {
+"job_titles": ["CEO", "CTO", "VP Engineering"],
+"seniority": ["C-Level", "VP"],
+"departments": ["Engineering", "Sales"]
+},
+"max_results": 100
+},
+"enrich": {
+"enabled": true,
+"quality_thresholds": {
+"min_employee_count": 10,
+"min_funding_stage": "Seed",
+"required_technologies": ["Python"]
+}
+}
+}
 }
 Templates use ${placeholder} syntax and are rendered via Python string.Template(...).substitute(\*\*context).
 If any placeholder is missing, the tool MUST return SCHEMA_VALIDATION (no partial substitution).

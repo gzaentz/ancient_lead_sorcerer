@@ -7,10 +7,7 @@ to ensure it works correctly with various ICP configurations and contact scenari
 """
 
 import asyncio
-import json
-import os
 import sys
-import time
 from pathlib import Path
 
 # Add src to path for imports
@@ -24,7 +21,6 @@ from src.enrich import (
     LLMContactSelector,
     test_llm_response_handling,
     get_fallback_metrics,
-    FALLBACK_METRICS
 )
 
 
@@ -66,12 +62,12 @@ class LLMValidationTester:
 
         # Invalid responses
         invalid_tests = [
-            ('invalid json', "Invalid JSON"),
+            ("invalid json", "Invalid JSON"),
             ('{"wrong_key": "123"}', "Missing contact_id"),
             ('{"contact_id": ""}', "Empty contact_id"),
             ('{"contact_id": null}', "Null contact_id"),
-            ('{}', "Empty object"),
-            ('', "Empty string"),
+            ("{}", "Empty object"),
+            ("", "Empty string"),
             ('{"contact_id": 123}', "Non-string contact_id"),
         ]
 
@@ -85,33 +81,43 @@ class LLMValidationTester:
 
         contacts = [
             {"contact_id": "valid_1", "name": "Person 1"},
-            {"contact_id": "valid_2", "name": "Person 2"}
+            {"contact_id": "valid_2", "name": "Person 2"},
         ]
 
         # Valid extractions
         valid_tests = [
             ('{"contact_id": "valid_1"}', "valid_1", "Basic extraction"),
-            ('```json\n{"contact_id": "valid_2"}\n```', "valid_2", "Markdown extraction"),
+            (
+                '```json\n{"contact_id": "valid_2"}\n```',
+                "valid_2",
+                "Markdown extraction",
+            ),
         ]
 
         for response, expected, description in valid_tests:
             result = extract_contact_id(response, contacts)
             passed = result == expected
-            self.log_test(f"Extract contact ID - {description}", passed,
-                         f"Expected: {expected}, Got: {result}")
+            self.log_test(
+                f"Extract contact ID - {description}",
+                passed,
+                f"Expected: {expected}, Got: {result}",
+            )
 
         # Invalid extractions
         invalid_tests = [
             ('{"contact_id": "nonexistent"}', "Nonexistent ID"),
-            ('invalid json', "Invalid JSON"),
+            ("invalid json", "Invalid JSON"),
             ('{"wrong_key": "valid_1"}', "Wrong key"),
         ]
 
         for response, description in invalid_tests:
             result = extract_contact_id(response, contacts)
             passed = result is None
-            self.log_test(f"Invalid extraction - {description}", passed,
-                         f"Expected: None, Got: {result}")
+            self.log_test(
+                f"Invalid extraction - {description}",
+                passed,
+                f"Expected: None, Got: {result}",
+            )
 
     def test_contact_formatting(self):
         """Test contact formatting for LLM consumption."""
@@ -124,7 +130,7 @@ class LLMValidationTester:
                 "name": "John Doe",
                 "role": "CEO",
                 "company": "TestCorp",
-                "seniority": 1
+                "seniority": 1,
             }
         ]
 
@@ -160,7 +166,7 @@ class LLMValidationTester:
         # DSVfund ICP configuration
         icp_config = {
             "icp_text": "Accredited, crypto-savvy capital allocators, HNW individuals, family offices, and digital-asset fund-of-funds",
-            "icp_type": "investment"
+            "icp_type": "investment",
         }
 
         # Investment-focused contacts
@@ -171,7 +177,7 @@ class LLMValidationTester:
                 "role": "Marketing Director",
                 "company": "TechCorp",
                 "seniority": 3,
-                "decision_maker": False
+                "decision_maker": False,
             },
             {
                 "contact_id": "family_office_manager",
@@ -179,18 +185,20 @@ class LLMValidationTester:
                 "role": "Portfolio Manager",
                 "company": "Family Office",
                 "seniority": 2,
-                "decision_maker": True
-            }
+                "decision_maker": True,
+            },
         ]
 
         role_priority_config = {
             "Portfolio Manager": 1,
             "Marketing Director": 8,
-            "default": 99
+            "default": 99,
         }
 
         # Test without API key (should fallback to rule-based)
-        with_fallback = await select_best_contact_llm(contacts, role_priority_config, icp_config)
+        with_fallback = await select_best_contact_llm(
+            contacts, role_priority_config, icp_config
+        )
         fallback_check = with_fallback is not None
         self.log_test("DSVfund scenario - Fallback works", fallback_check)
 
@@ -201,7 +209,7 @@ class LLMValidationTester:
         # Healthcare ICP configuration
         icp_config = {
             "icp_text": "Dental practices and orthodontic clinics seeking modern practice management software",
-            "icp_type": "healthcare"
+            "icp_type": "healthcare",
         }
 
         # Healthcare-focused contacts
@@ -212,7 +220,7 @@ class LLMValidationTester:
                 "role": "Hygienist",
                 "company": "Dental Practice",
                 "seniority": 5,
-                "decision_maker": False
+                "decision_maker": False,
             },
             {
                 "contact_id": "practice_owner",
@@ -220,18 +228,16 @@ class LLMValidationTester:
                 "role": "Practice Owner",
                 "company": "Smith Dental",
                 "seniority": 1,
-                "decision_maker": True
-            }
+                "decision_maker": True,
+            },
         ]
 
-        role_priority_config = {
-            "Practice Owner": 1,
-            "Hygienist": 8,
-            "default": 99
-        }
+        role_priority_config = {"Practice Owner": 1, "Hygienist": 8, "default": 99}
 
         # Test without API key (should fallback to rule-based)
-        with_fallback = await select_best_contact_llm(contacts, role_priority_config, icp_config)
+        with_fallback = await select_best_contact_llm(
+            contacts, role_priority_config, icp_config
+        )
         fallback_check = with_fallback is not None
         self.log_test("Healthcare scenario - Fallback works", fallback_check)
 
@@ -260,14 +266,11 @@ class LLMValidationTester:
                 "name": "Test Person",
                 "role": "Test Role",
                 "company": "Test Company",
-                "seniority": 1
+                "seniority": 1,
             }
         ]
 
-        icp_config = {
-            "icp_text": "Test ICP description",
-            "icp_type": "default"
-        }
+        icp_config = {"icp_text": "Test ICP description", "icp_type": "default"}
 
         try:
             selector = LLMContactSelector("test_key")
@@ -304,7 +307,7 @@ class LLMValidationTester:
             "llm_failures": 0,
             "llm_none_responses": 0,
             "invalid_contact_ids": 0,
-            "total_fallbacks": 0
+            "total_fallbacks": 0,
         }
 
         # Run all test categories
@@ -348,7 +351,11 @@ class LLMValidationTester:
         metrics = get_fallback_metrics()
         print(f"\n📊 FALLBACK METRICS: {metrics}")
 
-        success_rate = (self.passed / (self.passed + self.failed)) * 100 if (self.passed + self.failed) > 0 else 0
+        success_rate = (
+            (self.passed / (self.passed + self.failed)) * 100
+            if (self.passed + self.failed) > 0
+            else 0
+        )
         print(f"🎯 SUCCESS RATE: {success_rate:.1f}%")
 
         if self.failed == 0:
@@ -362,7 +369,9 @@ class LLMValidationTester:
 def main():
     """Main validation script."""
     print("🧪 LLM Contact Selection Validation")
-    print("This script validates LLM response handling and contact selection functionality.")
+    print(
+        "This script validates LLM response handling and contact selection functionality."
+    )
     print()
 
     # Check if we're in the right directory

@@ -24,6 +24,7 @@ from .enrich_providers import (
     AnymailFinderProvider,
     CoresignalProvider,
     SnovioProvider,
+    ApolloEnrichProvider,
 )
 
 
@@ -79,6 +80,19 @@ class EnrichmentProviderRouter:
                 logging.info("✅ CompanyEnrich provider initialized successfully")
             except Exception as exc:
                 logging.warning(f"⚠️ Failed to initialize CompanyEnrich provider: {exc}")
+
+        # Apollo provider - only initialize if Apollo mode is enabled
+        if self._should_use_apollo_provider():
+            try:
+                apollo_config = self.icp_config.get("apollo", {}).get("enrich", {})
+                self.providers[ProviderTier.TIER_0].append(
+                    ApolloEnrichProvider(apollo_config)
+                )
+                logging.info("✅ Apollo enrichment provider initialized successfully")
+            except Exception as exc:
+                logging.warning(
+                    f"⚠️ Failed to initialize Apollo enrichment provider: {exc}"
+                )
 
         # TIER_1: Secondary providers (legacy, reliable)
         if self._should_use_provider("coresignal", ProviderTier.TIER_1):
@@ -148,6 +162,33 @@ class EnrichmentProviderRouter:
             return True  # Secondary providers enabled by default
         else:
             return False  # Legacy providers disabled by default
+
+    def _should_use_apollo_provider(self) -> bool:
+        """
+        Determine if Apollo enrichment provider should be used.
+
+        Apollo provider is only enabled when:
+        1. Apollo mode is enabled in ICP config
+        2. Apollo enrichment is enabled in Apollo config
+
+        Returns:
+            True if Apollo provider should be used, False otherwise
+        """
+        # Check if Apollo mode is enabled
+        lead_generation_mode = self.icp_config.get(
+            "lead_generation_mode", "traditional"
+        )
+        if lead_generation_mode != "apollo":
+            return False
+
+        # Check if Apollo config exists and enrichment is enabled
+        apollo_config = self.icp_config.get("apollo", {})
+        if not apollo_config:
+            return False
+
+        # Check if Apollo enrichment is enabled
+        enrich_config = apollo_config.get("enrich", {})
+        return enrich_config.get("enabled", False)
 
     def _update_health_tracking(self):
         """Initialize health tracking for all providers."""

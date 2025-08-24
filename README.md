@@ -131,6 +131,72 @@ The `EnrichmentProviderRouter` intelligently routes requests:
 - **Anymail Finder**: Email discovery and verification
 - **Coresignal**: Company information (legacy)
 - **Snovio**: Contact discovery (legacy)
+- **Apollo**: Lead generation and enrichment (new!)
+
+## Apollo Integration
+
+Lead Sorcerer now supports Apollo as an alternative lead generation path that can bypass the traditional Domain + Crawl tools while maintaining all existing functionality.
+
+### Key Features
+
+- **Alternative Pipeline**: Apollo Search + Enrich instead of Domain → Crawl → Enrich
+- **High-Quality Leads**: Advanced filtering based on ICP criteria
+- **Search Strategies**: Company-first and person-first approaches
+- **Data Quality**: Built-in quality validation and scoring
+- **Cost Tracking**: Credit-based pricing with detailed cost monitoring
+- **Hybrid Mode**: Use Apollo enrichment within traditional pipeline
+
+### Setup
+
+1. **Environment Variables**:
+
+```bash
+# Add to your .env file
+APOLLO_API_KEY=your_api_key_here
+APOLLO_REFRESH_TOKEN=your_refresh_token_here  # Optional
+```
+
+2. **ICP Configuration**:
+
+```json
+{
+  "lead_generation_mode": "apollo",
+  "apollo": {
+    "enabled": true,
+    "search": {
+      "strategy": "company_first",
+      "company_filters": {
+        "industry": ["Technology", "SaaS"],
+        "size": ["11-50", "51-200"],
+        "location": ["United States"]
+      }
+    }
+  }
+}
+```
+
+3. **Run Apollo Pipeline**:
+
+```bash
+poetry run orchestrator --config icp_config.json
+```
+
+### Search Strategies
+
+- **Company-First**: Find companies matching ICP, then discover people
+- **Person-First**: Find people matching ICP, then enrich company data
+
+### Cost Structure
+
+- **Search**: 1 credit ($0.015) per request
+- **Enrichment**: 1 credit ($0.015) per request
+- **Credits**: Can be used for both search and enrichment
+
+### Documentation
+
+- [Apollo API Documentation](docs/apollapidocs.md)
+- [Configuration Guide](docs/icp_configuration_guide.md)
+- [Sample Configuration](config/apollo_example_icp.json)
 
 ## LLM-Based Contact Selection
 
