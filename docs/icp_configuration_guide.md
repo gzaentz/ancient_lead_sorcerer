@@ -249,10 +249,32 @@ Set maximum costs for different stages:
 
 ```json
 {
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Tech Companies ICP",
+  "description": "B2B SaaS companies in the technology sector",
+  "enabled": true,
+  "created_by": "admin",
+  "created_at": "2024-01-01T00:00:00Z",
+  "tags": ["technology", "saas", "b2b"],
   "lead_generation_mode": "apollo",
+  "targeting": {
+    "locations": ["United States", "Canada", "United Kingdom"],
+    "markets": [
+      "Enterprise Software",
+      "Cloud Infrastructure",
+      "Developer Tools"
+    ]
+  },
+  "lead_generation_settings": {
+    "batch_size": 50,
+    "rate_limit": 60,
+    "default_contact_role": "executive"
+  },
   "apollo": {
     "enabled": true,
+    "credentials": {
+      "api_key": "ak_test_1234567890abcdef"
+    },
     "search": {
       "strategy": "company_first",
       "company_filters": {
@@ -261,6 +283,32 @@ Set maximum costs for different stages:
         "technologies": ["Python", "JavaScript", "Cloud"]
       }
     }
+  },
+  "contact_filters": {
+    "roles": ["CEO", "CTO", "VP Engineering", "VP Sales"],
+    "seniority": ["C-Level", "VP", "Director"]
+  },
+  "enrichment": {
+    "enabled": true,
+    "quality_threshold": 0.8
+  },
+  "match_strategy": {
+    "match_threshold": 0.75
+  },
+  "quotas": {
+    "daily_leads": 1000,
+    "monthly_budget": 500.0
+  },
+  "scoring": {
+    "weights": {
+      "industry_match": 0.3,
+      "size_match": 0.2,
+      "tech_match": 0.5
+    }
+  },
+  "webhook": {
+    "url": "https://your-webhook-endpoint.com/leads",
+    "events": ["lead_enriched", "batch_completed"]
   }
 }
 ```
@@ -269,17 +317,67 @@ Set maximum costs for different stages:
 
 ```json
 {
+  "id": "550e8400-e29b-41d4-a716-446655440001",
   "name": "Healthcare ICP",
+  "description": "Healthcare organizations and medical practices",
+  "enabled": true,
+  "created_by": "admin",
+  "created_at": "2024-01-01T00:00:00Z",
+  "tags": ["healthcare", "medical", "practice"],
   "lead_generation_mode": "apollo",
+  "targeting": {
+    "locations": ["United States", "Canada"],
+    "markets": ["Healthcare Services", "Medical Devices", "Digital Health"]
+  },
+  "lead_generation_settings": {
+    "batch_size": 25,
+    "rate_limit": 30,
+    "default_contact_role": "medical_director"
+  },
   "apollo": {
     "enabled": true,
+    "credentials": {
+      "api_key": "ak_test_1234567890abcdef"
+    },
     "search": {
       "strategy": "company_first",
       "company_filters": {
         "industry": ["Healthcare", "Medical", "Pharmaceuticals"],
-        "size": ["51-200", "201-1000", "1001-5000"]
+        "size": ["51-200", "201-1000", "1001-5000"],
+        "technologies": ["EMR", "HIPAA", "Telemedicine"]
       }
     }
+  },
+  "contact_filters": {
+    "roles": [
+      "Medical Director",
+      "Practice Manager",
+      "Chief Medical Officer",
+      "Administrator"
+    ],
+    "seniority": ["Director", "Manager", "C-Level"]
+  },
+  "enrichment": {
+    "enabled": true,
+    "quality_threshold": 0.85
+  },
+  "match_strategy": {
+    "match_threshold": 0.8
+  },
+  "quotas": {
+    "daily_leads": 500,
+    "monthly_budget": 750.0
+  },
+  "scoring": {
+    "weights": {
+      "industry_match": 0.4,
+      "size_match": 0.3,
+      "location_match": 0.3
+    }
+  },
+  "webhook": {
+    "url": "https://your-webhook-endpoint.com/healthcare-leads",
+    "events": ["lead_enriched", "batch_completed"]
   }
 }
 ```

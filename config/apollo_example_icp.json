@@ -118,7 +118,7 @@
       "enabled": true,
       "quality_thresholds": {
         "min_employee_count": 10,
-        "min_funding_stage": "Seed",
+        "min_funding_stage": "Series A",
         "required_technologies": ["Python", "JavaScript"],
         "min_contact_quality": 0.8,
         "required_contact_fields": ["email", "title"]
@@ -154,14 +154,14 @@
   },
 
   "role_priority": {
-    "ceo": 1,
-    "cto": 2,
-    "vp engineering": 3,
-    "vp sales": 4,
-    "vp marketing": 5,
-    "director": 6,
-    "head": 7,
-    "manager": 8,
+    "CEO": 1,
+    "CTO": 2,
+    "VP Engineering": 3,
+    "VP Sales": 4,
+    "VP Marketing": 5,
+    "Director": 6,
+    "Head": 7,
+    "Manager": 8,
     "default": 99
   },
 

@@ -675,7 +675,7 @@ class ApolloEnrichProvider(BaseEnrichProvider):
 
 #### Tasks:
 
-- ✅ Create `docs/apollapidocs.md`:
+- ✅ Create `docs/apolloapidocs.md`:
   - ✅ API endpoint documentation
   - ✅ Rate limiting and pricing information
   - ✅ Field mapping reference

@@ -520,10 +520,16 @@ from src.apollo_client import ApolloClient
 async def test_new_key():
     client = ApolloClient(api_key=os.getenv('APOLLO_API_KEY'))
     try:
-        response = await client.search_companies({'per_page': 1})
-        print(f'✅ New API key working: {response.status_code}')
+        response = await client.search_companies(filters={'per_page': 1}, max_results=1)
+        if response and (isinstance(response, list) or response):
+            print(f'✅ New API key working: response received')
+        else:
+            print(f'❌ New API key failed: empty response')
     except Exception as e:
         print(f'❌ New API key failed: {e}')
+    finally:
+        if hasattr(client, 'close'):
+            await client.close()
 
 asyncio.run(test_new_key())
 "
@@ -578,13 +584,13 @@ asyncio.run(check_rate_limits())
 
 ```python
 # Adjust batch sizes based on rate limits
-def optimize_batch_size(current_error_rate):
+def optimize_batch_size(current_error_rate, current_batch_size):
     if current_error_rate > 0.1:  # >10% errors
-        return max(10, current_batch_size // 2)
+        return max(10, int(current_batch_size) // 2)
     elif current_error_rate < 0.02:  # <2% errors
-        return min(100, current_batch_size * 1.2)
+        return min(100, int(current_batch_size * 1.2))
     else:
-        return current_batch_size
+        return int(current_batch_size)
 ```
 
 ### Credit Usage Tracking

@@ -102,18 +102,44 @@ class LeadSorcererOrchestrator:
         self.total_errors = []
         self.total_unknown_errors = 0
 
-    def __del__(self):
-        """Cleanup method to close Apollo tool if it exists."""
+    async def cleanup(self):
+        """Properly cleanup resources, especially async Apollo client."""
         if hasattr(self, "apollo_tool") and self.apollo_tool is not None:
             try:
-                # Check if close method is async and handle accordingly
-                if asyncio.iscoroutinefunction(self.apollo_tool.close):
-                    # For async close methods, we can't await in __del__, so just log
-                    pass
-                else:
+                if hasattr(self.apollo_tool, 'close'):
+                    if asyncio.iscoroutinefunction(self.apollo_tool.close):
+                        await self.apollo_tool.close()
+                    else:
+                        self.apollo_tool.close()
+                self.apollo_tool = None
+            except Exception as e:
+                self.logger.warning(f"Error during Apollo tool cleanup: {e}")
+
+    def __del__(self):
+        """Cleanup method - fallback for sync cleanup only."""
+        if hasattr(self, "apollo_tool") and self.apollo_tool is not None:
+            try:
+                # Only attempt sync cleanup as fallback
+                if hasattr(self.apollo_tool, 'close') and not asyncio.iscoroutinefunction(self.apollo_tool.close):
                     self.apollo_tool.close()
+                elif hasattr(self.apollo_tool, 'close') and asyncio.iscoroutinefunction(self.apollo_tool.close):
+                    # Schedule async cleanup as last resort
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            loop.create_task(self.apollo_tool.close())
+                    except RuntimeError:
+                        pass  # No loop available
             except Exception:
                 pass  # Ignore cleanup errors
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - ensure cleanup."""
+        await self.cleanup()
 
     def _initialize_tools(self) -> None:
         """Initialize tools based on lead generation mode."""
@@ -128,10 +154,17 @@ class LeadSorcererOrchestrator:
 
                 self.apollo_tool = ApolloLeadGen(self.icp_config, self.data_dir)
                 self.logger.info("✅ Apollo lead generation tool initialized")
-            except ImportError as e:
-                self.logger.error(f"Failed to import Apollo lead generation tool: {e}")
+            except ModuleNotFoundError as e:
+                self.logger.error(f"Apollo package not installed: {e}")
                 raise ValueError(
                     "Apollo mode requires Apollo lead generation tool to be available"
+                ) from e
+            except ImportError as e:
+                import traceback
+                self.logger.error(f"Failed to import Apollo lead generation tool: {e}")
+                self.logger.error(f"Full traceback: {traceback.format_exc()}")
+                raise ValueError(
+                    f"Apollo mode import error: {e}"
                 )
 
             # Still initialize traditional tools for fallback if needed
@@ -703,7 +736,7 @@ class LeadSorcererOrchestrator:
                 if enrich_result.get("errors"):
                     self.total_errors.extend(enrich_result["errors"])
 
-                enriched_leads = enrich_result.get("lead_records", [])
+                enriched_leads = enrich_result.get("data", {}).get("lead_records", [])
                 self.logger.info(f"Enrich tool processed {len(enriched_leads)} leads")
 
                 # Update the main lead records with enriched data

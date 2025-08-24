@@ -194,7 +194,7 @@ poetry run orchestrator --config icp_config.json
 
 ### Documentation
 
-- [Apollo API Documentation](docs/apollapidocs.md)
+- [Apollo API Documentation](docs/apolloapidocs.md)
 - [Configuration Guide](docs/icp_configuration_guide.md)
 - [Sample Configuration](config/apollo_example_icp.json)
 

@@ -90,8 +90,9 @@ class BroadSearchStrategy(SearchStrategy):
 
     def execute(self, filters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute broad search strategy"""
+        import copy
         # Simplify filters to increase coverage
-        broad_filters = filters.copy()
+        broad_filters = copy.deepcopy(filters)
 
         # Remove restrictive filters
         broad_filters.pop("employee_count", None)
@@ -140,8 +141,9 @@ class FocusedSearchStrategy(SearchStrategy):
 
     def execute(self, filters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute focused search strategy"""
+        import copy
         # Apply strict filters for high quality
-        focused_filters = filters.copy()
+        focused_filters = copy.deepcopy(filters)
 
         # Add quality-focused filters
         focused_filters["verified_only"] = True
@@ -158,8 +160,8 @@ class FocusedSearchStrategy(SearchStrategy):
         ):
             focused_filters["country"] = focused_filters["country"][:1]
 
-        # Add seniority requirements for person searches
-        if "job_titles" in focused_filters:
+        # Add seniority requirements for person searches only if not already specified
+        if "job_titles" in focused_filters and not focused_filters.get("seniority"):
             focused_filters["seniority"] = [
                 "senior",
                 "executive",
@@ -197,8 +199,9 @@ class BalancedSearchStrategy(SearchStrategy):
 
     def execute(self, filters: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         """Execute balanced search strategy"""
+        import copy
         # Apply moderate filters
-        balanced_filters = filters.copy()
+        balanced_filters = copy.deepcopy(filters)
 
         # Moderate industry restriction
         if "industry" in balanced_filters and isinstance(
@@ -216,11 +219,14 @@ class BalancedSearchStrategy(SearchStrategy):
         if "employee_count" in balanced_filters:
             emp_filter = balanced_filters["employee_count"]
             if isinstance(emp_filter, dict):
+                # Create a copy of the employee count filter to avoid mutating original
+                emp_filter = dict(emp_filter)
                 # Adjust to moderate range
                 if emp_filter.get("min", 0) < 10:
                     emp_filter["min"] = 10
                 if emp_filter.get("max", float("inf")) > 1000:
                     emp_filter["max"] = 1000
+                balanced_filters["employee_count"] = emp_filter
 
         return {
             "strategy": self.name,

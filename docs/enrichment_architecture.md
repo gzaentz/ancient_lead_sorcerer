@@ -195,9 +195,12 @@ graph TB
   - **Contact Enrichment**: Person data enrichment and contact discovery
   - **Data Quality**: Built-in quality validation and scoring
 - **Cost Structure**:
-  - Search: 1 credit ($0.015) per request
-  - Enrichment: 1 credit ($0.015) per request
-  - Credits can be used for both search and enrichment
+  - Search Operations: 1 credit per search request ($0.015 per credit)
+  - Enrichment Operations: 1 credit per enrichment request ($0.015 per credit)
+  - Credits are interchangeable between search and enrichment operations
+  - Each company search consumes 1 credit regardless of result count
+  - Each person enrichment consumes 1 credit per person enriched
+  - Source: [Apollo Pricing Documentation](https://apollo.io/pricing)
 - **Strengths**:
   - High-quality lead generation with ICP-based filtering
   - Comprehensive company and contact data
@@ -205,9 +208,11 @@ graph TB
   - Built-in data quality validation
   - Can bypass traditional Domain + Crawl pipeline
 - **Limitations**:
-  - Credit-based pricing model
-  - Rate limiting (60 req/min, 1000 req/hour)
-  - Requires Apollo API access
+  - Credit-based pricing model with per-operation costs
+  - Rate limits: 60 requests per minute (rolling 60-second window), 1000 requests per hour (rolling 3600-second window)
+  - No burst allowance; requests are throttled at consistent intervals
+  - Requires Apollo API access and valid API key
+  - 429 responses trigger exponential backoff with jitter
 - **Integration**:
   - Primary lead generation tool when `lead_generation_mode: "apollo"`
   - Enrichment provider within traditional pipeline
@@ -256,7 +261,7 @@ flowchart LR
 | Company Enrichment  | CompanyEnrich    | Apollo            | ❌          |
 | Contact Discovery   | CompanyEnrich    | Apollo            | ❌          |
 | Email Finding       | Anymail Finder   | None              | ✅          |
-| **Lead Generation** | **Apollo**       | **Traditional**   | **✅**      |
+| **Lead Generation** | **Apollo**       | **Traditional**   | **❌**      |
 
 ### Selection Criteria
 
