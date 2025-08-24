@@ -12,14 +12,14 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 
 from src.common import PermitManager, get_role_priority
-from src.apollo_client import ApolloClient, create_apollo_client_from_env
-from src.apollo_search_optimizer import AISearchQueryOptimizer, AISearchConfig
-from src.apollo_result_scorer import (
+from .client import ApolloClient, create_apollo_client_from_env
+from .optimizer import AISearchQueryOptimizer, AISearchConfig
+from .scorer import (
     ApolloResultScorer,
     ScoringWeights,
     QualityThresholds,
 )
-from src.apollo_adaptive_strategies import AdaptiveSearchOrchestrator, StrategyConfig
+from .adaptive import AdaptiveSearchOrchestrator, StrategyConfig
 
 # Configure logging with PII protection
 logger = logging.getLogger(__name__)
@@ -35,10 +35,14 @@ class ApolloLeadGen:
     """Enhanced Apollo Lead Generation with performance optimization and advanced search strategies"""
 
     def __init__(
-        self, icp_config: Dict[str, Any], permit_manager: Optional[PermitManager] = None
+        self,
+        icp_config: Dict[str, Any],
+        data_dir: Optional[str] = None,
+        permit_manager: Optional[PermitManager] = None,
     ):
         """Initialize Apollo Lead Generation with advanced features"""
         self.icp_config = icp_config
+        self.data_dir = data_dir
         self.permit_manager = permit_manager or PermitManager()
 
         # Validate Apollo configuration

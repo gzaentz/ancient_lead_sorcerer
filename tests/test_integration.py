@@ -249,7 +249,7 @@ class TestApolloIntegration:
 
         # Mock Apollo tools
         with (
-            patch("src.apollo_lead_gen.ApolloLeadGen") as MockApolloLeadGen,
+            patch("src.apollo.lead_gen.ApolloLeadGen") as MockApolloLeadGen,
             patch("src.orchestrator.run_enrich") as MockRunEnrich,
         ):
             # Mock Apollo lead generation
@@ -462,7 +462,7 @@ class TestApolloIntegration:
 
         # Mock Apollo tools with error
         with (
-            patch("src.apollo_lead_gen.ApolloLeadGen") as MockApolloLeadGen,
+            patch("src.apollo.lead_gen.ApolloLeadGen") as MockApolloLeadGen,
         ):
             # Mock Apollo lead generation with error
             mock_apollo = MockApolloLeadGen.return_value
@@ -526,7 +526,7 @@ class TestApolloIntegration:
 
         # Mock Apollo tools with performance monitoring
         with (
-            patch("src.apollo_lead_gen.ApolloLeadGen") as MockApolloLeadGen,
+            patch("src.apollo.lead_gen.ApolloLeadGen") as MockApolloLeadGen,
         ):
             # Mock Apollo lead generation
             mock_apollo = MockApolloLeadGen.return_value

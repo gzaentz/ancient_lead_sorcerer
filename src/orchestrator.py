@@ -157,7 +157,7 @@ class LeadSorcererOrchestrator:
         if lead_generation_mode == "apollo":
             # Apollo mode: Initialize Apollo lead generation tool
             try:
-                from src.apollo_lead_gen import ApolloLeadGen
+                from src.apollo.lead_gen import ApolloLeadGen
 
                 self.apollo_tool = ApolloLeadGen(self.icp_config, self.data_dir)
                 self.logger.info("✅ Apollo lead generation tool initialized")
@@ -238,7 +238,9 @@ class LeadSorcererOrchestrator:
 
             # Normalize role_priority configuration
             if "role_priority" in config:
-                config["role_priority"] = normalize_role_priority(config["role_priority"])
+                config["role_priority"] = normalize_role_priority(
+                    config["role_priority"]
+                )
 
             return config
         except Exception as e:

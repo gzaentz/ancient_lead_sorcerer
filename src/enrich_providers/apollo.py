@@ -15,7 +15,7 @@ from .base import (
     EnrichmentResult,
     ProviderTier,
 )
-from ..apollo_client import ApolloClient, create_apollo_client_from_env
+from ..apollo.client import ApolloClient, create_apollo_client_from_env
 
 # Configure logging with PII protection
 logger = logging.getLogger(__name__)
