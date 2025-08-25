@@ -1,0 +1,32 @@
+[
+  {
+    "domain": "gentledental.com",
+    "success": false,
+    "provider_used": "router",
+    "cost": 0.0,
+    "error": "All enrichment providers failed for prospect discovery: AnymailFinder: No data returned; CompanyEnrich: No data returned; Apollo: No data returned; Coresignal: 'CoresignalProvider' object has no attribute 'get_all_domain_prospects'",
+    "data_type": null,
+    "data_length": 0,
+    "raw_data": null
+  },
+  {
+    "domain": "heartlanddental.com",
+    "success": false,
+    "provider_used": "router",
+    "cost": 0.0,
+    "error": "All enrichment providers failed for prospect discovery: AnymailFinder: No data returned; CompanyEnrich: No data returned; Apollo: No data returned; Coresignal: 'CoresignalProvider' object has no attribute 'get_all_domain_prospects'",
+    "data_type": null,
+    "data_length": 0,
+    "raw_data": null
+  },
+  {
+    "domain": "dentalpartners.com",
+    "success": false,
+    "provider_used": "router",
+    "cost": 0.0,
+    "error": "All enrichment providers failed for prospect discovery: AnymailFinder: No data returned; CompanyEnrich: CompanyEnrich API error 404 for contact enrichment: {\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.5\",\"title\":\"Not Found\",\"status\":404,\"detail\":\"Company could not be found\",\"instance\":\"dentalpartners.com\"}; Apollo: No data returned; Coresignal: 'CoresignalProvider' object has no attribute 'get_all_domain_prospects'",
+    "data_type": null,
+    "data_length": 0,
+    "raw_data": null
+  }
+]

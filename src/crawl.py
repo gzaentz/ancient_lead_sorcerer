@@ -302,11 +302,30 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
 
         if specific_urls:
             # Mode 1: Extract from provided specific URLs
-            urls_to_extract.extend(specific_urls)
-            self.logger.info(
-                f"🔗 Added {len(specific_urls)} specific URLs to extraction list"
-            )
-            self.logger.info("🔗 Database mode: Using provided specific URLs")
+            # Filter specific URLs to only include those matching the current domain
+            domain_specific_urls = []
+            for url in specific_urls:
+                from urllib.parse import urlparse
+                parsed_url = urlparse(url)
+                url_domain = parsed_url.netloc.lower()
+                if url_domain == domain.lower() or url_domain == f"www.{domain.lower()}":
+                    domain_specific_urls.append(url)
+
+            if domain_specific_urls:
+                urls_to_extract.extend(domain_specific_urls)
+                self.logger.info(
+                    f"🔗 Added {len(domain_specific_urls)} domain-specific URLs to extraction list for {domain}"
+                )
+                self.logger.info("🔗 Database mode: Using domain-specific URLs")
+            else:
+                # Fallback to domain-based URLs if no specific URLs match this domain
+                priority_pages = [
+                    f"https://{domain}",  # Homepage (most comprehensive)
+                    f"https://{domain}/about",  # About page (company info)
+                    f"https://{domain}/contact",  # Contact page (contact info)
+                ]
+                urls_to_extract.extend(priority_pages)
+                self.logger.info(f"🔗 No specific URLs match {domain}, using domain-based URLs")
 
         elif (
             site_type == "information_database"
@@ -351,12 +370,12 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
                 seen.add(url)
                 unique_urls.append(url)
 
-        self.logger.info(f"🌐 Final extraction URLs: {unique_urls}")
+        self.logger.info(f"🌐 Final extraction URLs for {domain}: {unique_urls}")
         return unique_urls
 
     def _generate_cache_key(self, domain: str, icp_config: Dict[str, Any]) -> str:
         """
-        Generate cache key based on domain and specific URLs.
+        Generate cache key based on domain and domain-specific URLs.
 
         Args:
             domain: Normalized domain
@@ -365,29 +384,42 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         Returns:
             Cache key string
         """
-        # Check for specific URLs
+        # Check if we have specific URLs to crawl
         specific_urls = icp_config.get("specific_urls", [])
 
         if specific_urls:
-            # This prevents different URL combinations from using the same cache
-            import hashlib
-            from urllib.parse import urlparse
-
-            # Sort URLs for consistent hashing
-            sorted_urls = sorted(specific_urls)
-
-            # Create a combined string of all URL paths
-            url_paths = []
-            for url in sorted_urls:
+            # Filter specific URLs to only include those matching the current domain
+            domain_specific_urls = []
+            for url in specific_urls:
+                from urllib.parse import urlparse
                 parsed_url = urlparse(url)
-                url_path = parsed_url.path.strip("/")
-                url_paths.append(url_path)
+                url_domain = parsed_url.netloc.lower()
+                if url_domain == domain.lower() or url_domain == f"www.{domain.lower()}":
+                    domain_specific_urls.append(url)
 
-            # Combine all paths and create hash
-            combined_paths = "|".join(url_paths)
-            path_hash = hashlib.md5(combined_paths.encode()).hexdigest()[:8]
+            if domain_specific_urls:
+                # This prevents different URL combinations from using the same cache
+                import hashlib
+                from urllib.parse import urlparse
 
-            return f"{domain}_{path_hash}"
+                # Sort URLs for consistent hashing
+                sorted_urls = sorted(domain_specific_urls)
+
+                # Create a combined string of all URL paths
+                url_paths = []
+                for url in sorted_urls:
+                    parsed_url = urlparse(url)
+                    url_path = parsed_url.path.strip("/")
+                    url_paths.append(url_path)
+
+                # Combine all paths and create hash
+                combined_paths = "|".join(url_paths)
+                path_hash = hashlib.md5(combined_paths.encode()).hexdigest()[:8]
+
+                return f"{domain}_{path_hash}"
+            else:
+                # No specific URLs match this domain, use domain-only cache key
+                return domain
         else:
             # For domain-only crawls, use just the domain
             return domain
