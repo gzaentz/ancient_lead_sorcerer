@@ -2024,7 +2024,55 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     f"🔍 Record company field content: {record.get('company')}"
                 )
 
-                # Select best contact using LLM-based selection with fallback
+                # Normalize contact data from crawling to ensure consistent field names
+                if contacts and len(contacts) > 0:
+                    logging.info(
+                        f"🔍 Normalizing {len(contacts)} contacts from crawling for {normalized_domain}"
+                    )
+
+                    normalized_contacts = []
+                    for contact in contacts:
+                        normalized_contact = contact.copy()
+
+                        # Handle different field names from crawling
+                        if "name" in normalized_contact and not ("first_name" in normalized_contact or "last_name" in normalized_contact):
+                            # Split full name into first and last name
+                            full_name = normalized_contact.pop("name", "")
+                            if full_name and full_name != "null":
+                                name_parts = full_name.split(" ", 1)
+                                if len(name_parts) >= 2:
+                                    normalized_contact["first_name"] = name_parts[0]
+                                    normalized_contact["last_name"] = name_parts[1]
+                                else:
+                                    normalized_contact["first_name"] = full_name
+                                    normalized_contact["last_name"] = ""
+
+                        # Handle role field mapping
+                        if "role" in normalized_contact and "job_title" not in normalized_contact:
+                            normalized_contact["job_title"] = normalized_contact.pop("role", "")
+
+                        # Handle phone field mapping
+                        if "phone" in normalized_contact:
+                            phone = normalized_contact["phone"]
+                            if phone and phone != "null":
+                                normalized_contact["phone"] = phone
+
+                        # Handle email field mapping (clean up "null" strings)
+                        if "email" in normalized_contact:
+                            email = normalized_contact["email"]
+                            if email == "null" or not email:
+                                normalized_contact["email"] = None
+
+                        normalized_contacts.append(normalized_contact)
+
+                    # Use normalized contacts for all subsequent processing
+                    contacts = normalized_contacts
+                    record["contacts"] = contacts
+                    logging.info(
+                        f"✅ Contact normalization completed for {normalized_domain}"
+                    )
+
+                # Select best contact using LLM-based selection with fallback to rule-based
                 logging.info(
                     f"🔍 Contacts type before contact selection: {type(contacts)}"
                 )
@@ -2361,6 +2409,111 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                             )
                         # Continue without contacts rather than failing the entire enrichment
 
+                # NEW: Enrich existing contacts with emails (when contacts already exist from crawling)
+                if contacts and len(contacts) > 0 and contact_usd_cap > 0:
+                    logging.info(
+                        f"🔍 Enriching {len(contacts)} existing contacts for {normalized_domain} with email discovery"
+                    )
+
+                    # Find the best contact for ICP (prioritize by role priority and decision maker status)
+                    best_contact = None
+                    best_contact_score = -1
+
+                    for contact in contacts:
+                        contact_score = 0
+
+                        # Check if contact is a decision maker
+                        if contact.get("decision_maker"):
+                            contact_score += 100
+
+                        # Check role priority
+                        job_title = (contact.get("job_title") or "").lower()
+                        role_priority = icp_config.get("role_priority", {})
+
+                        for role, priority in role_priority.items():
+                            if role.lower() in job_title:
+                                contact_score += (10 - priority) * 10  # Higher priority = higher score
+                                break
+
+                        # Check if contact has a name
+                        if contact.get("first_name") and contact.get("last_name"):
+                            contact_score += 10
+
+                        # Check if contact already has email
+                        if contact.get("email"):
+                            contact_score -= 50  # Prefer contacts without emails
+
+                        if contact_score > best_contact_score:
+                            best_contact_score = contact_score
+                            best_contact = contact
+
+                    if best_contact and not best_contact.get("email"):
+                        first_name = best_contact.get("first_name", "")
+                        last_name = best_contact.get("last_name", "")
+                        job_title = best_contact.get("job_title", "")
+
+                        logging.info(
+                            f"🎯 Enriching best contact for ICP: {first_name} {last_name} ({job_title}) at {normalized_domain}"
+                        )
+
+                        try:
+                            # Try to discover email for the best contact
+                            email_request = EnrichmentRequest(
+                                domain=normalized_domain,
+                                first_name=first_name,
+                                last_name=last_name,
+                            )
+                            email_result = await enrichment_router.find_email(
+                                email_request
+                            )
+
+                            if email_result.success and email_result.data:
+                                # Update the existing contact with the discovered email
+                                email_data = email_result.data
+                                if hasattr(email_data, "__dataclass_fields__"):
+                                    # It's a ContactData object
+                                    discovered_email = email_data.email
+                                else:
+                                    # It's a dictionary
+                                    discovered_email = email_data.get("email", "")
+
+                                if discovered_email:
+                                    best_contact["email"] = discovered_email
+                                    best_contact["email_source"] = ["provider"]
+                                    best_contact["email_status"] = ["unknown"]
+                                    best_contact["email_confidence"] = 0.0
+
+                                    logging.info(
+                                        f"✅ Email enrichment successful for {first_name} {last_name}: {discovered_email}"
+                                    )
+
+                                    # Add to cost tracking
+                                    contact_cost += email_result.cost
+
+                                    # Update the record with enriched contact
+                                    record["contacts"] = contacts
+                                else:
+                                    logging.warning(
+                                        f"⚠️ Email discovery returned no email for {first_name} {last_name}"
+                                    )
+                            else:
+                                logging.warning(
+                                    f"⚠️ Email discovery failed for {first_name} {last_name}: {email_result.error}"
+                                )
+
+                        except Exception as exc:
+                            logging.warning(
+                                f"⚠️ Email enrichment failed for {first_name} {last_name}: {exc}"
+                            )
+                    elif best_contact and best_contact.get("email"):
+                        logging.info(
+                            f"✅ Best contact {best_contact.get('first_name')} {best_contact.get('last_name')} already has email: {best_contact.get('email')}"
+                        )
+                    else:
+                        logging.info(
+                            f"⚠️ No suitable contact found for email enrichment in {normalized_domain}"
+                        )
+
                 # Add standalone email discovery step for the best contact
                 if contacts and len(contacts) > 0:
                     # Find the best contact for email discovery
@@ -2627,6 +2780,32 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 record["cost"]["llm_usd"] = llm_selection_cost
                 recompute_total_cost(record)  # Update total cost
                 total_cost += company_cost + contact_cost + llm_selection_cost
+
+                # CRITICAL FIX: Update record with final merged contacts array
+                # This ensures the CSV export can find the best contact
+                record["contacts"] = contacts
+                logging.info(f"✅ Final contacts array updated for {normalized_domain}: {len(contacts)} contacts")
+
+                # CRITICAL FIX: Ensure best_contact_id matches an actual contact in the contacts array
+                if best_contact_id and contacts:
+                    # Check if best_contact_id exists in contacts array
+                    contact_exists = any(c.get("contact_id") == best_contact_id for c in contacts)
+                    if not contact_exists:
+                        # If best_contact_id doesn't match any contact, use the first contact's ID
+                        if contacts:
+                            record["best_contact_id"] = contacts[0]["contact_id"]
+                            logging.info(f"🔄 Updated best_contact_id to match actual contact: {contacts[0]['contact_id']} for {normalized_domain}")
+                        else:
+                            record["best_contact_id"] = None
+                            logging.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
+                elif not best_contact_id and contacts:
+                    # If no best_contact_id was set but we have contacts, use the first one
+                    record["best_contact_id"] = contacts[0]["contact_id"]
+                    logging.info(f"🔄 Set best_contact_id to first contact: {contacts[0]['contact_id']} for {normalized_domain}")
+                elif not contacts:
+                    # If no contacts, ensure best_contact_id is None
+                    record["best_contact_id"] = None
+                    logging.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
 
                 # Update provenance
                 if "provenance" not in record:

@@ -2157,6 +2157,11 @@ Remember: Extract unique, valuable information about each individual business op
                     .get("base_score", 0.5)
                 )
 
+        # CRITICAL FIX: Process team_members for single company sites
+        # This ensures contacts are extracted from team_members even for non-database sites
+        if extracted_data.get("team_members"):
+            self._process_database_extracted_data(record, extracted_data, icp_config)
+
             if not intent_signals:
                 intent_signals = ["No specific intent signals found during analysis"]
 
