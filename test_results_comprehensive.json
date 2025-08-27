@@ -1,0 +1,97 @@
+{
+  "email_validation": {
+    "total_tested": 5,
+    "valid_emails": 4,
+    "high_confidence_results": 0,
+    "methods_used": [
+      "regex"
+    ],
+    "mailgun_available": false
+  },
+  "llm_parsing": {
+    "total_tested": 10,
+    "successful_parses": 7,
+    "success_rate": 0.7,
+    "strategies_used": [
+      "markdown_cleanup",
+      "fuzzy_matching",
+      "direct_json",
+      "regex_extraction"
+    ],
+    "parser_stats": {
+      "attempts": 10,
+      "successes": 7,
+      "success_rate": 0.7,
+      "strategies_used": {
+        "direct_json": 2,
+        "markdown_cleanup": 3,
+        "regex_extraction": 2,
+        "fuzzy_matching": 1
+      }
+    }
+  },
+  "contact_discovery": {
+    "total_domains": 5,
+    "successful_discoveries": 5,
+    "success_rate": 1.0,
+    "total_contacts_found": 10,
+    "discovery_stats": {
+      "total_attempts": 5,
+      "successful_discoveries": 5,
+      "failed_discoveries": 0,
+      "retries_used": 0,
+      "success_rate": 1.0,
+      "average_retries": 0.0
+    },
+    "provider_health": {
+      "apollo": {
+        "status": "healthy",
+        "success_rate": 1.0,
+        "consecutive_failures": 0,
+        "is_available": true,
+        "total_calls": 5
+      },
+      "anymail_finder": {
+        "status": "healthy",
+        "success_rate": 0.0,
+        "consecutive_failures": 0,
+        "is_available": true,
+        "total_calls": 0
+      },
+      "company_enrich": {
+        "status": "healthy",
+        "success_rate": 0.0,
+        "consecutive_failures": 0,
+        "is_available": true,
+        "total_calls": 0
+      },
+      "snovio": {
+        "status": "healthy",
+        "success_rate": 0.0,
+        "consecutive_failures": 0,
+        "is_available": true,
+        "total_calls": 0
+      }
+    }
+  },
+  "integration": {
+    "overall_success": true,
+    "contact_discovery_success": true,
+    "llm_parsing_success": true,
+    "email_validation_success": true,
+    "workflow_steps": {
+      "discovery": {
+        "success": true,
+        "provider": "apollo"
+      },
+      "llm_selection": {
+        "success": true,
+        "strategy": "markdown_cleanup",
+        "contact_id": "integration_001"
+      },
+      "email_validation": {
+        "success": true
+      }
+    }
+  }
+}
