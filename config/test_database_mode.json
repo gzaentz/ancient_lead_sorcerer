@@ -1,0 +1,56 @@
+{
+  "name": "Database Mode Test",
+  "description": "Test configuration for database extraction mode",
+  "lead_generation_mode": "database",
+  "database": {
+    "sites": [
+      {
+        "name": "YellowPages Dental Directory",
+        "base_domain": "yellowpages.com",
+        "specific_urls": [
+          "https://www.yellowpages.com/search?search_terms=dentist&geo_location_terms=California",
+          "https://www.yellowpages.com/search?search_terms=dental+office&geo_location_terms=San+Francisco"
+        ],
+        "discovery_mode": "url_list"
+      },
+      {
+        "name": "Yelp Business Directory",
+        "base_domain": "yelp.com",
+        "specific_urls": [
+          "https://www.yelp.com/search?find_desc=dentist&find_loc=San+Francisco%2C+CA"
+        ],
+        "discovery_mode": "url_list"
+      }
+    ],
+    "extraction": {
+      "max_listings_per_site": 2,
+      "parallel_extractions": 2,
+      "use_pagination": true
+    }
+  },
+  "icp_text": "Dental practices listed in major online directories",
+  "required_fields": {
+    "company": ["name", "location", "phone"],
+    "contact": ["name", "email"]
+  },
+  "optional_fields": {
+    "company": ["website", "description", "rating", "reviews"],
+    "contact": ["role", "phone"]
+  },
+  "enrichment_providers": {
+    "apollo": {
+      "enabled": true,
+      "batch_size": 20
+    },
+    "anymail_finder": {
+      "enabled": true
+    },
+    "company_enrich": {
+      "enabled": true
+    }
+  },
+  "export": {
+    "format": "csv",
+    "filename": "database_mode_test_results"
+  }
+}

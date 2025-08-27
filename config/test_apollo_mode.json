@@ -1,0 +1,37 @@
+{
+  "name": "Apollo Mode Test",
+  "description": "Test configuration for pure Apollo mode",
+  "lead_generation_mode": "apollo",
+  "icp_text": "Technology companies in Silicon Valley with 50-500 employees",
+  "apollo": {
+    "enabled": true,
+    "search": {
+      "strategy": "company_first",
+      "company_filters": {
+        "industry": ["Technology", "Software"],
+        "employee_count_min": 50,
+        "employee_count_max": 500,
+        "location": ["San Francisco", "San Jose", "Palo Alto"]
+      },
+      "contact_filters": {
+        "roles": ["CEO", "CTO", "VP Engineering", "Director"]
+      }
+    },
+    "enrich": {
+      "enabled": true,
+      "batch_size": 25
+    }
+  },
+  "required_fields": {
+    "company": ["name", "industry", "employee_count", "location"],
+    "contact": ["name", "email", "role", "seniority"]
+  },
+  "optional_fields": {
+    "company": ["website", "phone", "revenue"],
+    "contact": ["phone", "linkedin", "twitter"]
+  },
+  "export": {
+    "format": "csv",
+    "filename": "apollo_mode_test_results"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "Database Mode Example - Directory Extraction",
+  "icp_text": "Extract companies from business directory websites and listing sites",
+  "lead_generation_mode": "database",
+  "database": {
+    "sites": [
+      {
+        "name": "YellowPages Dental Directory",
+        "base_domain": "yellowpages.com",
+        "specific_urls": [
+          "https://www.yellowpages.com/search?search_terms=dentist&geo_location_terms=California",
+          "https://www.yellowpages.com/search?search_terms=dentist&geo_location_terms=Texas"
+        ],
+        "discovery_mode": "url_list"
+      },
+      {
+        "name": "Yelp Business Listings",
+        "base_domain": "yelp.com",
+        "specific_urls": [
+          "https://www.yelp.com/search?find_desc=dentist&find_loc=San+Francisco%2C+CA"
+        ],
+        "discovery_mode": "url_list"
+      }
+    ],
+    "extraction": {
+      "max_listings_per_site": 100,
+      "parallel_extractions": 3,
+      "use_pagination": true
+    }
+  },
+  "enrichment_providers": {
+    "apollo": {
+      "enabled": true,
+      "batch_size": 25
+    },
+    "anymail_finder": {
+      "enabled": true
+    },
+    "company_enrich": {
+      "enabled": true
+    }
+  },
+  "required_fields": {
+    "company": ["name", "domain", "industry", "location"],
+    "contact": ["email", "full_name", "job_title"]
+  },
+  "optional_fields": {
+    "company": ["phone", "website", "employee_count"],
+    "contact": ["phone", "linkedin_url"]
+  },
+  "threshold": 0.7,
+  "filtering_strict": false,
+  "default_country": "US",
+  "concurrency": {
+    "max_concurrent_requests": 3
+  },
+  "refresh_policy": {
+    "revisit_after_days": 30,
+    "failure_revisit_days": 7
+  },
+  "testing": {
+    "process_rejected": false,
+    "process_low_crawl": false
+  },
+  "caps": {
+    "run_usd_max": 50.0
+  },
+  "exports": {
+    "enabled": true
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "URL Mode Test",
+  "description": "Test configuration for specific URLs mode",
+  "lead_generation_mode": "url",
+  "specific_urls": [
+    "https://www.pacificdental.com/",
+    "https://www.smilebright.com/",
+    "https://www.modernortho.com/"
+  ],
+  "icp_text": "Dental practices in the Pacific region specializing in modern treatments",
+  "required_fields": {
+    "company": ["name", "location", "website", "services"],
+    "contact": ["name", "email", "role"]
+  },
+  "optional_fields": {
+    "company": ["phone", "description", "specialties"],
+    "contact": ["phone", "linkedin", "department"]
+  },
+  "enrichment_providers": {
+    "apollo": {
+      "enabled": true,
+      "batch_size": 10
+    },
+    "anymail_finder": {
+      "enabled": true
+    },
+    "company_enrich": {
+      "enabled": true
+    }
+  },
+  "export": {
+    "format": "csv",
+    "filename": "url_mode_test_results"
+  }
+}

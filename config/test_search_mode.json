@@ -1,0 +1,33 @@
+{
+  "name": "Search Mode Test",
+  "description": "Test configuration for search mode with Apollo enrichment",
+  "lead_generation_mode": "search",
+  "queries": [
+    "dental practices California"
+  ],
+  "icp_text": "Independent dental practices in California looking for acquisition opportunities",
+  "required_fields": {
+    "company": ["name", "location", "website"],
+    "contact": ["name", "email", "role"]
+  },
+  "optional_fields": {
+    "company": ["phone", "description", "industry"],
+    "contact": ["phone", "linkedin"]
+  },
+  "enrichment_providers": {
+    "apollo": {
+      "enabled": true,
+      "batch_size": 25
+    },
+    "anymail_finder": {
+      "enabled": true
+    },
+    "company_enrich": {
+      "enabled": true
+    }
+  },
+  "export": {
+    "format": "csv",
+    "filename": "search_mode_test_results"
+  }
+}

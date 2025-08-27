@@ -17,9 +17,9 @@
     },
     "lead_generation_mode": {
       "type": "string",
-      "enum": ["traditional", "specific_urls", "apollo"],
-      "default": "traditional",
-      "description": "Lead generation strategy to use. 'traditional' = Domain→Crawl→Enrich, 'apollo' = Apollo-first generation"
+      "enum": ["search", "url", "apollo", "database", "traditional", "specific_urls"],
+      "default": "search",
+      "description": "Lead generation strategy: 'search' = Domain→Crawl→Enrich, 'url' = Specific URLs, 'apollo' = Apollo-first, 'database' = Directory extraction. Legacy modes: 'traditional' (use 'search'), 'specific_urls' (use 'url')"
     },
     "queries": {
       "type": "array",
@@ -244,6 +244,154 @@
       },
       "additionalProperties": false
     },
+    "enrichment_providers": {
+      "type": "object",
+      "description": "Configuration for enrichment providers used across all lead generation modes",
+      "properties": {
+        "apollo": {
+          "type": "object",
+          "description": "Apollo enrichment provider configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether Apollo enrichment provider is enabled"
+            },
+            "batch_size": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "description": "Batch size for Apollo enrichment operations"
+            }
+          },
+          "additionalProperties": false
+        },
+        "anymail_finder": {
+          "type": "object",
+          "description": "AnyMail Finder enrichment provider configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether AnyMail Finder enrichment provider is enabled"
+            }
+          },
+          "additionalProperties": false
+        },
+        "company_enrich": {
+          "type": "object",
+          "description": "Company enrichment provider configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether Company enrichment provider is enabled"
+            }
+          },
+          "additionalProperties": false
+        },
+        "coresignal": {
+          "type": "object",
+          "description": "Coresignal enrichment provider configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether Coresignal enrichment provider is enabled"
+            }
+          },
+          "additionalProperties": false
+        },
+        "snovio": {
+          "type": "object",
+          "description": "Snov.io enrichment provider configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether Snov.io enrichment provider is enabled"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "database": {
+      "type": "object",
+      "description": "Database mode configuration for directory/listing extraction",
+      "properties": {
+        "sites": {
+          "type": "array",
+          "description": "List of database/directory sites to extract from",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 256,
+                "description": "Human-readable name for this site"
+              },
+              "base_domain": {
+                "type": "string",
+                "maxLength": 256,
+                "description": "Base domain of the database site"
+              },
+              "specific_urls": {
+                "type": "array",
+                "description": "Specific URLs to crawl for company listings",
+                "items": {
+                  "type": "string",
+                  "format": "uri",
+                  "maxLength": 2048
+                },
+                "minItems": 1,
+                "maxItems": 1000
+              },
+              "discovery_mode": {
+                "type": "string",
+                "enum": ["url_list", "domain_crawl"],
+                "default": "url_list",
+                "description": "How to discover companies: from specific URLs or crawl entire domain"
+              }
+            },
+            "required": ["name", "base_domain", "specific_urls"],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "extraction": {
+          "type": "object",
+          "description": "Database extraction configuration",
+          "properties": {
+            "max_listings_per_site": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 100,
+              "description": "Maximum number of company listings to extract per site"
+            },
+            "parallel_extractions": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 3,
+              "description": "Number of parallel extraction operations"
+            },
+            "use_pagination": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to follow pagination links"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["sites"],
+      "additionalProperties": false
+    },
     "apollo": {
       "type": "object",
       "description": "Apollo-specific configuration (required when lead_generation_mode == 'apollo')",
@@ -425,6 +573,23 @@
                 "const": true
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lead_generation_mode": {
+            "const": "database"
+          }
+        }
+      },
+      "then": {
+        "required": ["database"],
+        "properties": {
+          "database": {
+            "required": ["sites"]
           }
         }
       }

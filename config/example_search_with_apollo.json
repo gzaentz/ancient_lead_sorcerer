@@ -1,0 +1,67 @@
+{
+  "name": "Search Mode with Apollo Enrichment Example",
+  "icp_text": "Technology companies using search discovery with Apollo enrichment",
+  "lead_generation_mode": "search",
+  "queries": [
+    "B2B SaaS companies California",
+    "technology startups San Francisco",
+    "software companies venture funded"
+  ],
+  "enrichment_providers": {
+    "apollo": {
+      "enabled": true,
+      "batch_size": 25
+    },
+    "anymail_finder": {
+      "enabled": true
+    },
+    "company_enrich": {
+      "enabled": false
+    },
+    "coresignal": {
+      "enabled": false
+    },
+    "snovio": {
+      "enabled": false
+    }
+  },
+  "required_fields": {
+    "company": ["name", "domain", "industry"],
+    "contact": ["email", "full_name", "job_title"]
+  },
+  "optional_fields": {
+    "company": ["employee_count", "funding_stage", "technologies"],
+    "contact": ["linkedin_url", "phone"]
+  },
+  "threshold": 0.8,
+  "filtering_strict": true,
+  "mode": "fast",
+  "default_country": "US",
+  "search": {
+    "max_pages": 3,
+    "max_results_per_query": 50
+  },
+  "concurrency": {
+    "max_concurrent_requests": 5
+  },
+  "refresh_policy": {
+    "revisit_after_days": 60,
+    "failure_revisit_days": 14
+  },
+  "role_priority": {
+    "ceo": 1,
+    "founder": 2,
+    "cto": 3,
+    "vp": 4
+  },
+  "testing": {
+    "process_rejected": false,
+    "process_low_crawl": false
+  },
+  "caps": {
+    "run_usd_max": 100.0
+  },
+  "exports": {
+    "enabled": true
+  }
+}
