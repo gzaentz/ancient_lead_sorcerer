@@ -1,20 +1,20 @@
 {
   "domain": "yelp.com",
   "queries": [
-    "best dental practices NYC"
+    "dental practice groups Florida 5+ locations"
   ],
-  "fetched_at": "2025-08-18T01:16:53.917122Z",
+  "fetched_at": "2025-08-27T16:43:06.876725Z",
   "serp_results": [
     {
-      "url": "https://www.yelp.com/search?find_desc=Dental+Clinic&find_loc=New+York%2C+NY",
-      "title": "TOP 10 BEST Dental Clinic in New York, NY - Updated 2025 - Yelp",
-      "snippet": "Zen Dentistry - Midtown (388 reviews). 209 NYC Dental (321 reviews). Lumia Dental (230 reviews). Zen Dentistry - East Village (225 reviews)",
-      "query": "best dental practices NYC",
+      "url": "https://www.yelp.com/biz/the-dental-care-group-aventura",
+      "title": "THE DENTAL CARE GROUP - Updated August 2025 - 27 Photos ...",
+      "snippet": "THE DENTAL CARE GROUP, 2797 NE 207th St, Ste 100, Aventura, FL 33180, 27 Photos, Mon - 9:00 am - 6:00 pm, Tue - 9:00 am - 6:00 pm, Wed - 8:00 am - 6:00 pm,\u00a0...",
+      "query": "dental practice groups Florida 5+ locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T01:16:36.471139Z",
+      "fetched_at": "2025-08-27T16:42:47.476623Z",
       "domain": "yelp.com"
     }
   ],
-  "scoring_prompt_fingerprint": "19916446abce58a01168f4a2a32b9f247907313556816b0d63eaec23a0919bc5"
+  "scoring_prompt_fingerprint": "6b5550c29a6cad304a34f29ed8783259257c945e020725c3afdc9b806edbcb55"
 }

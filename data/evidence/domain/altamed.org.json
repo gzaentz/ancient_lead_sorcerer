@@ -1,20 +1,20 @@
 {
   "domain": "altamed.org",
   "queries": [
-    "dental practice multiple locations California"
+    "dental practice groups California multiple locations"
   ],
-  "fetched_at": "2025-08-22T20:11:05.979359Z",
+  "fetched_at": "2025-08-27T17:30:42.234977Z",
   "serp_results": [
     {
       "url": "https://www.altamed.org/find/facility",
       "title": "Locations and Hours | AltaMed",
       "snippet": "We have many locations throughout Los Angeles and Orange counties. Some of our locations offer multiple services, including medical, dental, urgent care,\u00a0...",
-      "query": "dental practice multiple locations California",
+      "query": "dental practice groups California multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-22T20:10:38.387960Z",
+      "fetched_at": "2025-08-27T17:30:21.349887Z",
       "domain": "altamed.org"
     }
   ],
-  "scoring_prompt_fingerprint": "b9d4eabb60acb04048610b19316a54d21dc657c2462094c0f692609db054339e"
+  "scoring_prompt_fingerprint": "4b3598c3438efa5045f818ed262dc31cdb6aee27b68226e3219cd5e5a6b11808"
 }

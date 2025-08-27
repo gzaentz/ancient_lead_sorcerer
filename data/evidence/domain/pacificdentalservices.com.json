@@ -1,20 +1,20 @@
 {
   "domain": "pacificdentalservices.com",
   "queries": [
-    "regional dental chains independent operators"
+    "dental practice groups California multiple locations"
   ],
-  "fetched_at": "2025-08-18T22:41:18.853420Z",
+  "fetched_at": "2025-08-27T17:30:42.237978Z",
   "serp_results": [
     {
       "url": "https://www.pacificdentalservices.com/",
       "title": "Pacific Dental Services: Transforming the Dental Industry",
-      "snippet": "Our vision is to be The Greatest Dental Company in America. Therefore we do everything in our power to support dentists and team members.",
-      "query": "regional dental chains independent operators",
+      "snippet": "... organization. This innovation enables seamless data sharing, allowing clinicians to provide more comprehensive care, enhance treatment planning, and improve\u00a0...",
+      "query": "dental practice groups California multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:41:02.205321Z",
+      "fetched_at": "2025-08-27T17:30:21.518828Z",
       "domain": "pacificdentalservices.com"
     }
   ],
-  "scoring_prompt_fingerprint": "674dbca94a254b7288c35628d16b9aa31208833ace10b8d888bed959ce1068b4"
+  "scoring_prompt_fingerprint": "31d8f9eeba7cf125314c4df0afe370863ba7ff37b1234484c14859398e52bac4"
 }

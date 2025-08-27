@@ -1,20 +1,20 @@
 {
   "domain": "ada.org",
   "queries": [
-    "dental practice multiple locations Florida"
+    "dental practice groups California multiple locations"
   ],
-  "fetched_at": "2025-08-19T00:19:19.955265Z",
+  "fetched_at": "2025-08-27T17:30:42.237978Z",
   "serp_results": [
     {
       "url": "https://www.ada.org/",
       "title": "American Dental Association: Home",
       "snippet": "The American Dental Association is your source for clinical guidelines, oral health research, and industry news and data to support your career in\u00a0...",
-      "query": "dental practice multiple locations Florida",
+      "query": "dental practice groups California multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-19T00:19:05.498614Z",
+      "fetched_at": "2025-08-27T17:30:21.560927Z",
       "domain": "ada.org"
     }
   ],
-  "scoring_prompt_fingerprint": "be1582fe5d2b21253d868d9c0a13447e5cb68b8d62ea5c617190ac203d76dbe9"
+  "scoring_prompt_fingerprint": "3fe58bb4062f6e96cfd03ecbdaa71ac7478300ce7492c32d3796cf2af6bd4e5d"
 }

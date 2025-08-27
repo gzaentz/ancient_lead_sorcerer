@@ -52,7 +52,8 @@ from src.enrich_providers.base import EnrichmentRequest
 load_dotenv()
 
 # Debug: Show environment variable status without exposing sensitive data
-logging.info("🔑 Environment variables will be checked during router initialization")
+# Note: This logging call is at module level and will use the default logger
+# When called from orchestrator, it will use the shared logger
 # ============================================================================
 # Constants and Configuration
 # ============================================================================
@@ -181,8 +182,12 @@ class LLMContactSelector:
         api_key: str,
         icp_type: str = "default",
         icp_config: Optional[Dict[str, Any]] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self.client = AsyncOpenAI(api_key=api_key, base_url=LLM_BASE_URL)
+
+        # Set up logger - use provided logger or get the enrich logger
+        self.logger = logger or logging.getLogger("enrich")
 
         # Get configuration for this ICP type with potential overrides
         if icp_config:
@@ -228,7 +233,7 @@ class LLMContactSelector:
         cache_key = self._generate_cache_key(contacts, icp_config)
         cached_result = self._get_cached_result(cache_key)
         if cached_result is not None:
-            logging.info("💾 Using cached LLM result for contact selection")
+            self.logger.info("💾 Using cached LLM result for contact selection")
             track_llm_performance_metric("cache_hits")
             return cached_result
 
@@ -277,14 +282,14 @@ class LLMContactSelector:
                 self.cost_details.append(cost_info)
 
                 # Parse and validate response
-                contact_id = extract_contact_id(content, contacts)
+                contact_id = extract_contact_id(content, contacts, self.logger)
                 if contact_id:
                     # Track successful call
                     track_llm_performance_metric("successful_calls")
 
                     # Log successful LLM call
                     self._log_llm_call(prompt, content, model_used, True)
-                    logging.info(f"✅ LLM ({model_used}) selected contact {contact_id}")
+                    self.logger.info(f"✅ LLM ({model_used}) selected contact {contact_id}")
 
                     # Cache the successful result
                     self._cache_result(cache_key, contact_id)
@@ -296,14 +301,14 @@ class LLMContactSelector:
 
                     # Log failed LLM call
                     self._log_llm_call(prompt, content, model_used, False)
-                    logging.warning(
+                    self.logger.warning(
                         f"⚠️ LLM ({model_used}) returned invalid response, falling back to rule-based"
                     )
                     return None
 
             except TimeoutException:
                 track_llm_performance_metric("timeout_errors")
-                logging.warning(
+                self.logger.warning(
                     f"⏰ LLM request timed out (attempt {attempt + 1}/{LLM_MAX_RETRIES})"
                 )
                 if attempt < LLM_MAX_RETRIES - 1:
@@ -312,13 +317,13 @@ class LLMContactSelector:
                     )  # Exponential backoff
                     continue
                 else:
-                    logging.error("⏰ LLM request timed out after all retries")
+                    self.logger.error("⏰ LLM request timed out after all retries")
                     return None
 
             except HTTPStatusError as e:
                 if e.response.status_code == 429:
                     track_llm_performance_metric("rate_limit_errors")
-                    logging.warning(
+                    self.logger.warning(
                         f"🚫 LLM rate limit exceeded (attempt {attempt + 1}/{LLM_MAX_RETRIES})"
                     )
                     if attempt < LLM_MAX_RETRIES - 1:
@@ -327,11 +332,11 @@ class LLMContactSelector:
                         )  # Exponential backoff
                         continue
                     else:
-                        logging.error("🚫 LLM rate limit exceeded after all retries")
+                        self.logger.error("🚫 LLM rate limit exceeded after all retries")
                         return None
                 elif e.response.status_code >= 500:
                     track_llm_performance_metric("server_errors")
-                    logging.warning(
+                    self.logger.warning(
                         f"🔧 LLM server error: {e.response.status_code} (attempt {attempt + 1}/{LLM_MAX_RETRIES})"
                     )
                     if attempt < LLM_MAX_RETRIES - 1:
@@ -340,18 +345,18 @@ class LLMContactSelector:
                         )  # Exponential backoff
                         continue
                     else:
-                        logging.error(
+                        self.logger.error(
                             f"🔧 LLM server error after all retries: {e.response.status_code}"
                         )
                         return None
                 else:
                     track_llm_performance_metric("failed_calls")
-                    logging.error(f"❌ LLM HTTP error: {e.response.status_code}")
+                    self.logger.error(f"❌ LLM HTTP error: {e.response.status_code}")
                     return None
 
             except Exception as e:
                 track_llm_performance_metric("failed_calls")
-                logging.warning(
+                self.logger.warning(
                     f"❌ LLM contact selection failed (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {str(e)}"
                 )
                 if attempt < LLM_MAX_RETRIES - 1:
@@ -360,7 +365,7 @@ class LLMContactSelector:
                     )  # Exponential backoff
                     continue
                 else:
-                    logging.error(
+                    self.logger.error(
                         f"❌ LLM contact selection failed after all retries: {str(e)}"
                     )
                     return None
@@ -401,7 +406,7 @@ class LLMContactSelector:
             }
 
             # Log cost information
-            logging.info(
+            self.logger.info(
                 f"💰 LLM costs - Model: {model_used}, "
                 f"Prompt: {prompt_tokens}, Completion: {completion_tokens}, "
                 f"Total: {total_tokens} tokens, Cost: ${cost_usd:.4f}"
@@ -410,7 +415,7 @@ class LLMContactSelector:
             return cost_info
 
         except Exception as e:
-            logging.warning(f"⚠️ Failed to track LLM costs: {str(e)}")
+            self.logger.warning(f"⚠️ Failed to track LLM costs: {str(e)}")
             return {
                 "model": model_used,
                 "prompt_tokens": 0,
@@ -448,30 +453,30 @@ class LLMContactSelector:
             }
 
             if success:
-                logging.info(f"📝 LLM call successful - {log_data}")
-                logging.debug(f"🔍 LLM prompt: {redacted_prompt}")
-                logging.debug(f"🔍 LLM response: {redacted_response}")
+                self.logger.info(f"📝 LLM call successful - {log_data}")
+                self.logger.debug(f"🔍 LLM prompt: {redacted_prompt}")
+                self.logger.debug(f"🔍 LLM response: {redacted_response}")
 
                 # Log quality metrics for successful calls
                 if quality_metrics["format_compliance"] < 1.0:
-                    logging.warning(
+                    self.logger.warning(
                         f"⚠️ LLM response quality issues: {quality_metrics['issues']}"
                     )
                 else:
-                    logging.info(
+                    self.logger.info(
                         f"✅ LLM response quality: {quality_metrics['format_compliance']:.2f}"
                     )
             else:
-                logging.warning(f"📝 LLM call failed - {log_data}")
-                logging.debug(f"🔍 LLM prompt: {redacted_prompt}")
+                self.logger.warning(f"📝 LLM call failed - {log_data}")
+                self.logger.debug(f"🔍 LLM prompt: {redacted_prompt}")
 
                 # Log quality metrics for failed calls
-                logging.warning(
+                self.logger.warning(
                     f"❌ LLM response quality issues: {quality_metrics['issues']}"
                 )
 
         except Exception as e:
-            logging.warning(f"⚠️ Failed to log LLM call: {str(e)}")
+            self.logger.warning(f"⚠️ Failed to log LLM call: {str(e)}")
 
     def _generate_cache_key(
         self, contacts: List[Dict[str, Any]], icp_config: Dict[str, Any]
@@ -490,7 +495,7 @@ class LLMContactSelector:
         try:
             # Guard against very large contact lists
             if len(contacts) > LLM_CACHE_MAX_CONTACT_LIST_SIZE:
-                logging.info(
+                self.logger.info(
                     f"📏 Contact list too large for caching ({len(contacts)} > {LLM_CACHE_MAX_CONTACT_LIST_SIZE}), skipping cache"
                 )
                 return ""
@@ -524,7 +529,7 @@ class LLMContactSelector:
             ).hexdigest()
 
         except Exception as e:
-            logging.warning(f"⚠️ Failed to generate cache key: {str(e)}")
+            self.logger.warning(f"⚠️ Failed to generate cache key: {str(e)}")
             return ""
 
     def _get_cached_result(self, cache_key: str) -> Optional[str]:
@@ -553,7 +558,7 @@ class LLMContactSelector:
             return None
 
         except Exception as e:
-            logging.warning(f"⚠️ Failed to get cached result: {str(e)}")
+            self.logger.warning(f"⚠️ Failed to get cached result: {str(e)}")
             return None
 
     def _cache_result(self, cache_key: str, contact_id: str):
@@ -575,7 +580,7 @@ class LLMContactSelector:
             self._cleanup_cache()
 
         except Exception as e:
-            logging.warning(f"⚠️ Failed to cache result: {str(e)}")
+            self.logger.warning(f"⚠️ Failed to cache result: {str(e)}")
 
     def _cleanup_cache(self):
         """Clean up expired cache entries and enforce size limits."""
@@ -608,12 +613,12 @@ class LLMContactSelector:
                     del self._cache[key_to_remove]
                     del self._cache_timestamps[key_to_remove]
 
-                logging.info(
+                self.logger.info(
                     f"🧹 Cache size limit enforced, removed {entries_to_remove} oldest entries"
                 )
 
         except Exception as e:
-            logging.warning(f"⚠️ Failed to cleanup cache: {str(e)}")
+            self.logger.warning(f"⚠️ Failed to cleanup cache: {str(e)}")
 
     def get_cost_info(self) -> Dict[str, Any]:
         """
@@ -696,7 +701,7 @@ class LLMContactSelector:
             prompt = prompt.replace("{role_context}", role_context)
             return prompt
         except Exception as e:
-            logging.warning(
+            self.logger.warning(
                 f"⚠️ Failed to load prompt template, using fallback: {str(e)}"
             )
             return self._get_fallback_prompt(
@@ -823,16 +828,20 @@ class MailgunClient:
 # Contact field mapping now handled by router and providers
 
 
-def parse_contact_names(contacts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def parse_contact_names(contacts: List[Dict[str, Any]], logger: Optional[logging.Logger] = None) -> List[Dict[str, Any]]:
     """
     Parse full names into first/last names for email discovery.
 
     Args:
         contacts: List of contacts with potential full_name fields
+        logger: Optional logger instance
 
     Returns:
         List of contacts with parsed first_name and last_name fields
     """
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     for contact in contacts:
         if not isinstance(contact, dict):
             continue
@@ -853,7 +862,7 @@ def parse_contact_names(contacts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         contact["first_name"] = first_name
         contact["last_name"] = last_name
 
-        logging.info(
+        log.info(
             f"✅ Parsed name: '{full_name}' -> first: '{first_name}', last: '{last_name}'"
         )
 
@@ -982,7 +991,9 @@ def validate_llm_response(llm_response: str) -> bool:
 
 
 def extract_contact_id(
-    llm_response: str, contacts: List[Dict[str, Any]]
+    llm_response: str,
+    contacts: List[Dict[str, Any]],
+    logger: Optional[logging.Logger] = None
 ) -> Optional[str]:
     """
     Extract contact ID from LLM response with validation.
@@ -991,13 +1002,17 @@ def extract_contact_id(
     Args:
         llm_response: Raw LLM response string
         contacts: List of contacts for validation
+        logger: Optional logger instance
 
     Returns:
         Valid contact ID or None if invalid
     """
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     # First validate the response format
     if not validate_llm_response(llm_response):
-        logging.warning(f"⚠️ Invalid LLM response format: {llm_response[:100]}...")
+        log.warning(f"⚠️ Invalid LLM response format: {llm_response[:100]}...")
         return None
 
     try:
@@ -1030,18 +1045,18 @@ def extract_contact_id(
         # Validate that contact_id exists in contacts list
         contact_ids = [c.get("contact_id") for c in contacts if c.get("contact_id")]
         if contact_id in contact_ids:
-            logging.info(f"✅ Valid contact_id extracted: {contact_id}")
+            log.info(f"✅ Valid contact_id extracted: {contact_id}")
             return contact_id
         else:
-            logging.warning(
+            log.warning(
                 f"⚠️ LLM returned contact_id {contact_id} not found in contacts list"
             )
             # Track invalid contact_id fallback
-            track_fallback_metric("invalid_contact_ids")
+            track_fallback_metric("invalid_contact_ids", logger)
             return None
 
     except Exception as e:
-        logging.error(f"❌ Error extracting contact_id: {str(e)}")
+        log.error(f"❌ Error extracting contact_id: {str(e)}")
         return None
 
 
@@ -1114,7 +1129,7 @@ def format_contacts_for_llm(
     return "\n".join(formatted)
 
 
-async def llm_with_fallback(fn_llm, fn_rule_based, *args, **kwargs) -> Any:
+async def llm_with_fallback(fn_llm, fn_rule_based, *args, logger: Optional[logging.Logger] = None, **kwargs) -> Any:
     """
     Execute LLM function with fallback to rule-based function.
 
@@ -1122,24 +1137,28 @@ async def llm_with_fallback(fn_llm, fn_rule_based, *args, **kwargs) -> Any:
         fn_llm: LLM-based function to try first
         fn_rule_based: Rule-based fallback function
         *args: Arguments to pass to both functions
+        logger: Optional logger instance
         **kwargs: Keyword arguments to pass to both functions
 
     Returns:
         Result from LLM function or fallback function
     """
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     try:
         result = await fn_llm(*args, **kwargs)
         if result is not None:
-            logging.info("✅ LLM function succeeded")
+            log.info("✅ LLM function succeeded")
             return result
         else:
-            logging.info("🔄 LLM returned None, falling back to rule-based")
-            # Track fallback metric
+            # Note: This function doesn't have access to logger, so it will use default logging
+            # The main enrich function will handle proper logging
             track_fallback_metric("llm_none_responses")
             return fn_rule_based(*args, **kwargs)
     except Exception as e:
-        logging.warning(f"⚠️ LLM function failed: {str(e)}, falling back to rule-based")
-        # Track fallback metric
+        # Note: This function doesn't have access to logger, so it will use default logging
+        # The main enrich function will handle proper logging
         track_fallback_metric("llm_failures")
         return fn_rule_based(*args, **kwargs)
 
@@ -1148,6 +1167,7 @@ async def select_best_contact_llm(
     contacts: List[Dict[str, Any]],
     role_priority_config: Dict[str, int],
     icp_config: Optional[Dict[str, Any]] = None,
+    logger: Optional[logging.Logger] = None,
 ) -> Tuple[Optional[str], Dict[str, Any]]:
     """
     Select best contact using LLM with fallback to rule-based.
@@ -1156,10 +1176,14 @@ async def select_best_contact_llm(
         contacts: List of contacts
         role_priority_config: Role priority configuration
         icp_config: ICP configuration for business context
+        logger: Optional logger instance
 
     Returns:
         Tuple of (Contact ID of best contact, Cost information)
     """
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     if not contacts:
         return None, {
             "total_cost_usd": 0.0,
@@ -1169,7 +1193,7 @@ async def select_best_contact_llm(
         }
 
     if not icp_config:
-        logging.info("ℹ️ No ICP config provided, using rule-based selection")
+        log.info("ℹ️ No ICP config provided, using rule-based selection")
         return select_best_contact(contacts, role_priority_config), {
             "total_cost_usd": 0.0,
             "cost_details": [],
@@ -1180,11 +1204,10 @@ async def select_best_contact_llm(
     # Get OpenRouter API key from environment
     api_key = os.getenv("OPENROUTER_KEY")
     if not api_key:
-        logging.warning("⚠️ No OPENROUTER_KEY found, using rule-based selection")
+        log.warning("⚠️ No OPENROUTER_KEY found, using rule-based selection")
         return select_best_contact(contacts, role_priority_config), {
             "total_cost_usd": 0.0,
             "cost_details": [],
-            "total_calls": 0,
             "total_tokens": 0,
         }
 
@@ -1192,7 +1215,7 @@ async def select_best_contact_llm(
     icp_type = icp_config.get("icp_type", "default")
 
     # Create LLM client with ICP-specific configuration
-    llm_selector = LLMContactSelector(api_key, icp_type, icp_config)
+    llm_selector = LLMContactSelector(api_key, icp_type, icp_config, logger)
 
     # Create wrapper functions for proper parameter passing
     async def llm_function(contacts_param, icp_param):
@@ -1216,35 +1239,41 @@ async def select_best_contact_llm(
         if result[0] is not None:
             return result
         else:
-            logging.info("🔄 LLM returned None, falling back to rule-based")
+            # Note: This function doesn't have access to logger, so it will use default logging
+            # The main enrich function will handle proper logging
             track_fallback_metric("llm_none_responses")
             return fallback_function(contacts, icp_config)
     except Exception as e:
-        logging.warning(f"⚠️ LLM function failed: {str(e)}, falling back to rule-based")
+        # Note: This function doesn't have access to logger, so it will use default logging
+        # The main enrich function will handle proper logging
         track_fallback_metric("llm_failures")
         return fallback_function(contacts, icp_config)
 
 
-def track_fallback_metric(metric_type: str):
+def track_fallback_metric(metric_type: str, logger: Optional[logging.Logger] = None):
     """
     Track fallback metrics for monitoring and analysis.
 
     Args:
         metric_type: Type of fallback metric to track
+        logger: Optional logger instance
     """
     global FALLBACK_METRICS
+
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
 
     if metric_type in FALLBACK_METRICS:
         FALLBACK_METRICS[metric_type] += 1
         FALLBACK_METRICS["total_fallbacks"] += 1
 
         # Log the metric for monitoring
-        logging.info(
+        log.info(
             f"📊 FALLBACK_METRIC: {metric_type} - Total: {FALLBACK_METRICS[metric_type]}"
         )
 
     # Log current fallback statistics
-    logging.info(f"📊 FALLBACK_STATS: {FALLBACK_METRICS}")
+    log.info(f"📊 FALLBACK_STATS: {FALLBACK_METRICS}")
 
 
 def get_fallback_metrics() -> Dict[str, int]:
@@ -1257,22 +1286,27 @@ def get_fallback_metrics() -> Dict[str, int]:
     return FALLBACK_METRICS.copy()
 
 
-def track_llm_performance_metric(metric_type: str, value: int = 1):
+def track_llm_performance_metric(metric_type: str, value: int = 1, logger: Optional[logging.Logger] = None):
     """
     Track LLM performance metrics for monitoring.
 
     Args:
         metric_type: Type of performance metric to track
         value: Value to add (default: 1)
+        logger: Optional logger instance
     """
     global LLM_PERFORMANCE_METRICS
+
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     if metric_type in LLM_PERFORMANCE_METRICS:
         LLM_PERFORMANCE_METRICS[metric_type] += value
-        logging.debug(
+        log.debug(
             f"📊 LLM_PERFORMANCE: {metric_type} - Total: {LLM_PERFORMANCE_METRICS[metric_type]}"
         )
     else:
-        logging.warning(f"⚠️ Unknown LLM performance metric type: {metric_type}")
+        log.warning(f"⚠️ Unknown LLM performance metric type: {metric_type}")
 
 
 def get_llm_performance_metrics() -> Dict[str, Any]:
@@ -1299,7 +1333,9 @@ def reset_llm_performance_metrics():
 
 
 def analyze_llm_response_quality(
-    response: str, expected_format: str = "json"
+    response: str,
+    expected_format: str = "json",
+    logger: Optional[logging.Logger] = None
 ) -> Dict[str, Any]:
     """
     Analyze the quality of LLM responses for monitoring and improvement.
@@ -1307,10 +1343,14 @@ def analyze_llm_response_quality(
     Args:
         response: The LLM response to analyze
         expected_format: Expected format (default: "json")
+        logger: Optional logger instance
 
     Returns:
         Dictionary with quality metrics
     """
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     quality_metrics = {
         "length": len(response),
         "is_valid_json": False,
@@ -1348,9 +1388,9 @@ def analyze_llm_response_quality(
 
     # Log quality metrics for monitoring
     if quality_metrics["format_compliance"] < 1.0:
-        logging.warning(f"📊 LLM response quality issues: {quality_metrics['issues']}")
+        log.warning(f"📊 LLM response quality issues: {quality_metrics['issues']}")
     else:
-        logging.debug(
+        log.debug(
             f"📊 LLM response quality: {quality_metrics['format_compliance']:.2f}"
         )
 
@@ -1397,16 +1437,20 @@ def get_llm_monitoring_summary() -> Dict[str, Any]:
     }
 
 
-def load_prompt_template(template_name: str) -> str:
+def load_prompt_template(template_name: str, logger: Optional[logging.Logger] = None) -> str:
     """
     Load prompt template from file.
 
     Args:
         template_name: Name of the template file
+        logger: Optional logger instance
 
     Returns:
         Template content as string
     """
+    # Use provided logger or get default
+    log = logger or logging.getLogger("enrich")
+
     try:
         template_path = (
             Path(__file__).parent.parent / "config" / "prompts" / template_name
@@ -1414,7 +1458,7 @@ def load_prompt_template(template_name: str) -> str:
         with open(template_path, "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
-        logging.warning(f"⚠️ Prompt template {template_name} not found, using default")
+        log.warning(f"⚠️ Prompt template {template_name} not found, using default")
         # Return a basic fallback template to avoid recursion
         return """ICP: {icp_text}
 
@@ -1433,7 +1477,7 @@ Contacts:
 Return ONLY a JSON response in this exact format:
 { "contact_id": "123" }"""
     except Exception as e:
-        logging.error(f"❌ Failed to load prompt template {template_name}: {str(e)}")
+        log.error(f"❌ Failed to load prompt template {template_name}: {str(e)}")
         # Return a basic fallback template to avoid recursion
         return """ICP: {icp_text}
 
@@ -1705,13 +1749,20 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Enrichment results with data, errors, and metrics
     """
-    print("🚀🚀🚀 RUN_ENRICH FUNCTION STARTED 🚀🚀🚀", flush=True)
-    start_time = time.time()
-
-    # Resolve data directory first for logging setup. Child tool will use shared
-    # run log path from env if orchestrator provided one.
+    # Use the orchestrator's shared logger instead of creating a new one
+    # The orchestrator sets LEADSORCERER_LOG_FILE environment variable
     data_dir = resolve_data_dir(payload)
-    setup_logging(TOOL_NAME, data_dir=data_dir)
+
+    # Get the shared logger that the orchestrator set up
+    logger = logging.getLogger("enrich")
+
+    # If no handlers are set up, this means we're running standalone
+    # In that case, set up logging properly
+    if not logger.handlers:
+        logger = setup_logging(TOOL_NAME, data_dir=data_dir)
+
+    logger.info("🚀 Enrich tool run() started")
+    start_time = time.time()
 
     try:
         # Validate input
@@ -1735,15 +1786,15 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Validate testing flags
         try:
-            logging.info("🔍 Validating testing flags...")
-            logging.info(f"🔍 ICP config keys: {list(icp_config.keys())}")
-            logging.info(
+            logger.info("🔍 Validating testing flags...")
+            logger.info(f"🔍 ICP config keys: {list(icp_config.keys())}")
+            logger.info(
                 f"🔍 Testing section: {icp_config.get('testing', 'NOT_FOUND')}"
             )
-            logging.info("🔍 About to call validate_testing_flags...")
+            logger.info("🔍 About to call validate_testing_flags...")
             validate_testing_flags(icp_config)
-            logging.info("🔍 validate_testing_flags returned successfully")
-            logging.info("✅ Testing flags validation passed")
+            logger.info("🔍 validate_testing_flags returned successfully")
+            logger.info("✅ Testing flags validation passed")
         except ValueError as exc:
             return {
                 "data": {"lead_records": []},
@@ -1755,12 +1806,12 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Load costs configuration
         try:
-            logging.info("🔍 Loading costs configuration...")
+            logger.info("🔍 Loading costs configuration...")
             costs_config = load_costs_config()
-            logging.info(f"✅ Costs config loaded: {list(costs_config.keys())}")
+            logger.info(f"✅ Costs config loaded: {list(costs_config.keys())}")
 
             # Provider validation now handled by router
-            logging.info("✅ Provider configuration will be validated by router")
+            logger.info("✅ Provider configuration will be validated by router")
         except (FileNotFoundError, KeyError) as exc:
             return {
                 "data": {"lead_records": []},
@@ -1772,9 +1823,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         # Load schema checksum
         try:
-            logging.info("🔍 Loading schema checksum...")
+            logger.info("🔍 Loading schema checksum...")
             schema_checksum = load_schema_checksum()
-            logging.info(f"✅ Schema checksum loaded: {schema_checksum[:8]}...")
+            logger.info(f"✅ Schema checksum loaded: {schema_checksum[:8]}...")
         except FileNotFoundError as exc:
             return {
                 "data": {"lead_records": []},
@@ -1785,17 +1836,17 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
             }
 
         # Data directory already resolved for logging setup above
-        logging.info(f"✅ Using data directory: {data_dir}")
+        logger.info(f"✅ Using data directory: {data_dir}")
 
         # Note: Removed permit manager and semaphore pools since we no longer use file locking
-        logging.info("🔍 Skipping concurrency controls (no file locking needed)")
+        logger.info("🔍 Skipping concurrency controls (no file locking needed)")
 
         # Initialize provider clients
-        logging.info("🔍 Checking environment variables...")
+        logger.info("🔍 Checking environment variables...")
         mailgun_login = os.environ.get("MAILGUN_SMTP_LOGIN")
         mailgun_password = os.environ.get("MAILGUN_SMTP_PW")
 
-        logging.info(
+        logger.info(
             f"🔑 Environment check - Mailgun: {'✅' if mailgun_login else '❌'}"
         )
 
@@ -1834,7 +1885,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         role_priority_config = icp_config.get("role_priority", {})
         # Ensure role_priority_config is a dictionary
         if not isinstance(role_priority_config, dict):
-            logging.warning(
+            logger.warning(
                 f"⚠️ role_priority_config is not a dictionary: {type(role_priority_config)}, resetting to empty dict"
             )
             role_priority_config = {}
@@ -1851,19 +1902,16 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         enriched_count = 0
         partial_count = 0
 
-        print(
-            f"📋📋📋 ABOUT TO PROCESS {len(lead_records)} LEAD RECORDS 📋📋📋",
-            flush=True,
-        )
+        logger.info(f"📋 About to process {len(lead_records)} lead records")
         for record in lead_records:
             try:
                 # EARLY DEBUG: Log that we're starting to process a record
-                logging.info(
-                    f"🚀 STARTING RECORD PROCESSING FOR: {record.get('domain', 'UNKNOWN')}"
+                logger.info(
+                    f"🚀 Starting record processing for: {record.get('domain', 'UNKNOWN')}"
                 )
 
                 # Debug logging to see what record contains
-                logging.info(
+                logger.info(
                     f"🔍 Processing record: type={type(record)}, content={record}"
                 )
 
@@ -1897,19 +1945,19 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 contacts = record.get("contacts", [])
 
                 # Debug logging for contacts
-                logging.info(f"🔍 Contacts field type for {domain}: {type(contacts)}")
-                logging.info(f"🔍 Contacts field content for {domain}: {contacts}")
+                logger.info(f"🔍 Contacts field type for {domain}: {type(contacts)}")
+                logger.info(f"🔍 Contacts field content for {domain}: {contacts}")
 
                 # Ensure contacts is always a list
                 if not isinstance(contacts, list):
-                    logging.warning(
+                    logger.warning(
                         f"⚠️ Contacts field is not a list for {domain}, resetting to empty list"
                     )
                     contacts = []
                     record["contacts"] = contacts
 
                 # Parse full names into first/last names for email discovery
-                contacts = parse_contact_names(contacts)
+                contacts = parse_contact_names(contacts, logger)
 
                 # Normalize domain
                 normalized_domain = normalize_domain(domain)
@@ -1919,7 +1967,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 company_cost = 0.0
                 if company_usd_cap > 0:
                     try:
-                        logging.info(
+                        logger.info(
                             f"🔍 About to call enrich_company_data for {normalized_domain}"
                         )
                         # Use router for company enrichment
@@ -1977,18 +2025,18 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     ]
                                     fields_updated += 1
 
-                            logging.info(
+                            logger.info(
                                 f"✅ Company enrichment completed for {normalized_domain}: {fields_updated} fields updated"
                             )
                             company_cost = result.cost
                         else:
-                            logging.warning(
+                            logger.warning(
                                 f"Company enrichment failed for {normalized_domain}: {result.error}"
                             )
                             company_cost = 0.0
 
                         enriched_company = company
-                        logging.info(
+                        logger.info(
                             f"🔍 enrich_company_data returned: type={type(enriched_company)}, content={enriched_company}"
                         )
                         company_cost = min(company_cost, company_usd_cap)
@@ -1996,7 +2044,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         record["company"] = enriched_company
                         company = enriched_company  # Update local company variable
                     except Exception as e:
-                        logging.warning(
+                        logger.warning(
                             f"⚠️ Company enrichment failed for {normalized_domain}: {e}"
                         )
                         # Continue with contact discovery even if company enrichment fails
@@ -2004,29 +2052,29 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                 # Ensure company is always a dictionary for safety
                 if not isinstance(company, dict):
-                    logging.warning(
+                    logger.warning(
                         f"⚠️ Company data is not a dictionary for {normalized_domain}, resetting to empty dict"
                     )
                     company = {}
                     record["company"] = company
 
                 # Debug logging to see what company contains
-                logging.info(
+                logger.info(
                     f"🔍 Company data type for {normalized_domain}: {type(company)}"
                 )
-                logging.info(
+                logger.info(
                     f"🔍 Company data content for {normalized_domain}: {company}"
                 )
-                logging.info(
+                logger.info(
                     f"🔍 Record company field type: {type(record.get('company'))}"
                 )
-                logging.info(
+                logger.info(
                     f"🔍 Record company field content: {record.get('company')}"
                 )
 
                 # Normalize contact data from crawling to ensure consistent field names
                 if contacts and len(contacts) > 0:
-                    logging.info(
+                    logger.info(
                         f"🔍 Normalizing {len(contacts)} contacts from crawling for {normalized_domain}"
                     )
 
@@ -2068,19 +2116,19 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     # Use normalized contacts for all subsequent processing
                     contacts = normalized_contacts
                     record["contacts"] = contacts
-                    logging.info(
+                    logger.info(
                         f"✅ Contact normalization completed for {normalized_domain}"
                     )
 
                 # Select best contact using LLM-based selection with fallback to rule-based
-                logging.info(
+                logger.info(
                     f"🔍 Contacts type before contact selection: {type(contacts)}"
                 )
-                logging.info(
+                logger.info(
                     f"🔍 Contacts content before contact selection: {contacts}"
                 )
-                logging.info(f"🔍 Role priority config: {role_priority_config}")
-                logging.info(
+                logger.info(f"🔍 Role priority config: {role_priority_config}")
+                logger.info(
                     f"🔍 ICP config available for LLM selection: {bool(icp_config)}"
                 )
 
@@ -2097,12 +2145,12 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 contact_cost = 0.0
 
                 # Log the current state before contact discovery
-                logging.info(
+                logger.info(
                     f"🔍 About to start contact discovery logic for {normalized_domain}"
                 )
-                logging.info(f"🔍 Current contacts list: {contacts}")
-                logging.info(f"🔍 Contact USD cap: {contact_usd_cap}")
-                logging.info(
+                logger.info(f"🔍 Current contacts list: {contacts}")
+                logger.info(f"🔍 Contact USD cap: {contact_usd_cap}")
+                logger.info(
                     f"🔍 Force contact discovery flag: {icp_config.get('testing', {}).get('force_contact_discovery', False)}"
                 )
 
@@ -2114,26 +2162,26 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     )
                 ) and contact_usd_cap > 0:
                     # Debug logging to see what's happening
-                    logging.info(f"🔍 DEBUG: contacts list length: {len(contacts)}")
-                    logging.info(
+                    logger.info(f"🔍 DEBUG: contacts list length: {len(contacts)}")
+                    logger.info(
                         f"🔍 DEBUG: force_contact_discovery flag: {icp_config.get('testing', {}).get('force_contact_discovery', False)}"
                     )
-                    logging.info(f"🔍 DEBUG: contact_usd_cap: {contact_usd_cap}")
+                    logger.info(f"🔍 DEBUG: contact_usd_cap: {contact_usd_cap}")
 
                     # If force_contact_discovery is enabled, clear existing contacts to force fresh discovery
                     if icp_config.get("testing", {}).get(
                         "force_contact_discovery", False
                     ):
-                        logging.info(
+                        logger.info(
                             f"🔍 Force contact discovery enabled for {normalized_domain}, clearing existing contacts and starting fresh..."
                         )
                         contacts = []
                         record["contacts"] = contacts
-                        logging.info(
+                        logger.info(
                             f"🔍 DEBUG: After clearing, contacts list length: {len(contacts)}"
                         )
 
-                    logging.info(
+                    logger.info(
                         f"🔍 {'No contacts found' if not contacts else 'Force contact discovery enabled'} for {normalized_domain}, attempting contact discovery..."
                     )
                     try:
@@ -2266,7 +2314,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                                     break
 
                                     if not is_decision_maker:
-                                        logging.info(
+                                        logger.info(
                                             f"🔍 Skipping contact with non-decision-maker title: '{title_value}'"
                                         )
                                         continue
@@ -2293,7 +2341,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                             contact["email_status"] = [
                                                 profile.email_status or "unknown"
                                             ]
-                                            logging.info(
+                                            logger.info(
                                                 f"✅ Found email from ContactData: {contact['email']} for {contact['first_name']} {contact['last_name']}"
                                             )
                                     else:
@@ -2331,11 +2379,11 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                                             contact["email"] = (
                                                                 first_email["email"]
                                                             )
-                                                            logging.info(
+                                                            logger.info(
                                                                 f"✅ Found email for {contact['first_name']} {contact['last_name']}: {contact['email']}"
                                                             )
                                             except Exception as exc:
-                                                logging.warning(
+                                                logger.warning(
                                                     f"Email discovery failed for prospect: {exc}"
                                                 )
 
@@ -2364,54 +2412,54 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                                         if not is_duplicate:
                                             discovered_contacts.append(contact)
-                                            logging.info(
+                                            logger.info(
                                                 f"✅ Discovered contact: {contact['first_name']} {contact['last_name']} - {contact['job_title']} - {contact['email']}"
                                             )
 
                                 if discovered_contacts:
-                                    logging.info(
+                                    logger.info(
                                         f"🎯 Successfully discovered {len(discovered_contacts)} contacts for {normalized_domain}"
                                     )
                                 else:
-                                    logging.warning(
+                                    logger.warning(
                                         f"❌ No contacts discovered for {normalized_domain}"
                                     )
                             else:
                                 discovered_contacts = []
-                                logging.warning(
+                                logger.warning(
                                     f"Contact discovery failed for {normalized_domain}: {result.error}"
                                 )
                         except Exception as exc:
                             discovered_contacts = []
-                            logging.warning(
+                            logger.warning(
                                 f"Contact discovery failed for {normalized_domain}: {exc}"
                             )
 
                         if discovered_contacts:
                             contacts = discovered_contacts
                             record["contacts"] = contacts
-                            logging.info(
+                            logger.info(
                                 f"✅ Discovered {len(contacts)} contacts for {normalized_domain}"
                             )
                         else:
-                            logging.warning(
+                            logger.warning(
                                 f"⚠️ No contacts discovered for {normalized_domain}"
                             )
                     except Exception as contact_discovery_error:
                         # Check if it's a credit exhaustion error
                         if "402 Payment Required" in str(contact_discovery_error):
-                            logging.warning(
+                            logger.warning(
                                 f"⚠️ Snov.io API credits exhausted for {normalized_domain} - skipping contact discovery"
                             )
                         else:
-                            logging.warning(
+                            logger.warning(
                                 f"⚠️ Contact discovery failed for {normalized_domain}: {contact_discovery_error}"
                             )
                         # Continue without contacts rather than failing the entire enrichment
 
                 # NEW: Enrich existing contacts with emails (when contacts already exist from crawling)
                 if contacts and len(contacts) > 0 and contact_usd_cap > 0:
-                    logging.info(
+                    logger.info(
                         f"🔍 Enriching {len(contacts)} existing contacts for {normalized_domain} with email discovery"
                     )
 
@@ -2452,7 +2500,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         last_name = best_contact.get("last_name", "")
                         job_title = best_contact.get("job_title", "")
 
-                        logging.info(
+                        logger.info(
                             f"🎯 Enriching best contact for ICP: {first_name} {last_name} ({job_title}) at {normalized_domain}"
                         )
 
@@ -2483,7 +2531,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     best_contact["email_status"] = ["unknown"]
                                     best_contact["email_confidence"] = 0.0
 
-                                    logging.info(
+                                    logger.info(
                                         f"✅ Email enrichment successful for {first_name} {last_name}: {discovered_email}"
                                     )
 
@@ -2493,24 +2541,24 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     # Update the record with enriched contact
                                     record["contacts"] = contacts
                                 else:
-                                    logging.warning(
+                                    logger.warning(
                                         f"⚠️ Email discovery returned no email for {first_name} {last_name}"
                                     )
                             else:
-                                logging.warning(
+                                logger.warning(
                                     f"⚠️ Email discovery failed for {first_name} {last_name}: {email_result.error}"
                                 )
 
                         except Exception as exc:
-                            logging.warning(
+                            logger.warning(
                                 f"⚠️ Email enrichment failed for {first_name} {last_name}: {exc}"
                             )
                     elif best_contact and best_contact.get("email"):
-                        logging.info(
+                        logger.info(
                             f"✅ Best contact {best_contact.get('first_name')} {best_contact.get('last_name')} already has email: {best_contact.get('email')}"
                         )
                     else:
-                        logging.info(
+                        logger.info(
                             f"⚠️ No suitable contact found for email enrichment in {normalized_domain}"
                         )
 
@@ -2526,7 +2574,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     if best_contact:
                         first_name = best_contact.get("first_name", "")
                         last_name = best_contact.get("last_name", "")
-                        logging.info(
+                        logger.info(
                             f"🔍 Attempting email discovery for best contact: {first_name} {last_name} at {normalized_domain}..."
                         )
 
@@ -2574,7 +2622,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                                     # Add to contacts list
                                     contacts.append(email_contact)
-                                    logging.info(
+                                    logger.info(
                                         f"✅ Email discovery found: {discovered_email} for {normalized_domain}"
                                     )
 
@@ -2583,23 +2631,23 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     contact_cost += single_contact_cost
 
                         except Exception as exc:
-                            logging.warning(
+                            logger.warning(
                                 f"Standalone email discovery failed for {normalized_domain}: {exc}"
                             )
 
                 # Enrich existing or discovered contacts
                 if contacts and contact_usd_cap > 0:
-                    logging.info(
+                    logger.info(
                         f"🔍 About to enrich {len(contacts)} contacts for {normalized_domain}"
                     )
                     for i, contact in enumerate(contacts):
-                        logging.info(
+                        logger.info(
                             f"🔍 Contact {i}: type={type(contact)}, content={contact}"
                         )
 
                         # Check if contact is a dictionary (defensive programming)
                         if not isinstance(contact, dict):
-                            logging.warning(
+                            logger.warning(
                                 f"⚠️ Contact {i} is not a dictionary (type: {type(contact)}), skipping: {contact}"
                             )
                             continue
@@ -2678,11 +2726,11 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                             ]
 
                                     single_contact_cost += result.cost
-                                    logging.info(
+                                    logger.info(
                                         f"✅ Contact enrichment completed for {normalized_domain}"
                                     )
                             except Exception as exc:
-                                logging.warning(
+                                logger.warning(
                                     f"Contact enrichment failed for {normalized_domain}: {exc}"
                                 )
 
@@ -2705,11 +2753,11 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     contact["email_source"] = ["provider"]
                                     contact["email_status"] = ["unknown"]
                                     single_contact_cost += result.cost
-                                    logging.info(
+                                    logger.info(
                                         f"✅ Email discovery completed for {normalized_domain}"
                                     )
                             except Exception as exc:
-                                logging.warning(
+                                logger.warning(
                                     f"Email discovery failed for {normalized_domain}: {exc}"
                                 )
 
@@ -2742,7 +2790,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                 single_contact_cost += costs_config.get("mailgun", 0.0)
 
                             except Exception as exc:
-                                logging.warning(f"Failed to validate email: {exc}")
+                                logger.warning(f"Failed to validate email: {exc}")
                                 contact["email_status"] = ["unknown"]
                                 contact["email_confidence"] = 0.0
 
@@ -2784,7 +2832,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 # CRITICAL FIX: Update record with final merged contacts array
                 # This ensures the CSV export can find the best contact
                 record["contacts"] = contacts
-                logging.info(f"✅ Final contacts array updated for {normalized_domain}: {len(contacts)} contacts")
+                logger.info(f"✅ Final contacts array updated for {normalized_domain}: {len(contacts)} contacts")
 
                 # CRITICAL FIX: Ensure best_contact_id matches an actual contact in the contacts array
                 if best_contact_id and contacts:
@@ -2794,18 +2842,18 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         # If best_contact_id doesn't match any contact, use the first contact's ID
                         if contacts:
                             record["best_contact_id"] = contacts[0]["contact_id"]
-                            logging.info(f"🔄 Updated best_contact_id to match actual contact: {contacts[0]['contact_id']} for {normalized_domain}")
+                            logger.info(f"🔄 Updated best_contact_id to match actual contact: {contacts[0]['contact_id']} for {normalized_domain}")
                         else:
                             record["best_contact_id"] = None
-                            logging.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
+                            logger.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
                 elif not best_contact_id and contacts:
                     # If no best_contact_id was set but we have contacts, use the first one
                     record["best_contact_id"] = contacts[0]["contact_id"]
-                    logging.info(f"🔄 Set best_contact_id to first contact: {contacts[0]['contact_id']} for {normalized_domain}")
+                    logger.info(f"🔄 Set best_contact_id to first contact: {contacts[0]['contact_id']} for {normalized_domain}")
                 elif not contacts:
                     # If no contacts, ensure best_contact_id is None
                     record["best_contact_id"] = None
-                    logging.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
+                    logger.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
 
                 # Update provenance
                 if "provenance" not in record:
@@ -2938,7 +2986,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                 # Ensure record is a dictionary
                 if not isinstance(record, dict):
-                    logging.error(
+                    logger.error(
                         f"⚠️ Record is not a dictionary: {type(record)}, content: {record}"
                     )
                     # Create a minimal error without trying to access record fields
@@ -2969,7 +3017,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 if "status_history" not in record:
                     record["status_history"] = []
                 elif not isinstance(record["status_history"], list):
-                    logging.warning(
+                    logger.warning(
                         f"⚠️ status_history is not a list for {record.get('domain', 'unknown')}, resetting to empty list"
                     )
                     record["status_history"] = []
@@ -2981,7 +3029,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         error_msg,
                     )
                 except Exception as append_error:
-                    logging.error(
+                    logger.error(
                         f"⚠️ Failed to append status for {record.get('domain', 'unknown')}: {append_error}"
                     )
                     # Create a minimal status entry manually

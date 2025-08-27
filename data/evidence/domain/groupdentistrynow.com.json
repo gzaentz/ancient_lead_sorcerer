@@ -1,30 +1,20 @@
 {
   "domain": "groupdentistrynow.com",
   "queries": [
-    "dental practice groups 5+ locations non-corporate"
+    "dental practice groups California multiple locations"
   ],
-  "fetched_at": "2025-08-18T22:41:18.849423Z",
+  "fetched_at": "2025-08-27T17:30:42.235977Z",
   "serp_results": [
     {
-      "url": "https://www.groupdentistrynow.com/dso-group-blog/emerging-dental-groups-to-watch-in-2023/",
-      "title": "Emerging Dental Groups to Watch in 2023 - Group Dentistry Now",
-      "snippet": "Jan 25, 2023 ... Based in the Boston area, this doctor-led dental partnership has since grown from a single office to nine non-branded locations and is closing\u00a0...",
-      "query": "dental practice groups 5+ locations non-corporate",
+      "url": "https://www.groupdentistrynow.com/dso-group-blog/insurance-coverage-dso/",
+      "title": "Optimizing Insurance Coverage for Multi-Location Dental Practices ...",
+      "snippet": "Jun 16, 2025 ... For instance, consider a dental group with locations in both Texas and California. Texas allows corporate employers some flexibility to opt\u00a0...",
+      "query": "dental practice groups California multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:40:47.751790Z",
-      "domain": "groupdentistrynow.com"
-    },
-    {
-      "url": "https://www.groupdentistrynow.com/dso-group-blog/six-emerging-dso-dental-group-practices-to-watch-in-2017/",
-      "title": "Six Emerging Dental Groups to Watch Now - Group Dentistry Now",
-      "snippet": "Apr 6, 2017 ... ... office and corporate administrative functions. The legal DSO ... MDG has 2 practice locations in Williamsburg, one in Hampton, one in\u00a0...",
-      "query": "dental practice groups 5+ locations non-corporate",
-      "page_index": 1,
-      "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:40:47.878393Z",
+      "fetched_at": "2025-08-27T17:30:21.434354Z",
       "domain": "groupdentistrynow.com"
     }
   ],
-  "scoring_prompt_fingerprint": "cb1efd73418b38e587b2ba0281dcda96217103ff7bd392ea2b05bfa093ba80d5"
+  "scoring_prompt_fingerprint": "15229f241b1afe597380ae50d959437e839089ec412f88dfa2d4aa73592d649c"
 }
