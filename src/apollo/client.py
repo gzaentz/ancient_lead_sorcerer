@@ -22,6 +22,26 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 
+def safe_hash_dict(data: Dict[str, Any]) -> str:
+    """
+    Create a safe hash for dictionaries that may contain nested structures.
+    
+    Args:
+        data: Dictionary to hash (may contain nested dicts, lists, etc.)
+        
+    Returns:
+        String hash that can be used as a cache key
+    """
+    try:
+        # Convert to JSON string for consistent hashing
+        json_str = json.dumps(data, sort_keys=True, default=str)
+        return hashlib.md5(json_str.encode()).hexdigest()
+    except Exception as e:
+        logger.warning(f"Failed to hash dict safely: {e}")
+        # Fallback to string representation
+        return hashlib.md5(str(sorted(data.items())).encode()).hexdigest()
+
+
 class ApolloConfig(BaseModel):
     """Configuration for Apollo API client"""
 
@@ -448,7 +468,7 @@ class SearchQueryOptimizer:
 
         # Sort by historical performance if available
         def sort_key(filters):
-            query_hash = str(hash(frozenset(sorted(filters.items()))))
+            query_hash = safe_hash_dict(filters)
             if query_hash in self.query_performance_history:
                 avg_time = sum(self.query_performance_history[query_hash]) / len(
                     self.query_performance_history[query_hash]
@@ -1413,7 +1433,7 @@ class ApolloClient:
                         seen_companies.add(company_id)
 
                 # Record performance for optimization
-                query_hash = str(hash(frozenset(sorted(variation.items()))))
+                query_hash = safe_hash_dict(variation)
                 self.search_optimizer.record_query_performance(
                     query_hash,
                     0.0,  # Will be updated by actual request timing
@@ -1462,7 +1482,7 @@ class ApolloClient:
                         seen_persons.add(person_id)
 
                 # Record performance for optimization
-                query_hash = str(hash(frozenset(sorted(variation.items()))))
+                query_hash = safe_hash_dict(variation)
                 self.search_optimizer.record_query_performance(
                     query_hash,
                     0.0,  # Will be updated by actual request timing

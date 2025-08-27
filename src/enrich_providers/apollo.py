@@ -36,8 +36,10 @@ class ApolloEnrichProvider(BaseEnrichmentProvider):
         Args:
             config: Provider configuration containing Apollo settings
         """
-        super().__init__(config)
-        self.tier = ProviderTier.TIER_0  # Apollo is a primary data source
+        super().__init__("apollo", ProviderTier.TIER_0)
+        
+        # Store config for later use
+        self.config = config
 
         # Initialize Apollo client
         self.apollo_client = self._initialize_apollo_client()
@@ -153,6 +155,193 @@ class ApolloEnrichProvider(BaseEnrichmentProvider):
             logger.error(f"Contact enrichment failed for email {request.email}: {e}")
             return EnrichmentResult(
                 success=False, error=f"Contact enrichment failed: {e}", data={}
+            )
+
+    async def enrich_contacts(self, request: EnrichmentRequest) -> EnrichmentResult:
+        """
+        Enrich company contacts using Apollo API.
+
+        Args:
+            request: Contact enrichment request with domain
+
+        Returns:
+            Enrichment result with list of contact data
+        """
+        try:
+            domain = request.domain
+            if not domain:
+                return EnrichmentResult(
+                    success=False,
+                    error="No domain provided for contact enrichment",
+                    data={},
+                )
+
+            logger.info(f"Enriching contacts for domain: {domain}")
+
+            # Get all domain prospects using Apollo API
+            prospects_data = await self.apollo_client.get_all_domain_prospects(domain)
+
+            if not prospects_data or "prospects" not in prospects_data:
+                return EnrichmentResult(
+                    success=False, error="No prospects data returned from Apollo", data={}
+                )
+
+            # Transform Apollo prospects data to enrichment result format
+            prospects = prospects_data["prospects"]
+            contact_list = []
+            
+            for prospect in prospects:
+                if "person" in prospect:
+                    contact_data = self._transform_person_data(prospect["person"])
+                    contact_list.append(contact_data)
+
+            logger.info(f"Contact enrichment completed for domain: {domain}, found {len(contact_list)} contacts")
+
+            return EnrichmentResult(success=True, data=contact_list, provider="apollo")
+
+        except Exception as e:
+            logger.error(f"Contact enrichment failed for domain {request.domain}: {e}")
+            return EnrichmentResult(
+                success=False, error=f"Contact enrichment failed: {e}", data={}
+            )
+
+    async def find_email(self, request: EnrichmentRequest) -> EnrichmentResult:
+        """
+        Find email address for a specific contact using Apollo API.
+
+        Args:
+            request: Enrichment request with domain, first_name, and last_name
+
+        Returns:
+            Enrichment result with contact data including email
+        """
+        try:
+            domain = request.domain
+            first_name = request.first_name
+            last_name = request.last_name
+
+            if not domain or not first_name or not last_name:
+                return EnrichmentResult(
+                    success=False,
+                    error="Domain, first_name, and last_name are required for email discovery",
+                    data={},
+                )
+
+            logger.info(f"Finding email for {first_name} {last_name} at {domain}")
+
+            # Search for the specific person using Apollo API
+            search_results = await self.apollo_client.search_people(
+                first_name=first_name,
+                last_name=last_name,
+                domain=domain
+            )
+
+            if not search_results or "people" not in search_results:
+                return EnrichmentResult(
+                    success=False, error="No search results returned from Apollo", data={}
+                )
+
+            people = search_results["people"]
+            if not people:
+                return EnrichmentResult(
+                    success=False, error="No matching person found", data={}
+                )
+
+            # Get the first (best) match and enrich their data
+            person = people[0]
+            if "id" in person:
+                # Enrich the person to get full contact details including email
+                enriched_person = await self.apollo_client.enrich_person(person["id"])
+                
+                if enriched_person and "person" in enriched_person:
+                    person_data = enriched_person["person"]
+                    result_data = self._transform_person_data(person_data)
+                    
+                    logger.info(f"Email discovery completed for {first_name} {last_name} at {domain}")
+                    return EnrichmentResult(success=True, data=result_data, provider="apollo")
+                else:
+                    return EnrichmentResult(
+                        success=False, error="Failed to enrich person data", data={}
+                    )
+            else:
+                return EnrichmentResult(
+                    success=False, error="Person ID not found in search results", data={}
+                )
+
+        except Exception as e:
+            logger.error(f"Email discovery failed for {request.first_name} {request.last_name} at {request.domain}: {e}")
+            return EnrichmentResult(
+                success=False, error=f"Email discovery failed: {e}", data={}
+            )
+
+    async def validate_email(self, email: str) -> EnrichmentResult:
+        """
+        Validate email address using Apollo API.
+
+        Args:
+            email: Email address to validate
+
+        Returns:
+            Enrichment result with validation status
+        """
+        try:
+            if not email:
+                return EnrichmentResult(
+                    success=False,
+                    error="No email provided for validation",
+                    data={},
+                )
+
+            logger.info(f"Validating email: {email}")
+
+            # Apollo doesn't have a direct email validation endpoint
+            # We can use the enrich_person endpoint to check if the email is valid
+            # by attempting to enrich a person with this email
+            try:
+                # Try to enrich the person using the email
+                enriched_person = await self.apollo_client.enrich_person_by_email(email)
+                
+                if enriched_person and "person" in enriched_person:
+                    person_data = enriched_person["person"]
+                    # If we get valid person data, the email is likely valid
+                    validation_result = {
+                        "email": email,
+                        "is_valid": True,
+                        "confidence": "high",
+                        "person_data": self._transform_person_data(person_data),
+                        "validation_method": "apollo_enrichment"
+                    }
+                    
+                    logger.info(f"Email validation completed for {email}: Valid")
+                    return EnrichmentResult(success=True, data=validation_result, provider="apollo")
+                else:
+                    # No person data returned, email might be invalid
+                    validation_result = {
+                        "email": email,
+                        "is_valid": False,
+                        "confidence": "medium",
+                        "validation_method": "apollo_enrichment"
+                    }
+                    
+                    logger.info(f"Email validation completed for {email}: Invalid")
+                    return EnrichmentResult(success=True, data=validation_result, provider="apollo")
+                    
+            except Exception as enrich_error:
+                # If enrichment fails, the email is likely invalid
+                logger.debug(f"Email enrichment failed for {email}, treating as invalid: {enrich_error}")
+                validation_result = {
+                    "email": email,
+                    "is_valid": False,
+                    "confidence": "high",
+                    "validation_method": "apollo_enrichment_failure"
+                }
+                
+                return EnrichmentResult(success=True, data=validation_result, provider="apollo")
+
+        except Exception as e:
+            logger.error(f"Email validation failed for {email}: {e}")
+            return EnrichmentResult(
+                success=False, error=f"Email validation failed: {e}", data={}
             )
 
     async def bulk_enrich_companies(

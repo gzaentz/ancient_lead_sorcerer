@@ -1,20 +1,20 @@
 {
   "domain": "ca.gov",
   "queries": [
-    "dental practice multiple locations California"
+    "family owned dental practices multiple offices California"
   ],
-  "fetched_at": "2025-08-22T20:11:05.977359Z",
+  "fetched_at": "2025-08-27T21:05:14.293980Z",
   "serp_results": [
     {
-      "url": "https://www.dbc.ca.gov/licensees/dds/permits/additional_office.shtml",
-      "title": "Application for Additional Dental Office Permit - Dental Board of ...",
-      "snippet": "The Dental Board of California (Board) issues an Additional Office (AO) ... After approval, the permit will arrive to the practice location within 30 days.",
-      "query": "dental practice multiple locations California",
+      "url": "https://www.dbc.ca.gov/licensees/dds/permits/fictitious_name.shtml",
+      "title": "Application for Fictitious Name Permit - Dental Board of California",
+      "snippet": "Submit evidence that the dental practice is entirely owned or leased by the ... Dental offices practicing as an Individual/Sole Ownership do not require\u00a0...",
+      "query": "family owned dental practices multiple offices California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-22T20:10:38.300599Z",
+      "fetched_at": "2025-08-27T21:04:47.373332Z",
       "domain": "ca.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "473c70a058c4875a04b2dcaf9faedfa683bb5ea25f74c2d4083d76ba5bdf3688"
+  "scoring_prompt_fingerprint": "88a51462f791b69b7ee75ac7dfd11d2d9a83edbf60b530bcfdf0615f9c1092fc"
 }

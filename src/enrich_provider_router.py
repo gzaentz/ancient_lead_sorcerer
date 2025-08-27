@@ -141,12 +141,19 @@ class EnrichmentProviderRouter:
                     f"⚠️ Failed to initialize CompanyEnrich provider: {exc}"
                 )
 
-        # Apollo provider - only initialize if Apollo mode is enabled
+        # Apollo provider - only initialize if Apollo provider is enabled
         if self._should_use_apollo_provider():
             try:
-                apollo_config = self.icp_config.get("apollo", {}).get("enrich", {})
+                # Get Apollo provider configuration from enrichment_providers section
+                enrichment_providers = self.icp_config.get("enrichment_providers", {})
+                apollo_provider_config = enrichment_providers.get("apollo", {})
+                
+                # Fallback to apollo.enrich if enrichment_providers.apollo not configured
+                if not apollo_provider_config:
+                    apollo_provider_config = self.icp_config.get("apollo", {}).get("enrich", {})
+                
                 self.providers[ProviderTier.TIER_0].append(
-                    ApolloEnrichProvider(apollo_config)
+                    ApolloEnrichProvider(apollo_provider_config)
                 )
                 initialized_providers["tier_0"].append("Apollo")
                 self.logger.info(
@@ -255,28 +262,33 @@ class EnrichmentProviderRouter:
         """
         Determine if Apollo enrichment provider should be used.
 
-        Apollo provider is only enabled when:
-        1. Apollo mode is enabled in ICP config
-        2. Apollo enrichment is enabled in Apollo config
+        Apollo provider is enabled when:
+        1. Apollo enrichment provider is explicitly enabled in enrichment_providers, OR
+        2. Apollo-first mode is active (inherits Apollo capability)
 
         Returns:
             True if Apollo provider should be used, False otherwise
         """
-        # Check if Apollo mode is enabled
-        lead_generation_mode = self.icp_config.get(
-            "lead_generation_mode", "traditional"
-        )
-        if lead_generation_mode != "apollo":
-            return False
+        # Check explicit enrichment provider config (works in any mode)
+        enrichment_providers = self.icp_config.get("enrichment_providers", {})
+        apollo_enrichment_enabled = enrichment_providers.get("apollo", {}).get("enabled", False)
 
-        # Check if Apollo config exists and enrichment is enabled
-        apollo_config = self.icp_config.get("apollo", {})
-        if not apollo_config:
-            return False
+        if apollo_enrichment_enabled:
+            self.logger.info("✅ Apollo enrichment provider enabled via enrichment_providers.apollo.enabled")
+            return True
 
-        # Check if Apollo enrichment is enabled
-        enrich_config = apollo_config.get("enrich", {})
-        return enrich_config.get("enabled", False)
+        # Check Apollo-first mode (inherits Apollo enrichment capability)
+        lead_generation_mode = self.icp_config.get("lead_generation_mode", "search")
+        if lead_generation_mode == "apollo":
+            apollo_config = self.icp_config.get("apollo", {})
+            enrich_enabled = apollo_config.get("enrich", {}).get("enabled", False)
+            if enrich_enabled:
+                self.logger.info("✅ Apollo enrichment provider enabled via Apollo-first mode")
+                return True
+            else:
+                self.logger.warning("⚠️ Apollo-first mode enabled but apollo.enrich.enabled is False")
+
+        return False
 
     def _update_health_tracking(self):
         """Initialize health tracking for all providers."""
@@ -332,6 +344,22 @@ class EnrichmentProviderRouter:
         """
         return await self._execute_with_fallback(
             "find_email", request, "email discovery"
+        )
+
+    async def validate_email(self, email: str) -> EnrichmentResult:
+        """
+        Validate email address using provider fallback logic.
+
+        Args:
+            email: Email address to validate
+
+        Returns:
+            Enrichment result with validation status from best available provider
+        """
+        # Create a request object for validation
+        request = EnrichmentRequest(domain="", email=email)
+        return await self._execute_with_fallback(
+            "validate_email", request, "email validation"
         )
 
     async def get_all_domain_prospects(

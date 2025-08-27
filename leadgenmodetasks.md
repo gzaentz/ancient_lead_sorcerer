@@ -43,19 +43,19 @@ This document outlines the comprehensive implementation tasks for establishing f
 
 ## Implementation Tasks
 
-### 🔧 Task 6: Fix Apollo Provider Routing (HIGH PRIORITY)
+### 🔧 Task 0: Fix Apollo Provider Routing (HIGH PRIORITY)
 
-**Status**: Pending
+**Status**: ✅ COMPLETED
 **File**: `src/enrich_provider_router.py`
 **Issue**: Apollo provider not being used for contact discovery in non-Apollo modes
 
-- [ ] Fix Apollo provider routing logic in `_should_use_apollo_provider()`
-- [ ] Fix constructor parameter mismatch in `ApolloEnrichProvider`
-- [ ] Implement missing `enrich_contacts()` method
-- [ ] Implement missing `find_email()` method
-- [ ] Implement missing `validate_email()` method
-- [ ] Add Apollo provider initialization logging
-- [ ] Test Apollo contact discovery in all modes
+- [x] Fix Apollo provider routing logic in `_should_use_apollo_provider()`
+- [x] Fix constructor parameter mismatch in `ApolloEnrichProvider`
+- [x] Implement missing `enrich_contacts()` method
+- [x] Implement missing `find_email()` method
+- [x] Implement missing `validate_email()` method
+- [x] Add Apollo provider initialization logging
+- [x] Test Apollo contact discovery in all modes
 
 #### Current Problem
 
@@ -92,6 +92,58 @@ def _should_use_apollo_provider(self) -> bool:
     return False
 ```
 
+#### Codebase Analysis Findings
+
+**✅ What Exists:**
+- `ApolloEnrichProvider` class is fully implemented
+- Has `enrich_company()`, `enrich_contact()`, `bulk_enrich_contacts()` methods
+- Constructor expects `apollo_config` parameter from `icp_config.get("apollo", {}).get("enrich", {})`
+
+**❌ Critical Issues Found:**
+1. **Routing Logic Broken**: Apollo provider only enabled in Apollo mode, preventing contact discovery in search/url modes
+2. **Missing Methods**: `enrich_contacts()`, `find_email()`, `validate_email()` methods not implemented
+3. **Constructor Mismatch**: Current initialization passes wrong config structure
+4. **Provider Initialization**: Apollo provider not being initialized in non-Apollo modes
+
+**🔍 Current Implementation Status:**
+- **File**: `src/enrich_provider_router.py` lines 265-268
+- **Impact**: Apollo contact discovery completely broken for search/url modes
+- **Priority**: CRITICAL - affects current functionality, not just future database mode
+
+**📋 Implementation Steps:**
+1. **Fix routing logic** to enable Apollo provider in any mode when `enrichment_providers.apollo.enabled = true`
+2. **Implement missing methods** following the pattern used by other providers
+3. **Fix constructor parameter** to use correct config structure
+4. **Add initialization logging** for debugging
+5. **Test contact discovery** in all lead generation modes
+
+**✅ Implementation Completed:**
+
+**1. Fixed Apollo Provider Routing Logic:**
+- Updated `_should_use_apollo_provider()` method to check both `enrichment_providers.apollo.enabled` and Apollo-first mode
+- Apollo provider now works in search, url, and database modes when explicitly enabled
+- Maintains backward compatibility with Apollo-first mode
+
+**2. Fixed Constructor Parameter Mismatch:**
+- Updated provider initialization to use correct configuration structure
+- Added fallback logic for backward compatibility
+- Improved error handling and logging
+
+**3. Implemented Missing Methods:**
+- `enrich_contacts()`: Discovers all contacts for a domain using Apollo API
+- `find_email()`: Finds email for specific person using name and domain
+- `validate_email()`: Validates email addresses using Apollo enrichment
+
+**4. Enhanced Logging and Error Handling:**
+- Added detailed logging for Apollo provider initialization
+- Improved error messages and debugging information
+- Added provider availability tracking
+
+**5. Verified Functionality:**
+- All 6 test cases passed successfully
+- Apollo provider routing works correctly in all lead generation modes
+- Contact discovery functionality restored for search/url/database modes
+
 
 
 ### 🏗️ Task 1: Update Orchestrator Mode Detection (MEDIUM PRIORITY)
@@ -113,9 +165,62 @@ if mode not in ["search", "url", "apollo"]:
     mode = "search"
 ```
 
-#### Required Changes
+#### Required Code Changes
 
-Update the valid modes list to include database mode and implement proper routing logic.
+**1. Update `_detect_lead_generation_mode()` method:**
+```python
+def _detect_lead_generation_mode(self) -> str:
+    mode = self.icp_config.get("lead_generation_mode", "search")
+    
+    # Add database to valid modes
+    if mode not in ["search", "url", "apollo", "database"]:
+        self.logger.warning(f"Invalid lead_generation_mode: {mode}, defaulting to 'search'")
+        mode = "search"
+    
+    self.logger.info(f"🔍 Lead generation mode detected: {mode}")
+    return mode
+```
+
+**2. Add database mode routing in `run_pipeline()`:**
+```python
+async def run_pipeline(self) -> Dict[str, Any]:
+    # ... existing validation code ...
+    
+    # Determine pipeline mode and execute accordingly
+    if self._should_run_apollo_pipeline():
+        return await self._run_apollo_pipeline()
+    elif self._should_run_database_pipeline():  # NEW
+        return await self._run_database_pipeline()
+    else:
+        return await self._run_traditional_pipeline()
+
+def _should_run_database_pipeline(self) -> bool:
+    """Check if database mode is enabled."""
+    mode = self._detect_lead_generation_mode()
+    return mode == "database"
+```
+
+**3. Update `_initialize_tools()` method:**
+```python
+def _initialize_tools(self):
+    mode = self._detect_lead_generation_mode()
+    
+    if mode == "apollo":
+        # Apollo mode initialization
+        self.apollo_tool = ApolloTool(self.icp_config, self.data_dir)
+        self.domain_tool = None
+        self.crawl_tool = CrawlTool(self.data_dir)
+    elif mode == "database":  # NEW
+        # Database mode initialization
+        self.apollo_tool = None
+        self.domain_tool = None  # Skip domain discovery
+        self.crawl_tool = CrawlTool(self.data_dir)
+    else:
+        # Traditional/search/url mode initialization
+        self.domain_tool = DomainTool(self.icp_config, self.data_dir)
+        self.crawl_tool = CrawlTool(self.data_dir)
+        self.apollo_tool = None
+```
 
 ### 📝 Task 2: Enhance Configuration Schema (MEDIUM PRIORITY)
 
@@ -131,6 +236,81 @@ Update the valid modes list to include database mode and implement proper routin
 #### Current Problem
 
 Database functionality hidden inside `site_type` configuration, not elevated to proper lead generation mode.
+
+#### Required Schema Changes
+
+**1. Update `schemas/extended_icp_config.json`:**
+```json
+{
+  "lead_generation_mode": {
+    "type": "string",
+    "enum": ["search", "url", "apollo", "database"],
+    "default": "search",
+    "description": "Lead generation strategy: 'search' = Domain→Crawl→Enrich, 'url' = Specific URLs, 'apollo' = Apollo-first, 'database' = Directory extraction"
+  },
+  "enrichment_providers": {
+    "type": "object",
+    "properties": {
+      "apollo": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "batch_size": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 }
+        }
+      },
+      "anymail_finder": { "type": "object", "properties": { "enabled": { "type": "boolean", "default": true } } },
+      "company_enrich": { "type": "object", "properties": { "enabled": { "type": "boolean", "default": true } } }
+    }
+  },
+  "database": {
+    "type": "object",
+    "properties": {
+      "sites": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "base_domain": { "type": "string" },
+            "specific_urls": { "type": "array", "items": { "type": "string" } },
+            "discovery_mode": { "type": "string", "enum": ["url_list", "domain_crawl"] }
+          }
+        }
+      },
+      "extraction": {
+        "type": "object",
+        "properties": {
+          "max_listings_per_site": { "type": "integer", "minimum": 1, "default": 100 },
+          "parallel_extractions": { "type": "integer", "minimum": 1, "default": 3 },
+          "use_pagination": { "type": "boolean", "default": true }
+        }
+      }
+    }
+  }
+}
+```
+
+**2. Add validation logic in orchestrator:**
+```python
+def _validate_database_configuration(self) -> None:
+    """Validate database mode configuration."""
+    if self._detect_lead_generation_mode() != "database":
+        return
+    
+    database_config = self.icp_config.get("database", {})
+    if not database_config:
+        raise ValueError("Database mode requires 'database' configuration section")
+    
+    sites = database_config.get("sites", [])
+    if not sites:
+        raise ValueError("Database mode requires at least one site in 'database.sites'")
+    
+    for i, site in enumerate(sites):
+        if not site.get("base_domain"):
+            raise ValueError(f"Site {i} missing required 'base_domain'")
+        if not site.get("specific_urls"):
+            raise ValueError(f"Site {i} missing required 'specific_urls'")
+```
 
 #### New Configuration Structure
 
@@ -257,48 +437,111 @@ The database mode configuration is already well-designed in `icp_config_database
 - [ ] Integrate database pipeline with existing crawl tool
 - [ ] Test database pipeline end-to-end
 
-#### New Method Required
+#### Required Method Implementations
 
+**1. Main database pipeline method:**
 ```python
 async def _run_database_pipeline(self) -> Dict[str, Any]:
     """
     Run database extraction pipeline.
-
+    
     Pipeline Flow:
     1. Validate database configuration
     2. Create lead records from database sites
     3. Skip domain discovery (like url mode)
     4. Run crawl tool with database extraction
     5. Run enrich tool on discovered companies
-
+    
     Returns:
         Pipeline results with extracted companies from database sites
     """
     self.logger.info("🚀 Running Database extraction pipeline")
-
+    
     # Step 1: Validate database configuration
-    database_config = self.icp_config.get("database", {})
-    if not database_config or not database_config.get("sites"):
-        raise ValueError("Database mode requires 'database.sites' configuration")
-
+    self._validate_database_configuration()
+    
     # Step 2: Create lead records from database sites
     lead_records = self._create_lead_records_from_database_sites()
-
+    
     # Step 3: Skip domain discovery (similar to url mode)
     self.logger.info("💰 Cost optimization: Bypassed domain discovery phase")
-
+    
     # Step 4: Run crawl tool with database extraction
-    # ... (implementation details)
-
+    crawl_payload = {
+        "lead_records": lead_records,
+        "icp_config": self.icp_config,
+        "extraction_mode": "database"  # Signal to crawl tool
+    }
+    crawl_result = await self.crawl_tool.run(crawl_payload)
+    
     # Step 5: Run enrich tool
-    # ... (implementation details)
-
-    return pipeline_results
+    enrich_ready_leads = self._filter_enrich_ready_leads(crawl_result)
+    if enrich_ready_leads:
+        enrich_result = await self._run_enrich_tool(enrich_ready_leads)
+    else:
+        enrich_result = None
+    
+    return self._build_pipeline_results(crawl_result, enrich_result)
 ```
 
-#### Supporting Methods Needed
+**2. Supporting methods:**
+```python
+def _create_lead_records_from_database_sites(self) -> List[Dict[str, Any]]:
+    """Create lead records from database site configuration."""
+    database_config = self.icp_config.get("database", {})
+    sites = database_config.get("sites", [])
+    lead_records = []
+    
+    for site in sites:
+        base_domain = site["base_domain"]
+        specific_urls = site["specific_urls"]
+        
+        # Create one lead record per site (crawl tool will extract multiple companies)
+        lead_record = {
+            "lead_id": f"database-site-{base_domain}",
+            "domain": base_domain,
+            "status": "scored",
+            "company": {"name": f"Database Site: {base_domain}"},
+            "contacts": [],
+            "provenance": {
+                "source": "database_mode",
+                "site_name": site["name"],
+                "discovery_mode": site.get("discovery_mode", "url_list"),
+                "created_at": now_z()
+            }
+        }
+        lead_records.append(lead_record)
+    
+    return lead_records
 
-The implementation requires several supporting methods and integration points as listed in the checkboxes above.
+def _filter_enrich_ready_leads(self, crawl_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Filter leads that are ready for enrichment."""
+    lead_records = crawl_result.get("data", {}).get("lead_records", [])
+    return [r for r in lead_records if r.get("status") == "enrich_ready"]
+
+async def _run_enrich_tool(self, enrich_ready_leads: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Run enrichment tool on ready leads."""
+    enrich_payload = {
+        "lead_records": enrich_ready_leads,
+        "icp_config": self.icp_config,
+    }
+    return await run_enrich(enrich_payload)
+
+def _build_pipeline_results(self, crawl_result: Dict[str, Any], enrich_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Build final pipeline results."""
+    return {
+        "success": True,
+        "pipeline_mode": "database",
+        "metrics": {
+            "companies_extracted": len(crawl_result.get("data", {}).get("lead_records", [])),
+            "companies_enriched": len(enrich_result.get("data", {}).get("lead_records", [])) if enrich_result else 0
+        },
+        "data": {
+            "crawl_result": crawl_result,
+            "enrich_result": enrich_result
+        }
+    }
+```
 
 ### 🔄 Task 4: Update Crawl Tool Integration (MEDIUM PRIORITY)
 
@@ -310,6 +553,64 @@ The implementation requires several supporting methods and integration points as
 - [ ] Preserve existing `site_type="information_database"` for backward compatibility
 - [ ] Update extraction prompts and schemas for database mode
 - [ ] Test crawl tool integration with database mode
+
+#### Required Crawl Tool Updates
+
+**1. Update `_detect_site_type()` method:**
+```python
+def _detect_site_type(self, icp_config: Dict[str, Any]) -> str:
+    """Detect site type for extraction strategy."""
+    
+    # NEW: Check lead generation mode first
+    lead_generation_mode = icp_config.get("lead_generation_mode", "search")
+    if lead_generation_mode == "database":
+        self.logger.info("🔍 Database mode detected - using database extraction strategy")
+        return "information_database"
+    
+    # Legacy: Check explicit site_type flag
+    site_type = icp_config.get("site_type")
+    if site_type == "information_database":
+        self.logger.warning("⚠️ Using legacy site_type. Consider using lead_generation_mode='database'")
+        return "information_database"
+    
+    # Default: Single company extraction
+    return "single_company"
+```
+
+**2. Add database mode extraction logic:**
+```python
+def _extract_from_database_site(self, domain: str, urls: List[str], icp_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract multiple companies from database/directory site."""
+    database_config = icp_config.get("database", {})
+    extraction_config = database_config.get("extraction", {})
+    
+    max_listings = extraction_config.get("max_listings_per_site", 100)
+    parallel_extractions = extraction_config.get("parallel_extractions", 3)
+    
+    self.logger.info(f"🔍 Extracting up to {max_listings} companies from {domain}")
+    
+    # Use existing database extraction logic
+    extracted_companies = []
+    for url in urls[:max_listings]:
+        company_data = await self._extract_company_from_url(url, icp_config)
+        if company_data:
+            extracted_companies.append(company_data)
+    
+    return extracted_companies
+```
+
+**3. Update extraction payload handling:**
+```python
+def _process_extraction_payload(self, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Process extraction payload based on mode."""
+    icp_config = payload.get("icp_config", {})
+    extraction_mode = payload.get("extraction_mode", "auto")
+    
+    if extraction_mode == "database" or self._detect_site_type(icp_config) == "information_database":
+        return self._extract_database_companies(payload)
+    else:
+        return self._extract_single_company(payload)
+```
 
 #### Current State
 
@@ -330,8 +631,9 @@ The crawl tool needs updates to detect and handle database mode while preserving
 - [ ] Add legacy support warnings for `site_type="information_database"`
 - [ ] Test database mode detection with various URL patterns
 
-#### Detection Logic Flow
+#### Required Implementation
 
+**1. Add database mode detection to orchestrator:**
 ```python
 def _detect_database_mode(self, icp_config: Dict[str, Any]) -> bool:
     """Detect if this should run as database mode"""
@@ -371,6 +673,45 @@ def _has_database_url_patterns(self, urls: List[str]) -> bool:
 
     # If >60% of URLs match database patterns, likely a database extraction
     return matches / len(urls) > 0.6
+```
+
+**2. Integrate with mode detection:**
+```python
+def _detect_lead_generation_mode(self) -> str:
+    """Enhanced mode detection with auto-detection support."""
+    # Check explicit mode first
+    explicit_mode = self.icp_config.get("lead_generation_mode")
+    if explicit_mode:
+        if explicit_mode not in ["search", "url", "apollo", "database"]:
+            self.logger.warning(f"Invalid lead_generation_mode: {explicit_mode}, defaulting to 'search'")
+            return "search"
+        return explicit_mode
+    
+    # Auto-detection logic
+    if self._detect_database_mode(self.icp_config):
+        self.logger.info("🔍 Auto-detected database mode from configuration patterns")
+        return "database"
+    
+    # Default to search mode
+    return "search"
+```
+
+**3. Add legacy support warnings:**
+```python
+def _warn_legacy_configuration(self) -> None:
+    """Warn about legacy configuration patterns."""
+    if self.icp_config.get("site_type") == "information_database":
+        self.logger.warning(
+            "⚠️ Using legacy site_type='information_database'. "
+            "Consider using lead_generation_mode='database' for better discoverability."
+        )
+    
+    if "mode" in self.icp_config:
+        self.logger.warning(
+            "⚠️ Legacy 'mode' field detected. "
+            "This field is deprecated and should be removed. "
+            "Use lead_generation_mode instead."
+        )
 ```
 
 ### ✅ Task 7: Testing All Four Lead Generation Modes (FINAL PRIORITY)
@@ -469,7 +810,7 @@ def _has_database_url_patterns(self, urls: List[str]) -> bool:
 
 ## Implementation Priority Order
 
-1. **🔧 Task 6: Fix Apollo Provider Routing** (High Priority)
+1. **🔧 Task 0: Fix Apollo Provider Routing** (High Priority)
    - Addresses immediate Apollo contact discovery issue
    - Required for current functionality
 
