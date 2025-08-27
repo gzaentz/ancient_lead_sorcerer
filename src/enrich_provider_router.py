@@ -147,11 +147,13 @@ class EnrichmentProviderRouter:
                 # Get Apollo provider configuration from enrichment_providers section
                 enrichment_providers = self.icp_config.get("enrichment_providers", {})
                 apollo_provider_config = enrichment_providers.get("apollo", {})
-                
+
                 # Fallback to apollo.enrich if enrichment_providers.apollo not configured
                 if not apollo_provider_config:
-                    apollo_provider_config = self.icp_config.get("apollo", {}).get("enrich", {})
-                
+                    apollo_provider_config = self.icp_config.get("apollo", {}).get(
+                        "enrich", {}
+                    )
+
                 self.providers[ProviderTier.TIER_0].append(
                     ApolloEnrichProvider(apollo_provider_config)
                 )
@@ -271,10 +273,14 @@ class EnrichmentProviderRouter:
         """
         # Check explicit enrichment provider config (works in any mode)
         enrichment_providers = self.icp_config.get("enrichment_providers", {})
-        apollo_enrichment_enabled = enrichment_providers.get("apollo", {}).get("enabled", False)
+        apollo_enrichment_enabled = enrichment_providers.get("apollo", {}).get(
+            "enabled", False
+        )
 
         if apollo_enrichment_enabled:
-            self.logger.info("✅ Apollo enrichment provider enabled via enrichment_providers.apollo.enabled")
+            self.logger.info(
+                "✅ Apollo enrichment provider enabled via enrichment_providers.apollo.enabled"
+            )
             return True
 
         # Check Apollo-first mode (inherits Apollo enrichment capability)
@@ -283,10 +289,14 @@ class EnrichmentProviderRouter:
             apollo_config = self.icp_config.get("apollo", {})
             enrich_enabled = apollo_config.get("enrich", {}).get("enabled", False)
             if enrich_enabled:
-                self.logger.info("✅ Apollo enrichment provider enabled via Apollo-first mode")
+                self.logger.info(
+                    "✅ Apollo enrichment provider enabled via Apollo-first mode"
+                )
                 return True
             else:
-                self.logger.warning("⚠️ Apollo-first mode enabled but apollo.enrich.enabled is False")
+                self.logger.warning(
+                    "⚠️ Apollo-first mode enabled but apollo.enrich.enabled is False"
+                )
 
         return False
 

@@ -299,7 +299,7 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         specific_urls = icp_config.get("specific_urls", [])
         database_config = icp_config.get("database_config", {})
         site_type = icp_config.get("site_type")
-        
+
         # NEW: Check for new database configuration structure
         new_database_config = icp_config.get("database", {})
         if new_database_config and not specific_urls:
@@ -309,7 +309,9 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
                 if site.get("base_domain") == domain:
                     site_specific_urls = site.get("specific_urls", [])
                     specific_urls.extend(site_specific_urls)
-                    self.logger.info(f"🔗 Found {len(site_specific_urls)} URLs from database config for {domain}")
+                    self.logger.info(
+                        f"🔗 Found {len(site_specific_urls)} URLs from database config for {domain}"
+                    )
                     break
 
         if specific_urls:
@@ -459,13 +461,17 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         # NEW: Check lead generation mode first
         lead_generation_mode = icp_config.get("lead_generation_mode", "search")
         if lead_generation_mode == "database":
-            self.logger.info("🔍 Database mode detected - using database extraction strategy")
+            self.logger.info(
+                "🔍 Database mode detected - using database extraction strategy"
+            )
             return "information_database"
-        
+
         # Legacy: Check explicit site_type flag
         site_type = icp_config.get("site_type")
         if site_type == "information_database":
-            self.logger.warning("⚠️ Using legacy site_type. Consider using lead_generation_mode='database'")
+            self.logger.warning(
+                "⚠️ Using legacy site_type. Consider using lead_generation_mode='database'"
+            )
             self.logger.info(
                 "🏢 Site type: Information Database (explicit configuration)"
             )
@@ -1628,17 +1634,17 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         """Generate dynamic intent prompt for database extraction based on ICP config."""
         intent_config = icp_config.get("intent_config", {})
         database_config = icp_config.get("database_config", {})
-        
+
         # NEW: Support new database configuration structure
         new_database_config = icp_config.get("database", {})
-        
+
         # Get configurable business and listing types (with fallbacks for new config)
         if new_database_config:
             # For new database config, derive business/listing types from ICP text
             icp_text = icp_config.get("icp_text", "")
             business_type = "company"  # Default for new config
-            listing_type = "listing"   # Default for new config
-            
+            listing_type = "listing"  # Default for new config
+
             # Try to infer from ICP text
             if "dental" in icp_text.lower():
                 business_type = "dental practice"
@@ -1649,8 +1655,10 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
             elif "law" in icp_text.lower() or "legal" in icp_text.lower():
                 business_type = "law firm"
                 listing_type = "firm listing"
-            
-            self.logger.info(f"🔍 Inferred business_type='{business_type}', listing_type='{listing_type}' from ICP text")
+
+            self.logger.info(
+                f"🔍 Inferred business_type='{business_type}', listing_type='{listing_type}' from ICP text"
+            )
         else:
             # Legacy configuration
             business_type = database_config.get("business_type", "business")
@@ -1753,25 +1761,29 @@ IMPORTANT: Extract information about the individual {business_type}s being liste
     ) -> Dict[str, Any]:
         """Get dynamically generated schema for database site extraction based on ICP config."""
         database_config = icp_config.get("database_config", {})
-        
+
         # NEW: Support new database configuration structure
         new_database_config = icp_config.get("database", {})
-        
+
         if new_database_config:
             # For new database config, use required and optional fields
             required_fields = icp_config.get("required_fields", {})
             optional_fields = icp_config.get("optional_fields", {})
-            
+
             extraction_fields = {
-                "company": required_fields.get("company", []) + optional_fields.get("company", []),
-                "contacts": required_fields.get("contact", []) + optional_fields.get("contact", []),
-                "custom_fields": []
+                "company": required_fields.get("company", [])
+                + optional_fields.get("company", []),
+                "contacts": required_fields.get("contact", [])
+                + optional_fields.get("contact", []),
+                "custom_fields": [],
             }
-            
+
             # No field descriptions in new config, use defaults
             field_descriptions = {}
-            
-            self.logger.info(f"🔍 Using new database config schema with {len(extraction_fields['company'])} company fields")
+
+            self.logger.info(
+                f"🔍 Using new database config schema with {len(extraction_fields['company'])} company fields"
+            )
         else:
             # Legacy configuration
             extraction_fields = database_config.get("extraction_fields", {})
@@ -1911,21 +1923,23 @@ IMPORTANT: Extract information about the individual {business_type}s being liste
     def _get_database_extraction_prompt(self, icp_config: Dict[str, Any]) -> str:
         """Get dynamically generated prompt for database extraction based on ICP config."""
         database_config = icp_config.get("database_config", {})
-        
+
         # NEW: Support new database configuration structure
         new_database_config = icp_config.get("database", {})
-        
+
         if new_database_config:
             # For new database config, use required and optional fields from ICP config
             required_fields = icp_config.get("required_fields", {})
             optional_fields = icp_config.get("optional_fields", {})
-            
+
             extraction_fields = {
-                "company": required_fields.get("company", []) + optional_fields.get("company", []),
-                "contacts": required_fields.get("contact", []) + optional_fields.get("contact", []),
-                "custom_fields": []
+                "company": required_fields.get("company", [])
+                + optional_fields.get("company", []),
+                "contacts": required_fields.get("contact", [])
+                + optional_fields.get("contact", []),
+                "custom_fields": [],
             }
-            
+
             # Derive extraction focus from ICP text
             icp_text = icp_config.get("icp_text", "")
             if "dental" in icp_text.lower():
@@ -1936,14 +1950,18 @@ IMPORTANT: Extract information about the individual {business_type}s being liste
                 extraction_focus = "law firm listings"
             else:
                 extraction_focus = "business listings"
-            
+
             extraction_instructions = f"Extract information about individual companies/businesses from {extraction_focus}, not the directory website itself"
-            
-            self.logger.info(f"🔍 Using new database config with {len(extraction_fields['company'])} company fields and {len(extraction_fields['contacts'])} contact fields")
+
+            self.logger.info(
+                f"🔍 Using new database config with {len(extraction_fields['company'])} company fields and {len(extraction_fields['contacts'])} contact fields"
+            )
         else:
             # Legacy configuration
             extraction_fields = database_config.get("extraction_fields", {})
-            extraction_focus = database_config.get("extraction_focus", "business listings")
+            extraction_focus = database_config.get(
+                "extraction_focus", "business listings"
+            )
             extraction_instructions = database_config.get(
                 "extraction_instructions",
                 "Extract information about individual businesses being listed, not the listing website",

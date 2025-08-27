@@ -180,22 +180,26 @@ class LeadSorcererOrchestrator:
             self.apollo_tool = None
             self.domain_tool = None  # Skip domain discovery
             self.crawl_tool = CrawlTool(self.data_dir)
-            self.logger.info("✅ Database mode: Crawl tool initialized, domain discovery skipped")
+            self.logger.info(
+                "✅ Database mode: Crawl tool initialized, domain discovery skipped"
+            )
 
         else:
             # Search/URL mode: Initialize traditional tools
             self.domain_tool = DomainTool(self.icp_config, self.data_dir)
             self.crawl_tool = CrawlTool(self.data_dir)
             self.apollo_tool = None
-            self.logger.info(f"✅ {mode.capitalize()} mode: Traditional tools initialized")
+            self.logger.info(
+                f"✅ {mode.capitalize()} mode: Traditional tools initialized"
+            )
 
     def _detect_database_mode(self, icp_config: Dict[str, Any]) -> bool:
         """
         Detect if this should run as database mode.
-        
+
         Args:
             icp_config: ICP configuration dictionary
-            
+
         Returns:
             True if database mode should be used
         """
@@ -205,7 +209,9 @@ class LeadSorcererOrchestrator:
 
         # Legacy support: site_type=information_database
         if icp_config.get("site_type") == "information_database":
-            self.logger.warning("⚠️ Using legacy site_type. Consider using lead_generation_mode='database'")
+            self.logger.warning(
+                "⚠️ Using legacy site_type. Consider using lead_generation_mode='database'"
+            )
             return True
 
         # Auto-detection: Multiple URLs with database patterns
@@ -219,10 +225,10 @@ class LeadSorcererOrchestrator:
     def _has_database_url_patterns(self, urls: List[str]) -> bool:
         """
         Detect if URLs follow database/directory patterns.
-        
+
         Args:
             urls: List of URLs to analyze
-            
+
         Returns:
             True if URLs appear to be database/directory patterns
         """
@@ -233,7 +239,9 @@ class LeadSorcererOrchestrator:
             "/directory/",
             "/listings/",
             "/search?",
-            "page=", "offset=", "start="  # Pagination indicators
+            "page=",
+            "offset=",
+            "start=",  # Pagination indicators
         ]
 
         matches = 0
@@ -256,25 +264,35 @@ class LeadSorcererOrchestrator:
         if explicit_mode:
             # Handle legacy mode names for backward compatibility
             if explicit_mode == "traditional":
-                self.logger.warning("⚠️ Using legacy mode 'traditional'. Consider using 'search' instead.")
+                self.logger.warning(
+                    "⚠️ Using legacy mode 'traditional'. Consider using 'search' instead."
+                )
                 explicit_mode = "search"
             elif explicit_mode == "specific_urls":
-                self.logger.warning("⚠️ Using legacy mode 'specific_urls'. Consider using 'url' instead.")
+                self.logger.warning(
+                    "⚠️ Using legacy mode 'specific_urls'. Consider using 'url' instead."
+                )
                 explicit_mode = "url"
 
             # Validate explicit mode
             if explicit_mode not in ["search", "url", "apollo", "database"]:
-                self.logger.warning(f"Invalid lead_generation_mode: {explicit_mode}, defaulting to 'search'")
+                self.logger.warning(
+                    f"Invalid lead_generation_mode: {explicit_mode}, defaulting to 'search'"
+                )
                 explicit_mode = "search"
-            
-            self.logger.info(f"🔍 Lead generation mode detected (explicit): {explicit_mode}")
+
+            self.logger.info(
+                f"🔍 Lead generation mode detected (explicit): {explicit_mode}"
+            )
             return explicit_mode
-        
+
         # Auto-detection logic when no explicit mode is set
         if self._detect_database_mode(self.icp_config):
-            self.logger.info("🔍 Auto-detected database mode from configuration patterns")
+            self.logger.info(
+                "🔍 Auto-detected database mode from configuration patterns"
+            )
             return "database"
-        
+
         # Default to search mode
         self.logger.info("🔍 Lead generation mode detected (default): search")
         return "search"
@@ -288,7 +306,7 @@ class LeadSorcererOrchestrator:
                 "⚠️ Using legacy site_type='information_database'. "
                 "Consider using lead_generation_mode='database' for better discoverability."
             )
-        
+
         if "mode" in self.icp_config:
             self.logger.warning(
                 "⚠️ Legacy 'mode' field detected. "
@@ -385,10 +403,10 @@ class LeadSorcererOrchestrator:
     def _validate_configuration_schema(self) -> None:
         """Validate the ICP configuration against the schema."""
         mode = self._detect_lead_generation_mode()
-        
+
         # Check for legacy configuration patterns and warn
         self._warn_legacy_configuration()
-        
+
         # Validate lead generation mode specific requirements
         if mode == "apollo":
             self._validate_apollo_configuration()
@@ -396,10 +414,10 @@ class LeadSorcererOrchestrator:
             self._validate_database_configuration()
         elif mode in ["search", "url"]:
             self._validate_traditional_configuration()
-        
+
         # Validate enrichment providers configuration
         self._validate_enrichment_providers_configuration()
-        
+
         self.logger.info(f"✅ Configuration validation passed for mode: {mode}")
 
     def _validate_apollo_configuration(self) -> None:
@@ -407,39 +425,47 @@ class LeadSorcererOrchestrator:
         apollo_config = self.icp_config.get("apollo", {})
         if not apollo_config:
             raise ValueError("Apollo mode requires 'apollo' configuration section")
-        
+
         if not apollo_config.get("enabled", False):
             raise ValueError("Apollo mode requires apollo.enabled to be true")
 
     def _validate_traditional_configuration(self) -> None:
         """Validate search/url mode configuration."""
         mode = self._detect_lead_generation_mode()
-        
+
         if mode == "search":
             # Search mode requires queries
             queries = self.icp_config.get("queries", [])
             if not queries:
-                raise ValueError("Search mode requires at least one query in 'queries' array")
+                raise ValueError(
+                    "Search mode requires at least one query in 'queries' array"
+                )
         elif mode == "url":
             # URL mode requires specific_urls
             specific_urls = self.icp_config.get("specific_urls", [])
             if not specific_urls:
-                raise ValueError("URL mode requires at least one URL in 'specific_urls' array")
+                raise ValueError(
+                    "URL mode requires at least one URL in 'specific_urls' array"
+                )
 
     def _validate_enrichment_providers_configuration(self) -> None:
         """Validate enrichment providers configuration."""
         enrichment_providers = self.icp_config.get("enrichment_providers", {})
-        
+
         # Check if at least one enrichment provider is enabled
         enabled_providers = []
         for provider_name, provider_config in enrichment_providers.items():
             if provider_config.get("enabled", False):
                 enabled_providers.append(provider_name)
-        
+
         if not enabled_providers:
-            self.logger.warning("⚠️ No enrichment providers explicitly enabled. Using default providers.")
+            self.logger.warning(
+                "⚠️ No enrichment providers explicitly enabled. Using default providers."
+            )
         else:
-            self.logger.info(f"✅ Enabled enrichment providers: {', '.join(enabled_providers)}")
+            self.logger.info(
+                f"✅ Enabled enrichment providers: {', '.join(enabled_providers)}"
+            )
 
     def _validate_testing_flags(self) -> None:
         """Validate testing configuration flags."""
@@ -790,61 +816,65 @@ class LeadSorcererOrchestrator:
     async def _run_database_pipeline(self) -> Dict[str, Any]:
         """
         Run database extraction pipeline.
-        
+
         Pipeline Flow:
         1. Validate database configuration
         2. Create lead records from database sites
         3. Skip domain discovery (like url mode)
         4. Run crawl tool with database extraction
         5. Run enrich tool on discovered companies
-        
+
         Returns:
             Pipeline results with extracted companies from database sites
         """
         self.logger.info("🗄️ Running Database extraction pipeline")
-        
+
         try:
             # Step 1: Validate database configuration
             self._validate_database_configuration()
-            
+
             # Step 2: Create lead records from database sites
             lead_records = self._create_lead_records_from_database_sites()
-            
+
             # Step 3: Skip domain discovery (similar to url mode)
             self.logger.info("💰 Cost optimization: Bypassed domain discovery phase")
-            
+
             # Step 4: Run crawl tool with database extraction
             crawl_payload = {
                 "lead_records": lead_records,
                 "icp_config": self.icp_config,
-                "extraction_mode": "database"  # Signal to crawl tool
+                "extraction_mode": "database",  # Signal to crawl tool
             }
             crawl_result = await self.crawl_tool.run(crawl_payload)
-            
+
             if crawl_result.get("errors"):
                 self.total_errors.extend(crawl_result["errors"])
-            
+
             # Step 5: Run enrich tool
             enrich_ready_leads = self._filter_enrich_ready_leads(crawl_result)
             enrich_result = None
-            
+
             if enrich_ready_leads:
-                self.logger.info(f"Running Enrich tool on {len(enrich_ready_leads)} leads...")
+                self.logger.info(
+                    f"Running Enrich tool on {len(enrich_ready_leads)} leads..."
+                )
                 enrich_result = await self._run_enrich_tool(enrich_ready_leads)
-                
+
                 if enrich_result.get("errors"):
                     self.total_errors.extend(enrich_result["errors"])
             else:
                 self.logger.info("No leads ready for enrichment")
-                
+
             return self._build_database_pipeline_results(crawl_result, enrich_result)
-            
+
         except Exception as e:
             self.logger.error(f"Database pipeline failed: {e}")
             return {
                 "success": False,
                 "pipeline_mode": "database",
-                "errors": [{"code": "UNKNOWN", "message": str(e), "tool": "orchestrator"}],
+                "errors": [
+                    {"code": "UNKNOWN", "message": str(e), "tool": "orchestrator"}
+                ],
                 "metrics": self._build_error_metrics(),
             }
 
@@ -1590,13 +1620,15 @@ class LeadSorcererOrchestrator:
         """Validate database mode configuration."""
         # Check if using new database configuration structure
         database_config = self.icp_config.get("database", {})
-        
+
         if database_config:
             # New database configuration structure
             sites = database_config.get("sites", [])
             if not sites:
-                raise ValueError("Database mode requires at least one site in 'database.sites'")
-            
+                raise ValueError(
+                    "Database mode requires at least one site in 'database.sites'"
+                )
+
             for i, site in enumerate(sites):
                 if not site.get("base_domain"):
                     raise ValueError(f"Site {i} missing required 'base_domain'")
@@ -1606,31 +1638,37 @@ class LeadSorcererOrchestrator:
             # Legacy configuration structure - check for site_type and specific_urls
             site_type = self.icp_config.get("site_type")
             specific_urls = self.icp_config.get("specific_urls", [])
-            
+
             if site_type == "information_database":
                 if not specific_urls:
-                    raise ValueError("Legacy database mode requires 'specific_urls' to be provided")
-                self.logger.warning("⚠️ Using legacy database configuration. Consider migrating to lead_generation_mode='database' with database config section.")
+                    raise ValueError(
+                        "Legacy database mode requires 'specific_urls' to be provided"
+                    )
+                self.logger.warning(
+                    "⚠️ Using legacy database configuration. Consider migrating to lead_generation_mode='database' with database config section."
+                )
             else:
                 # Database mode detected but no proper configuration
-                raise ValueError("Database mode requires either 'database' configuration section or legacy 'site_type=information_database' with 'specific_urls'")
+                raise ValueError(
+                    "Database mode requires either 'database' configuration section or legacy 'site_type=information_database' with 'specific_urls'"
+                )
 
     def _create_lead_records_from_database_sites(self) -> List[Dict[str, Any]]:
         """Create lead records from database site configuration."""
         from src.common import now_z
         from urllib.parse import urlparse
-        
+
         database_config = self.icp_config.get("database", {})
         lead_records = []
-        
+
         if database_config:
             # New database configuration structure
             sites = database_config.get("sites", [])
-            
+
             for site in sites:
                 base_domain = site["base_domain"]
                 specific_urls = site["specific_urls"]
-                
+
                 # Create one lead record per site (crawl tool will extract multiple companies)
                 lead_record = {
                     "lead_id": f"database-site-{base_domain}",
@@ -1642,14 +1680,14 @@ class LeadSorcererOrchestrator:
                         "source": "database_mode",
                         "site_name": site["name"],
                         "discovery_mode": site.get("discovery_mode", "url_list"),
-                        "created_at": now_z()
-                    }
+                        "created_at": now_z(),
+                    },
                 }
                 lead_records.append(lead_record)
         else:
             # Legacy configuration structure - extract domain from specific_urls
             specific_urls = self.icp_config.get("specific_urls", [])
-            
+
             if specific_urls:
                 # Extract unique domains from specific URLs
                 domains = set()
@@ -1657,7 +1695,7 @@ class LeadSorcererOrchestrator:
                     parsed = urlparse(url)
                     domain = parsed.netloc.replace("www.", "")
                     domains.add(domain)
-                
+
                 # Create one lead record per unique domain
                 for domain in domains:
                     lead_record = {
@@ -1670,73 +1708,96 @@ class LeadSorcererOrchestrator:
                             "source": "legacy_database_mode",
                             "site_name": f"Legacy Site: {domain}",
                             "discovery_mode": "url_list",
-                            "created_at": now_z()
-                        }
+                            "created_at": now_z(),
+                        },
                     }
                     lead_records.append(lead_record)
-        
-        self.logger.info(f"Created {len(lead_records)} lead records from database sites")
+
+        self.logger.info(
+            f"Created {len(lead_records)} lead records from database sites"
+        )
         return lead_records
 
-    def _filter_enrich_ready_leads(self, crawl_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _filter_enrich_ready_leads(
+        self, crawl_result: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Filter leads that are ready for enrichment."""
         lead_records = crawl_result.get("data", {}).get("lead_records", [])
         enrich_ready = [r for r in lead_records if r.get("status") == "enrich_ready"]
-        self.logger.info(f"Filtered {len(enrich_ready)} leads ready for enrichment from {len(lead_records)} total")
+        self.logger.info(
+            f"Filtered {len(enrich_ready)} leads ready for enrichment from {len(lead_records)} total"
+        )
         return enrich_ready
 
-    async def _run_enrich_tool(self, enrich_ready_leads: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _run_enrich_tool(
+        self, enrich_ready_leads: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Run enrichment tool on ready leads."""
         from src.enrich import run_enrich
-        
+
         enrich_payload = {
             "lead_records": enrich_ready_leads,
             "icp_config": self.icp_config,
         }
         return await run_enrich(enrich_payload)
 
-    def _build_database_pipeline_results(self, crawl_result: Dict[str, Any], enrich_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_database_pipeline_results(
+        self, crawl_result: Dict[str, Any], enrich_result: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Build final database pipeline results."""
         duration_seconds = time.time() - self.start_time if self.start_time else 0
-        
+
         # Count extracted companies
         crawled_leads = crawl_result.get("data", {}).get("lead_records", [])
         companies_extracted = len(crawled_leads)
-        companies_enriched = len(enrich_result.get("data", {}).get("lead_records", [])) if enrich_result else 0
-        
+        companies_enriched = (
+            len(enrich_result.get("data", {}).get("lead_records", []))
+            if enrich_result
+            else 0
+        )
+
         # Build metrics
         metrics = {
             "pipeline_mode": "database",
             "duration_seconds": duration_seconds,
             "companies_extracted": companies_extracted,
             "companies_enriched": companies_enriched,
-            "success_rate": (companies_enriched / companies_extracted) if companies_extracted > 0 else 0,
+            "success_rate": (companies_enriched / companies_extracted)
+            if companies_extracted > 0
+            else 0,
             "lead_counts": {
                 "database": companies_extracted,
-                "enrich": companies_enriched
+                "enrich": companies_enriched,
             },
             "cost_usd": {
-                "crawl": crawl_result.get("metrics", {}).get("cost_usd", {}).get("crawl", 0.0),
-                "enrich": enrich_result.get("metrics", {}).get("cost_usd", {}).get("enrich", 0.0) if enrich_result else 0.0,
-                "total": 0.0
-            }
+                "crawl": crawl_result.get("metrics", {})
+                .get("cost_usd", {})
+                .get("crawl", 0.0),
+                "enrich": enrich_result.get("metrics", {})
+                .get("cost_usd", {})
+                .get("enrich", 0.0)
+                if enrich_result
+                else 0.0,
+                "total": 0.0,
+            },
         }
-        metrics["cost_usd"]["total"] = metrics["cost_usd"]["crawl"] + metrics["cost_usd"]["enrich"]
-        
+        metrics["cost_usd"]["total"] = (
+            metrics["cost_usd"]["crawl"] + metrics["cost_usd"]["enrich"]
+        )
+
         # Log summary
         self.logger.info(f"Database pipeline completed in {duration_seconds:.2f}s")
-        self.logger.info(f"Extracted {companies_extracted} companies, enriched {companies_enriched}")
+        self.logger.info(
+            f"Extracted {companies_extracted} companies, enriched {companies_enriched}"
+        )
         self.logger.info(f"Cost: ${metrics['cost_usd']['total']:.4f}")
-        
+
         return {
             "success": True,
             "pipeline_mode": "database",
             "metrics": metrics,
-            "data": {
-                "crawl_result": crawl_result,
-                "enrich_result": enrich_result
-            },
-            "errors": self.total_errors
+            "data": {"crawl_result": crawl_result, "enrich_result": enrich_result},
+            "errors": self.total_errors,
         }
 
 

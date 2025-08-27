@@ -1002,8 +1002,8 @@ def extract_contact_id(
     logger: Optional[logging.Logger] = None,
 ) -> Optional[str]:
     """
-    Extract contact ID from LLM response with validation.
-    Handles various response formats gracefully.
+    Enhanced contact ID extraction with multiple fallback strategies.
+    Handles various response formats gracefully with improved error recovery.
 
     Args:
         llm_response: Raw LLM response string
@@ -1016,54 +1016,174 @@ def extract_contact_id(
     # Use provided logger or get default
     log = logger or logging.getLogger("enrich")
 
-    # First validate the response format
-    if not validate_llm_response(llm_response):
-        log.warning(f"⚠️ Invalid LLM response format: {llm_response[:100]}...")
+    if not llm_response or not isinstance(llm_response, str):
         return None
 
+    valid_contact_ids = [c.get("contact_id") for c in contacts if c.get("contact_id")]
+
+    # Strategy 1: Direct JSON parsing
+    contact_id = _try_direct_json_parsing(llm_response, valid_contact_ids, log)
+    if contact_id:
+        log.info(f"✅ Valid contact_id extracted via direct JSON: {contact_id}")
+        return contact_id
+
+    # Strategy 2: Markdown cleanup then JSON parsing
+    contact_id = _try_markdown_cleanup_parsing(llm_response, valid_contact_ids, log)
+    if contact_id:
+        log.info(f"✅ Valid contact_id extracted via markdown cleanup: {contact_id}")
+        return contact_id
+
+    # Strategy 3: Regex extraction for contact_id
+    contact_id = _try_regex_extraction(llm_response, valid_contact_ids, log)
+    if contact_id:
+        log.info(f"✅ Valid contact_id extracted via regex: {contact_id}")
+        return contact_id
+
+    # Strategy 4: JSON repair then parsing
+    contact_id = _try_json_repair_parsing(llm_response, valid_contact_ids, log)
+    if contact_id:
+        log.info(f"✅ Valid contact_id extracted via JSON repair: {contact_id}")
+        return contact_id
+
+    # Strategy 5: Fuzzy matching for partial responses
+    contact_id = _try_fuzzy_matching(llm_response, valid_contact_ids, log)
+    if contact_id:
+        log.info(f"✅ Valid contact_id extracted via fuzzy matching: {contact_id}")
+        return contact_id
+
+    log.warning(
+        f"❌ All extraction strategies failed for response: {llm_response[:100]}..."
+    )
+    return None
+
+
+def _try_direct_json_parsing(
+    response: str, valid_ids: List[str], logger
+) -> Optional[str]:
+    """Strategy 1: Direct JSON parsing."""
     try:
-        # Clean up the response - remove markdown formatting if present
-        cleaned_response = llm_response.strip()
+        parsed = json.loads(response.strip())
+        if isinstance(parsed, dict) and parsed.get("contact_id"):
+            contact_id = parsed["contact_id"]
+            if contact_id and contact_id in valid_ids:
+                return contact_id
+    except json.JSONDecodeError:
+        pass
+    return None
 
-        # Handle various markdown formats
-        if "```" in cleaned_response:
-            # Find the start of the markdown block
-            start_marker = cleaned_response.find("```")
-            if start_marker != -1:
-                # Find the end of the opening markdown block
-                first_newline = cleaned_response.find("\n", start_marker)
-                if first_newline != -1:
-                    # Remove everything before the content
-                    cleaned_response = cleaned_response[first_newline + 1 :]
 
-            # Find the end of the markdown block
-            end_marker = cleaned_response.rfind("```")
-            if end_marker != -1:
-                # Remove the closing ```
-                cleaned_response = cleaned_response[:end_marker]
+def _try_markdown_cleanup_parsing(
+    response: str, valid_ids: List[str], logger
+) -> Optional[str]:
+    """Strategy 2: Clean markdown formatting then parse JSON."""
+    try:
+        cleaned = _clean_markdown_response(response)
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict) and parsed.get("contact_id"):
+            contact_id = parsed["contact_id"]
+            if contact_id and contact_id in valid_ids:
+                return contact_id
+    except json.JSONDecodeError:
+        pass
+    return None
 
-        cleaned_response = cleaned_response.strip()
 
-        # Parse JSON response
-        response_data = json.loads(cleaned_response)
-        contact_id = response_data["contact_id"]
+def _try_regex_extraction(response: str, valid_ids: List[str], logger) -> Optional[str]:
+    """Strategy 3: Regex extraction for contact_id."""
+    patterns = [
+        r'"contact_id"\s*:\s*"([^"]+)"',
+        r"'contact_id'\s*:\s*'([^']+)'",
+        r'contact_id:\s*"([^"]+)"',
+        r"contact_id:\s*([a-zA-Z0-9_-]+)",
+    ]
 
-        # Validate that contact_id exists in contacts list
-        contact_ids = [c.get("contact_id") for c in contacts if c.get("contact_id")]
-        if contact_id in contact_ids:
-            log.info(f"✅ Valid contact_id extracted: {contact_id}")
+    for pattern in patterns:
+        match = re.search(pattern, response)
+        if match:
+            contact_id = match.group(1)
+            if contact_id in valid_ids:
+                return contact_id
+    return None
+
+
+def _try_json_repair_parsing(
+    response: str, valid_ids: List[str], logger
+) -> Optional[str]:
+    """Strategy 4: Attempt to fix common JSON issues."""
+    try:
+        fixed_response = _fix_common_json_issues(response)
+        parsed = json.loads(fixed_response)
+        if isinstance(parsed, dict) and parsed.get("contact_id"):
+            contact_id = parsed["contact_id"]
+            if contact_id and contact_id in valid_ids:
+                return contact_id
+    except json.JSONDecodeError:
+        pass
+    return None
+
+
+def _try_fuzzy_matching(response: str, valid_ids: List[str], logger) -> Optional[str]:
+    """Strategy 5: Fuzzy matching for partial contact IDs."""
+    # Look for any valid contact ID mentioned in the response
+    for contact_id in valid_ids:
+        if contact_id in response:
             return contact_id
-        else:
-            log.warning(
-                f"⚠️ LLM returned contact_id {contact_id} not found in contacts list"
-            )
-            # Track invalid contact_id fallback
-            track_fallback_metric("invalid_contact_ids", logger)
-            return None
+    return None
 
-    except Exception as e:
-        log.error(f"❌ Error extracting contact_id: {str(e)}")
-        return None
+
+def _clean_markdown_response(response: str) -> str:
+    """Clean markdown formatting from response."""
+    if "```" in response:
+        # Find the first complete code block
+        start_markers = ["```json", "```JSON", "```"]
+        end_marker = "```"
+
+        for start_marker in start_markers:
+            start_idx = response.find(start_marker)
+            if start_idx != -1:
+                content_start = start_idx + len(start_marker)
+                end_idx = response.find(end_marker, content_start)
+                if end_idx != -1:
+                    content = response[content_start:end_idx].strip()
+                    if content:
+                        return content
+
+        # Fallback: extract content between any ``` markers
+        start = response.find("```")
+        end = response.rfind("```")
+        if start != -1 and end != -1 and end > start:
+            content = response[start + 3 : end]
+            # Remove language identifier if present
+            lines = content.split("\n")
+            if len(lines) > 0 and lines[0].strip().lower() in ["json", ""]:
+                lines = lines[1:]
+            return "\n".join(lines).strip()
+
+    return response.strip()
+
+
+def _fix_common_json_issues(response: str) -> str:
+    """Fix common JSON formatting issues."""
+    # Remove trailing commas
+    response = re.sub(r",\s*}", "}", response)
+    response = re.sub(r",\s*]", "]", response)
+
+    # Fix unquoted keys (but be careful not to break already quoted ones)
+    response = re.sub(r"(\w+)(?=\s*:)", r'"\1"', response)
+    response = re.sub(r'""(\w+)""', r'"\1"', response)  # Fix double quotes
+
+    # Fix missing closing braces/brackets
+    open_braces = response.count("{")
+    close_braces = response.count("}")
+    if open_braces > close_braces:
+        response += "}" * (open_braces - close_braces)
+
+    open_brackets = response.count("[")
+    close_brackets = response.count("]")
+    if open_brackets > close_brackets:
+        response += "]" * (open_brackets - close_brackets)
+
+    return response
 
 
 def format_contacts_for_llm(
@@ -2182,17 +2302,16 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     )
                     logger.info(f"🔍 DEBUG: contact_usd_cap: {contact_usd_cap}")
 
-                    # If force_contact_discovery is enabled, clear existing contacts to force fresh discovery
+                    # If force_contact_discovery is enabled, preserve existing contacts and add discovered ones
+                    existing_contacts = contacts.copy()  # Preserve crawled contacts
                     if icp_config.get("testing", {}).get(
                         "force_contact_discovery", False
                     ):
                         logger.info(
-                            f"🔍 Force contact discovery enabled for {normalized_domain}, clearing existing contacts and starting fresh..."
+                            f"🔍 Force contact discovery enabled for {normalized_domain}, will attempt to discover additional contacts while preserving existing {len(existing_contacts)} contacts..."
                         )
-                        contacts = []
-                        record["contacts"] = contacts
                         logger.info(
-                            f"🔍 DEBUG: After clearing, contacts list length: {len(contacts)}"
+                            f"🔍 DEBUG: Existing contacts preserved: {len(existing_contacts)}"
                         )
 
                     logger.info(
@@ -2463,10 +2582,30 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                             )
 
                         if discovered_contacts:
-                            contacts = discovered_contacts
+                            # Merge discovered contacts with existing ones, avoiding duplicates
+                            merged_contacts = existing_contacts.copy()
+                            for discovered_contact in discovered_contacts:
+                                # Check for duplicates based on email or name
+                                is_duplicate = any(
+                                    (
+                                        existing.get("email")
+                                        == discovered_contact.get("email")
+                                        and discovered_contact.get("email")
+                                    )
+                                    or (
+                                        existing.get("full_name")
+                                        == discovered_contact.get("full_name")
+                                        and discovered_contact.get("full_name")
+                                    )
+                                    for existing in merged_contacts
+                                )
+                                if not is_duplicate:
+                                    merged_contacts.append(discovered_contact)
+
+                            contacts = merged_contacts
                             record["contacts"] = contacts
                             logger.info(
-                                f"✅ Discovered {len(contacts)} contacts for {normalized_domain}"
+                                f"✅ Merged {len(discovered_contacts)} discovered contacts with {len(existing_contacts)} existing contacts = {len(contacts)} total for {normalized_domain}"
                             )
                         else:
                             logger.warning(

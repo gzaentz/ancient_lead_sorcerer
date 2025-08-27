@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 def safe_hash_dict(data: Dict[str, Any]) -> str:
     """
     Create a safe hash for dictionaries that may contain nested structures.
-    
+
     Args:
         data: Dictionary to hash (may contain nested dicts, lists, etc.)
-        
+
     Returns:
         String hash that can be used as a cache key
     """

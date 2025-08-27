@@ -1,30 +1,40 @@
 {
   "domain": "texas.gov",
   "queries": [
-    "dental practice multiple locations Texas"
+    "family owned dental practices multiple offices Texas"
   ],
-  "fetched_at": "2025-08-21T01:32:40.160196Z",
+  "fetched_at": "2025-08-27T23:01:12.541963Z",
   "serp_results": [
     {
-      "url": "https://www.dshs.texas.gov/dental-health/find-a-dentist",
-      "title": "Find a Dentist | Texas DSHS",
-      "snippet": "Jan 29, 2025 ... Contact a dental hygiene clinic or dental school nearest you for more information. Dental schools in Texas: Texas A&M University School of\u00a0...",
-      "query": "dental practice multiple locations Texas",
+      "url": "https://www.dshs.texas.gov/center-health-statistics/texas-primary-care-office-tpco/federally-qualified-health-centers-fqhc",
+      "title": "Federally Qualified Health Centers (FQHCs) | Texas DSHS",
+      "snippet": "Texas Primary Care Office (TPCO); Federally Qualified Health Centers (FQHCs) ... Increasingly more FQHCs offer additional services, such as dental, mental health,\u00a0...",
+      "query": "family owned dental practices multiple offices Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-21T01:32:20.996952Z",
+      "fetched_at": "2025-08-27T23:00:57.063095Z",
       "domain": "texas.gov"
     },
     {
-      "url": "https://www.tceq.texas.gov/permitting/wastewater/pretreatment/dental-office-wastewater-discharge-rule",
-      "title": "Dental Offices: Wastewater Discharge Rule - Texas Commission on ...",
-      "snippet": "Mar 25, 2025 ... ... in providing dentistry services at multiple locations; an office that does not discharge amalgam process wastewater into a POTW. Note: TCEQ\u00a0...",
-      "query": "dental practice multiple locations Texas",
+      "url": "https://www.dshs.texas.gov/dental-health/find-a-dentist",
+      "title": "Find a Dentist | Texas DSHS",
+      "snippet": "Jan 29, 2025 ... Dental Health Regional Offices ... Texas Mission of Mercy (TMOM) is a mobile dental clinic run by volunteers that travels around Texas.",
+      "query": "family owned dental practices multiple offices Texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-21T01:32:21.081063Z",
+      "fetched_at": "2025-08-27T23:00:57.304817Z",
+      "domain": "texas.gov"
+    },
+    {
+      "url": "https://comptroller.texas.gov/",
+      "title": "Texas Comptroller of Public Accounts",
+      "snippet": "Senate Bill 2 (89th Legislature) establishes an education savings account program to assist Texas families and was signed into law May 3. Our office has begun\u00a0...",
+      "query": "family owned dental practices multiple offices Texas",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-08-27T23:00:57.409855Z",
       "domain": "texas.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "504ea4c302a0fe478896f7d2bac4937e0f9ec99f2d4a594571f82f8737757c1d"
+  "scoring_prompt_fingerprint": "98e51db2119cf62bc50202839dcc22711e35e841e12a40ab4131754f7f27d886"
 }
