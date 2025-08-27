@@ -25,12 +25,13 @@ class ProviderTier(Enum):
 class EnrichmentRequest:
     """Base request structure for enrichment operations."""
 
-    domain: str
+    domain: str = ""
     company_name: Optional[str] = None
     linkedin_url: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     job_title: Optional[str] = None
+    prospect_hash: Optional[str] = None  # For prospect-specific operations
 
 
 @dataclass
@@ -263,6 +264,56 @@ class BaseEnrichmentProvider(ABC):
             ContactEnrichmentError: When email validation fails
         """
         pass
+
+    async def discover_contacts(self, request: EnrichmentRequest) -> EnrichmentResult:
+        """
+        Discover contacts for a domain using provider-specific methods.
+
+        This method is optimized for contact discovery and may use different
+        approaches than general contact enrichment. Default implementation
+        falls back to enrich_contacts for backward compatibility.
+
+        Args:
+            request: Enrichment request with domain
+
+        Returns:
+            EnrichmentResult with list of discovered contacts with confidence scores
+        """
+        # Default implementation falls back to enrich_contacts
+        # Providers can override this for optimized contact discovery
+        return await self.enrich_contacts(request)
+
+    async def get_all_domain_prospects(
+        self, request: EnrichmentRequest
+    ) -> EnrichmentResult:
+        """
+        Get all domain prospects - alias for discover_contacts for backward compatibility.
+
+        Args:
+            request: Enrichment request with domain
+
+        Returns:
+            EnrichmentResult with prospects data
+        """
+        return await self.discover_contacts(request)
+
+    async def search_prospect_email(
+        self, request: EnrichmentRequest
+    ) -> EnrichmentResult:
+        """
+        Search for prospect email - default implementation for providers that don't support it.
+
+        Args:
+            request: Enrichment request with prospect_hash or contact info
+
+        Returns:
+            EnrichmentResult with email data or error if not supported
+        """
+        return EnrichmentResult(
+            success=False,
+            error=f"{self.name} doesn't support prospect hash email searches",
+            provider=self.name,
+        )
 
     def get_provider_info(self) -> Dict[str, Any]:
         """

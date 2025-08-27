@@ -289,7 +289,9 @@ class LLMContactSelector:
 
                     # Log successful LLM call
                     self._log_llm_call(prompt, content, model_used, True)
-                    self.logger.info(f"✅ LLM ({model_used}) selected contact {contact_id}")
+                    self.logger.info(
+                        f"✅ LLM ({model_used}) selected contact {contact_id}"
+                    )
 
                     # Cache the successful result
                     self._cache_result(cache_key, contact_id)
@@ -332,7 +334,9 @@ class LLMContactSelector:
                         )  # Exponential backoff
                         continue
                     else:
-                        self.logger.error("🚫 LLM rate limit exceeded after all retries")
+                        self.logger.error(
+                            "🚫 LLM rate limit exceeded after all retries"
+                        )
                         return None
                 elif e.response.status_code >= 500:
                     track_llm_performance_metric("server_errors")
@@ -828,7 +832,9 @@ class MailgunClient:
 # Contact field mapping now handled by router and providers
 
 
-def parse_contact_names(contacts: List[Dict[str, Any]], logger: Optional[logging.Logger] = None) -> List[Dict[str, Any]]:
+def parse_contact_names(
+    contacts: List[Dict[str, Any]], logger: Optional[logging.Logger] = None
+) -> List[Dict[str, Any]]:
     """
     Parse full names into first/last names for email discovery.
 
@@ -993,7 +999,7 @@ def validate_llm_response(llm_response: str) -> bool:
 def extract_contact_id(
     llm_response: str,
     contacts: List[Dict[str, Any]],
-    logger: Optional[logging.Logger] = None
+    logger: Optional[logging.Logger] = None,
 ) -> Optional[str]:
     """
     Extract contact ID from LLM response with validation.
@@ -1129,7 +1135,9 @@ def format_contacts_for_llm(
     return "\n".join(formatted)
 
 
-async def llm_with_fallback(fn_llm, fn_rule_based, *args, logger: Optional[logging.Logger] = None, **kwargs) -> Any:
+async def llm_with_fallback(
+    fn_llm, fn_rule_based, *args, logger: Optional[logging.Logger] = None, **kwargs
+) -> Any:
     """
     Execute LLM function with fallback to rule-based function.
 
@@ -1156,7 +1164,7 @@ async def llm_with_fallback(fn_llm, fn_rule_based, *args, logger: Optional[loggi
             # The main enrich function will handle proper logging
             track_fallback_metric("llm_none_responses")
             return fn_rule_based(*args, **kwargs)
-    except Exception as e:
+    except Exception:
         # Note: This function doesn't have access to logger, so it will use default logging
         # The main enrich function will handle proper logging
         track_fallback_metric("llm_failures")
@@ -1243,7 +1251,7 @@ async def select_best_contact_llm(
             # The main enrich function will handle proper logging
             track_fallback_metric("llm_none_responses")
             return fallback_function(contacts, icp_config)
-    except Exception as e:
+    except Exception:
         # Note: This function doesn't have access to logger, so it will use default logging
         # The main enrich function will handle proper logging
         track_fallback_metric("llm_failures")
@@ -1286,7 +1294,9 @@ def get_fallback_metrics() -> Dict[str, int]:
     return FALLBACK_METRICS.copy()
 
 
-def track_llm_performance_metric(metric_type: str, value: int = 1, logger: Optional[logging.Logger] = None):
+def track_llm_performance_metric(
+    metric_type: str, value: int = 1, logger: Optional[logging.Logger] = None
+):
     """
     Track LLM performance metrics for monitoring.
 
@@ -1335,7 +1345,7 @@ def reset_llm_performance_metrics():
 def analyze_llm_response_quality(
     response: str,
     expected_format: str = "json",
-    logger: Optional[logging.Logger] = None
+    logger: Optional[logging.Logger] = None,
 ) -> Dict[str, Any]:
     """
     Analyze the quality of LLM responses for monitoring and improvement.
@@ -1437,7 +1447,9 @@ def get_llm_monitoring_summary() -> Dict[str, Any]:
     }
 
 
-def load_prompt_template(template_name: str, logger: Optional[logging.Logger] = None) -> str:
+def load_prompt_template(
+    template_name: str, logger: Optional[logging.Logger] = None
+) -> str:
     """
     Load prompt template from file.
 
@@ -1788,9 +1800,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
         try:
             logger.info("🔍 Validating testing flags...")
             logger.info(f"🔍 ICP config keys: {list(icp_config.keys())}")
-            logger.info(
-                f"🔍 Testing section: {icp_config.get('testing', 'NOT_FOUND')}"
-            )
+            logger.info(f"🔍 Testing section: {icp_config.get('testing', 'NOT_FOUND')}")
             logger.info("🔍 About to call validate_testing_flags...")
             validate_testing_flags(icp_config)
             logger.info("🔍 validate_testing_flags returned successfully")
@@ -1877,8 +1887,8 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "metrics": build_metrics(0, 0, 0),
             }
 
-        # Initialize enrichment provider router
-        enrichment_router = create_enrichment_router(icp_config)
+        # Initialize enrichment provider router with shared logger
+        enrichment_router = create_enrichment_router(icp_config, logger)
         mailgun_client = MailgunClient(mailgun_login, mailgun_password)
 
         # Get configuration values
@@ -2068,9 +2078,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 logger.info(
                     f"🔍 Record company field type: {type(record.get('company'))}"
                 )
-                logger.info(
-                    f"🔍 Record company field content: {record.get('company')}"
-                )
+                logger.info(f"🔍 Record company field content: {record.get('company')}")
 
                 # Normalize contact data from crawling to ensure consistent field names
                 if contacts and len(contacts) > 0:
@@ -2083,7 +2091,10 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         normalized_contact = contact.copy()
 
                         # Handle different field names from crawling
-                        if "name" in normalized_contact and not ("first_name" in normalized_contact or "last_name" in normalized_contact):
+                        if "name" in normalized_contact and not (
+                            "first_name" in normalized_contact
+                            or "last_name" in normalized_contact
+                        ):
                             # Split full name into first and last name
                             full_name = normalized_contact.pop("name", "")
                             if full_name and full_name != "null":
@@ -2096,8 +2107,13 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     normalized_contact["last_name"] = ""
 
                         # Handle role field mapping
-                        if "role" in normalized_contact and "job_title" not in normalized_contact:
-                            normalized_contact["job_title"] = normalized_contact.pop("role", "")
+                        if (
+                            "role" in normalized_contact
+                            and "job_title" not in normalized_contact
+                        ):
+                            normalized_contact["job_title"] = normalized_contact.pop(
+                                "role", ""
+                            )
 
                         # Handle phone field mapping
                         if "phone" in normalized_contact:
@@ -2124,9 +2140,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 logger.info(
                     f"🔍 Contacts type before contact selection: {type(contacts)}"
                 )
-                logger.info(
-                    f"🔍 Contacts content before contact selection: {contacts}"
-                )
+                logger.info(f"🔍 Contacts content before contact selection: {contacts}")
                 logger.info(f"🔍 Role priority config: {role_priority_config}")
                 logger.info(
                     f"🔍 ICP config available for LLM selection: {bool(icp_config)}"
@@ -2184,6 +2198,19 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     logger.info(
                         f"🔍 {'No contacts found' if not contacts else 'Force contact discovery enabled'} for {normalized_domain}, attempting contact discovery..."
                     )
+
+                    # Check provider health before attempting contact discovery
+                    health_summary = enrichment_router.get_provider_health_summary()
+                    logger.info(f"🔍 Provider health status: {health_summary}")
+
+                    if health_summary["available_providers"] == 0:
+                        logger.warning(
+                            f"⚠️ No healthy providers available for contact discovery on {normalized_domain}"
+                        )
+                        logger.warning(
+                            f"⚠️ Unhealthy providers: {', '.join(health_summary['unhealthy_providers'])}"
+                        )
+
                     try:
                         # Use router for contact discovery
                         try:
@@ -2480,7 +2507,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                         for role, priority in role_priority.items():
                             if role.lower() in job_title:
-                                contact_score += (10 - priority) * 10  # Higher priority = higher score
+                                contact_score += (
+                                    10 - priority
+                                ) * 10  # Higher priority = higher score
                                 break
 
                         # Check if contact has a name
@@ -2832,28 +2861,40 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 # CRITICAL FIX: Update record with final merged contacts array
                 # This ensures the CSV export can find the best contact
                 record["contacts"] = contacts
-                logger.info(f"✅ Final contacts array updated for {normalized_domain}: {len(contacts)} contacts")
+                logger.info(
+                    f"✅ Final contacts array updated for {normalized_domain}: {len(contacts)} contacts"
+                )
 
                 # CRITICAL FIX: Ensure best_contact_id matches an actual contact in the contacts array
                 if best_contact_id and contacts:
                     # Check if best_contact_id exists in contacts array
-                    contact_exists = any(c.get("contact_id") == best_contact_id for c in contacts)
+                    contact_exists = any(
+                        c.get("contact_id") == best_contact_id for c in contacts
+                    )
                     if not contact_exists:
                         # If best_contact_id doesn't match any contact, use the first contact's ID
                         if contacts:
                             record["best_contact_id"] = contacts[0]["contact_id"]
-                            logger.info(f"🔄 Updated best_contact_id to match actual contact: {contacts[0]['contact_id']} for {normalized_domain}")
+                            logger.info(
+                                f"🔄 Updated best_contact_id to match actual contact: {contacts[0]['contact_id']} for {normalized_domain}"
+                            )
                         else:
                             record["best_contact_id"] = None
-                            logger.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
+                            logger.info(
+                                f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}"
+                            )
                 elif not best_contact_id and contacts:
                     # If no best_contact_id was set but we have contacts, use the first one
                     record["best_contact_id"] = contacts[0]["contact_id"]
-                    logger.info(f"🔄 Set best_contact_id to first contact: {contacts[0]['contact_id']} for {normalized_domain}")
+                    logger.info(
+                        f"🔄 Set best_contact_id to first contact: {contacts[0]['contact_id']} for {normalized_domain}"
+                    )
                 elif not contacts:
                     # If no contacts, ensure best_contact_id is None
                     record["best_contact_id"] = None
-                    logger.info(f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}")
+                    logger.info(
+                        f"🔄 Set best_contact_id to None (no contacts) for {normalized_domain}"
+                    )
 
                 # Update provenance
                 if "provenance" not in record:

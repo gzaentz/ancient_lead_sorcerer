@@ -11,6 +11,7 @@ Authoritative specifications: BRD §333-336, §410-439
 
 import asyncio
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 from .enrich_providers.base import (
@@ -39,20 +40,29 @@ class EnrichmentProviderRouter:
     - Automatic fallback on failures
     """
 
-    def __init__(self, icp_config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        icp_config: Optional[Dict[str, Any]] = None,
+        logger: Optional[logging.Logger] = None,
+    ):
         """
         Initialize the enrichment provider router.
 
         Args:
             icp_config: ICP-specific configuration for provider tiers and preferences
                         (No ICP hard-coding - loaded from config files)
+            logger: Optional logger instance to use for consistent logging
         """
         self.icp_config = icp_config or {}
+        self.logger = logger or logging.getLogger("enrich")
         self.providers: Dict[ProviderTier, List[BaseEnrichmentProvider]] = {
             ProviderTier.TIER_0: [],
             ProviderTier.TIER_1: [],
             ProviderTier.TIER_2: [],
         }
+
+        # Validate environment variables before initializing providers
+        self._validate_environment_variables()
 
         # Initialize providers based on configuration
         self._initialize_providers()
@@ -61,25 +71,75 @@ class EnrichmentProviderRouter:
         self.provider_health: Dict[str, Dict[str, Any]] = {}
         self._update_health_tracking()
 
-        logging.info("Enrichment provider router initialized")
+        self.logger.info("🔧 Enrichment provider router initialized")
+
+    def _validate_environment_variables(self):
+        """Validate that required environment variables are present."""
+        required_vars = {
+            "ANYMAIL_FINDER_API_KEY": "AnymailFinder contact discovery",
+            "COMPANY_ENRICH_API_KEY": "CompanyEnrich company enrichment",
+            "CORESIGNAL_API_TOKEN": "Coresignal fallback provider",
+            "SNOVIO_CLIENT_ID": "Snov.io email discovery",
+            "SNOVIO_CLIENT_SECRET": "Snov.io email discovery",
+        }
+
+        self.logger.info("🔍 Validating enrichment provider environment variables...")
+
+        missing_vars = []
+        available_providers = []
+
+        for var, purpose in required_vars.items():
+            if os.getenv(var):
+                provider_name = purpose.split(" ")[0].lower()
+                available_providers.append(provider_name)
+                self.logger.info(f"✅ {var} is configured for {purpose}")
+            else:
+                missing_vars.append(f"{var} ({purpose})")
+                self.logger.warning(
+                    f"⚠️ {var} not configured - {purpose} will be unavailable"
+                )
+
+        if missing_vars:
+            self.logger.warning(
+                f"⚠️ Missing environment variables: {', '.join(missing_vars)}"
+            )
+            self.logger.warning("⚠️ Some enrichment providers will be unavailable")
+
+        self.logger.info(
+            f"✅ Available provider APIs: {', '.join(available_providers) if available_providers else 'None'}"
+        )
 
     def _initialize_providers(self):
         """Initialize and categorize enrichment providers by tier."""
+        self.logger.info("🔧 Initializing enrichment providers...")
+        self.logger.info(f"📋 ICP config keys: {list(self.icp_config.keys())}")
+
+        initialized_providers = {"tier_0": [], "tier_1": [], "tier_2": []}
+        failed_providers = []
+
         # TIER_0: Primary providers (new, high-quality)
         # Note: Anymail Finder is initialized first for contact/email discovery priority
         if self._should_use_provider("anymail_finder", ProviderTier.TIER_0):
             try:
                 self.providers[ProviderTier.TIER_0].append(AnymailFinderProvider())
-                logging.info("✅ AnymailFinder provider initialized successfully")
+                initialized_providers["tier_0"].append("AnymailFinder")
+                self.logger.info("✅ AnymailFinder provider initialized successfully")
             except Exception as exc:
-                logging.warning(f"⚠️ Failed to initialize AnymailFinder provider: {exc}")
+                failed_providers.append(f"AnymailFinder: {exc}")
+                self.logger.warning(
+                    f"⚠️ Failed to initialize AnymailFinder provider: {exc}"
+                )
 
         if self._should_use_provider("company_enrich", ProviderTier.TIER_0):
             try:
                 self.providers[ProviderTier.TIER_0].append(CompanyEnrichProvider())
-                logging.info("✅ CompanyEnrich provider initialized successfully")
+                initialized_providers["tier_0"].append("CompanyEnrich")
+                self.logger.info("✅ CompanyEnrich provider initialized successfully")
             except Exception as exc:
-                logging.warning(f"⚠️ Failed to initialize CompanyEnrich provider: {exc}")
+                failed_providers.append(f"CompanyEnrich: {exc}")
+                self.logger.warning(
+                    f"⚠️ Failed to initialize CompanyEnrich provider: {exc}"
+                )
 
         # Apollo provider - only initialize if Apollo mode is enabled
         if self._should_use_apollo_provider():
@@ -88,9 +148,13 @@ class EnrichmentProviderRouter:
                 self.providers[ProviderTier.TIER_0].append(
                     ApolloEnrichProvider(apollo_config)
                 )
-                logging.info("✅ Apollo enrichment provider initialized successfully")
+                initialized_providers["tier_0"].append("Apollo")
+                self.logger.info(
+                    "✅ Apollo enrichment provider initialized successfully"
+                )
             except Exception as exc:
-                logging.warning(
+                failed_providers.append(f"Apollo: {exc}")
+                self.logger.warning(
                     f"⚠️ Failed to initialize Apollo enrichment provider: {exc}"
                 )
 
@@ -98,38 +162,62 @@ class EnrichmentProviderRouter:
         if self._should_use_provider("coresignal", ProviderTier.TIER_1):
             try:
                 self.providers[ProviderTier.TIER_1].append(CoresignalProvider())
-                logging.info("✅ Coresignal provider initialized successfully")
+                initialized_providers["tier_1"].append("Coresignal")
+                self.logger.info("✅ Coresignal provider initialized successfully")
             except Exception as exc:
-                logging.warning(f"⚠️ Failed to initialize Coresignal provider: {exc}")
+                failed_providers.append(f"Coresignal: {exc}")
+                self.logger.warning(
+                    f"⚠️ Failed to initialize Coresignal provider: {exc}"
+                )
 
         if self._should_use_provider("snovio", ProviderTier.TIER_1):
             try:
                 self.providers[ProviderTier.TIER_1].append(SnovioProvider())
-                logging.info("✅ Snov.io provider initialized successfully")
+                initialized_providers["tier_1"].append("Snov.io")
+                self.logger.info("✅ Snov.io provider initialized successfully")
             except Exception as exc:
-                logging.warning(f"⚠️ Failed to initialize Snov.io provider: {exc}")
+                failed_providers.append(f"Snov.io: {exc}")
+                self.logger.warning(f"⚠️ Failed to initialize Snov.io provider: {exc}")
 
         # TIER_2: Legacy providers (last resort)
         # Currently no TIER_2 providers, but structure is ready for future use
 
-        logging.info(
-            f"Router initialized with {len(self.providers[ProviderTier.TIER_0])} TIER_0, "
-            f"{len(self.providers[ProviderTier.TIER_1])} TIER_1 providers"
+        # Log initialization summary
+        self.logger.info("📊 Provider initialization summary:")
+        self.logger.info(
+            f"   TIER_0: {len(self.providers[ProviderTier.TIER_0])} providers ({', '.join(initialized_providers['tier_0']) if initialized_providers['tier_0'] else 'None'})"
+        )
+        self.logger.info(
+            f"   TIER_1: {len(self.providers[ProviderTier.TIER_1])} providers ({', '.join(initialized_providers['tier_1']) if initialized_providers['tier_1'] else 'None'})"
         )
 
+        if failed_providers:
+            self.logger.warning(
+                f"⚠️ Failed to initialize {len(failed_providers)} providers: {'; '.join(failed_providers)}"
+            )
+
         # Ensure we have at least one provider available
-        if not any(self.providers.values()):
-            logging.warning("No providers available, falling back to Coresignal")
+        total_providers = sum(len(providers) for providers in self.providers.values())
+        if total_providers == 0:
+            self.logger.warning(
+                "❌ No providers available, attempting Coresignal fallback"
+            )
             try:
                 self.providers[ProviderTier.TIER_1].append(CoresignalProvider())
-                logging.info("✅ Coresignal fallback provider initialized successfully")
+                self.logger.info(
+                    "✅ Coresignal fallback provider initialized successfully"
+                )
             except Exception as exc:
-                logging.error(
+                self.logger.error(
                     f"❌ Failed to initialize Coresignal fallback provider: {exc}"
                 )
-                logging.error(
-                    "❌ No enrichment providers available - enrichment will fail"
+                self.logger.error(
+                    "❌ CRITICAL: No enrichment providers available - all enrichment operations will fail"
                 )
+        else:
+            self.logger.info(
+                f"✅ Router initialized with {total_providers} total providers across all tiers"
+            )
 
     def _should_use_provider(self, provider_name: str, tier: ProviderTier) -> bool:
         """
@@ -259,7 +347,21 @@ class EnrichmentProviderRouter:
             Enrichment result with prospects data from best available provider
         """
         return await self._execute_with_fallback(
-            "get_all_domain_prospects", request, "prospect discovery"
+            "discover_contacts", request, "contact discovery"
+        )
+
+    async def discover_contacts(self, request: EnrichmentRequest) -> EnrichmentResult:
+        """
+        Discover contacts for a domain using optimized provider methods.
+
+        Args:
+            request: Enrichment request with domain
+
+        Returns:
+            Enrichment result with discovered contacts from best available provider
+        """
+        return await self._execute_with_fallback(
+            "discover_contacts", request, "contact discovery"
         )
 
     async def search_prospect_email(
@@ -345,12 +447,24 @@ class EnrichmentProviderRouter:
                 self._record_error(provider, str(exc))
                 errors.append(f"{provider.name}: {exc}")
 
-        # All providers failed
-        error_msg = f"All enrichment providers failed for {operation_description}: {'; '.join(errors)}"
-        logging.error(error_msg)
+        # All providers failed - ensure we have detailed error information
+        if not errors:
+            error_msg = f"No available providers for {operation_description} (all providers unavailable or failed health checks)"
+        else:
+            error_msg = f"All enrichment providers failed for {operation_description}: {'; '.join(errors)}"
+
+        # Log detailed error information
+        self.logger.error(f"❌ {error_msg}")
+
+        # Log provider health status for debugging
+        health_summary = self.get_provider_health_summary()
+        self.logger.error(f"❌ Provider health summary: {health_summary}")
 
         return EnrichmentResult(
-            success=False, error=error_msg, provider="router", cost=0.0
+            success=False,
+            error=error_msg,  # Ensure this is never None
+            provider="router",
+            cost=0.0,
         )
 
     def _is_provider_healthy(self, provider: BaseEnrichmentProvider) -> bool:
@@ -414,7 +528,9 @@ class EnrichmentProviderRouter:
         health["is_available"] = False
         health["last_error"] = f"Marked unavailable: {reason}"
 
-        logging.warning(f"Provider {provider.name} marked as unavailable: {reason}")
+        self.logger.warning(
+            f"⚠️ Provider {provider.name} marked as unavailable: {reason}"
+        )
 
     def get_provider_status(self) -> Dict[str, Any]:
         """
@@ -473,6 +589,49 @@ class EnrichmentProviderRouter:
 
         return status
 
+    def get_provider_health_summary(self) -> Dict[str, Any]:
+        """Get comprehensive provider health summary for debugging."""
+        summary = {
+            "total_providers": 0,
+            "available_providers": 0,
+            "unhealthy_providers": [],
+            "tier_status": {},
+            "overall_status": "unknown",
+        }
+
+        for tier in self.providers:
+            tier_name = f"tier_{tier.value}"
+            tier_providers = self.providers[tier]
+            summary["total_providers"] += len(tier_providers)
+
+            healthy_count = sum(
+                1 for p in tier_providers if self._is_provider_healthy(p)
+            )
+            unhealthy_providers = [
+                p.name for p in tier_providers if not self._is_provider_healthy(p)
+            ]
+
+            summary["tier_status"][tier_name] = {
+                "total": len(tier_providers),
+                "healthy": healthy_count,
+                "unhealthy": len(tier_providers) - healthy_count,
+                "unhealthy_providers": unhealthy_providers,
+            }
+            summary["available_providers"] += healthy_count
+            summary["unhealthy_providers"].extend(unhealthy_providers)
+
+        # Determine overall status
+        if summary["available_providers"] == 0:
+            summary["overall_status"] = "critical"
+        elif summary["available_providers"] < summary["total_providers"] * 0.5:
+            summary["overall_status"] = "degraded"
+        elif summary["available_providers"] < summary["total_providers"]:
+            summary["overall_status"] = "warning"
+        else:
+            summary["overall_status"] = "healthy"
+
+        return summary
+
     def reset_provider_health(self, provider_name: Optional[str] = None):
         """
         Reset health tracking for providers.
@@ -491,23 +650,26 @@ class EnrichmentProviderRouter:
                     "average_latency": 0.0,
                     "total_cost": 0.0,
                 }
-                logging.info(f"Reset health tracking for provider: {provider_name}")
+                self.logger.info(
+                    f"🔄 Reset health tracking for provider: {provider_name}"
+                )
         else:
             self._update_health_tracking()
-            logging.info("Reset health tracking for all providers")
+            self.logger.info("🔄 Reset health tracking for all providers")
 
 
 # Factory function for creating router instances
 def create_enrichment_router(
-    icp_config: Optional[Dict[str, Any]] = None,
+    icp_config: Optional[Dict[str, Any]] = None, logger: Optional[logging.Logger] = None
 ) -> EnrichmentProviderRouter:
     """
     Factory function to create enrichment provider router instances.
 
     Args:
         icp_config: ICP-specific configuration for provider tiers and preferences
+        logger: Optional logger instance for consistent logging
 
     Returns:
         Configured EnrichmentProviderRouter instance
     """
-    return EnrichmentProviderRouter(icp_config)
+    return EnrichmentProviderRouter(icp_config, logger)

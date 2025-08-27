@@ -306,9 +306,13 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
             domain_specific_urls = []
             for url in specific_urls:
                 from urllib.parse import urlparse
+
                 parsed_url = urlparse(url)
                 url_domain = parsed_url.netloc.lower()
-                if url_domain == domain.lower() or url_domain == f"www.{domain.lower()}":
+                if (
+                    url_domain == domain.lower()
+                    or url_domain == f"www.{domain.lower()}"
+                ):
                     domain_specific_urls.append(url)
 
             if domain_specific_urls:
@@ -325,7 +329,9 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
                     f"https://{domain}/contact",  # Contact page (contact info)
                 ]
                 urls_to_extract.extend(priority_pages)
-                self.logger.info(f"🔗 No specific URLs match {domain}, using domain-based URLs")
+                self.logger.info(
+                    f"🔗 No specific URLs match {domain}, using domain-based URLs"
+                )
 
         elif (
             site_type == "information_database"
@@ -392,9 +398,13 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
             domain_specific_urls = []
             for url in specific_urls:
                 from urllib.parse import urlparse
+
                 parsed_url = urlparse(url)
                 url_domain = parsed_url.netloc.lower()
-                if url_domain == domain.lower() or url_domain == f"www.{domain.lower()}":
+                if (
+                    url_domain == domain.lower()
+                    or url_domain == f"www.{domain.lower()}"
+                ):
                     domain_specific_urls.append(url)
 
             if domain_specific_urls:
