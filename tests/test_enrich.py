@@ -18,6 +18,7 @@ import pytest
 
 from src.enrich import (
     CoresignalClient,
+    HunterIOClient,
     MailgunClient,
     SnovioClient,
     select_best_contact,
@@ -28,6 +29,9 @@ from src.enrich import (
     enrich_company_data,
     enrich_contact_data,
     write_evidence_file,
+    verify_all_contact_emails_with_hunter,
+    discover_and_verify_emails_with_hunter,
+    select_best_contact_with_email_quality,
     run_enrich,
     main,
     map_coresignal_company_fields,
@@ -1715,6 +1719,646 @@ class TestLLMContactSelection:
         # Test with default ICP type
         default_selector = LLMContactSelector("test_key", "default")
         assert default_selector.icp_type == "default"
+
+    def test_hunter_io_client_initialization(self):
+        """Test HunterIOClient initialization."""
+        api_key = "test_api_key"
+        client = HunterIOClient(api_key)
+        
+        assert client.api_key == api_key
+        assert client.base_url == "https://api.hunter.io/v2"
+        assert client.request_count == 0
+        assert client.total_cost == 0.0
+        assert client.rate_limiter._value == 10  # Semaphore with 10 permits
+
+    @pytest.mark.asyncio
+    async def test_hunter_io_client_verify_email_invalid_input(self):
+        """Test HunterIOClient with invalid email inputs."""
+        client = HunterIOClient("test_api_key")
+        
+        # Test with None email
+        result = await client.verify_email(None)
+        assert result["score"] == 0
+        assert result["status"] == "invalid"
+        assert result["error"] == "Invalid email format"
+        assert result["api_calls"] == 0
+        assert result["cost_usd"] == 0.0
+        
+        # Test with empty email
+        result = await client.verify_email("")
+        assert result["score"] == 0
+        assert result["status"] == "invalid"
+        assert result["error"] == "Invalid email format"
+        assert result["api_calls"] == 0
+        assert result["cost_usd"] == 0.0
+        
+        # Test with non-string email
+        result = await client.verify_email(123)
+        assert result["score"] == 0
+        assert result["status"] == "invalid"
+        assert result["error"] == "Invalid email format"
+        assert result["api_calls"] == 0
+        assert result["cost_usd"] == 0.0
+
+    def test_hunter_io_client_get_cost_info(self):
+        """Test HunterIOClient cost information tracking."""
+        client = HunterIOClient("test_api_key")
+        
+        # Initially should be empty
+        cost_info = client.get_cost_info()
+        assert cost_info["total_requests"] == 0
+        assert cost_info["total_cost_usd"] == 0.0
+        assert cost_info["cost_per_request"] == 0.002
+        
+        # Simulate some requests
+        client.request_count = 5
+        client.total_cost = 0.010
+        
+        cost_info = client.get_cost_info()
+        assert cost_info["total_requests"] == 5
+        assert cost_info["total_cost_usd"] == 0.010
+        assert cost_info["cost_per_request"] == 0.002
+
+    @pytest.mark.asyncio
+    async def test_verify_all_contact_emails_with_hunter_success(self):
+        """Test successful email verification with Hunter.io."""
+        # Mock Hunter.io client
+        hunter_client = MagicMock()
+        hunter_client.verify_email = AsyncMock()
+        
+        # Mock successful verification responses
+        hunter_client.verify_email.side_effect = [
+            {
+                "score": 85,
+                "status": "valid",
+                "result": "deliverable",
+                "sources": ["domain_search"],
+                "api_calls": 1,
+                "error": None,
+                "verified_at": "2025-08-27T19:01:20Z",
+                "cost_usd": 0.002
+            },
+            {
+                "score": 75,
+                "status": "valid", 
+                "result": "deliverable",
+                "sources": ["domain_search"],
+                "api_calls": 1,
+                "error": None,
+                "verified_at": "2025-08-27T19:01:21Z",
+                "cost_usd": 0.002
+            }
+        ]
+        
+        # Test contacts
+        contacts = [
+            {
+                "full_name": "John Doe",
+                "email": "john@example.com",
+                "email_source": ["crawl"]
+            },
+            {
+                "full_name": "Jane Smith", 
+                "email": "jane@example.com",
+                "email_source": ["provider"]
+            }
+        ]
+        
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run verification
+        updated_contacts, total_cost = await verify_all_contact_emails_with_hunter(
+            contacts=contacts,
+            hunter_client=hunter_client,
+            domain="example.com",
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify results
+        assert len(updated_contacts) == 2
+        assert total_cost == 0.004
+        
+        # Check first contact
+        contact1 = updated_contacts[0]
+        assert contact1["email"] == "john@example.com"
+        assert contact1["email_verified"] == True
+        assert contact1["email_quality_score"] == 85
+        assert "hunter_verified" in contact1["email_source"]
+        assert "hunter_verification" in contact1
+        
+        # Check second contact
+        contact2 = updated_contacts[1]
+        assert contact2["email"] == "jane@example.com"
+        assert contact2["email_verified"] == True
+        assert contact2["email_quality_score"] == 75
+        assert "hunter_verified" in contact2["email_source"]
+
+    @pytest.mark.asyncio
+    async def test_verify_all_contact_emails_with_hunter_zero_score(self):
+        """Test 0% score email discarding with Hunter.io."""
+        # Mock Hunter.io client
+        hunter_client = MagicMock()
+        hunter_client.verify_email = AsyncMock()
+        
+        # Mock 0% score response
+        hunter_client.verify_email.return_value = {
+            "score": 0,
+            "status": "invalid",
+            "result": "invalid",
+            "sources": [],
+            "api_calls": 1,
+            "error": None,
+            "verified_at": "2025-08-27T19:01:20Z",
+            "cost_usd": 0.002
+        }
+        
+        # Test contact with bad email
+        contacts = [
+            {
+                "full_name": "Bad Email",
+                "email": "bad@invalid.com",
+                "email_source": ["crawl"]
+            }
+        ]
+        
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run verification
+        updated_contacts, total_cost = await verify_all_contact_emails_with_hunter(
+            contacts=contacts,
+            hunter_client=hunter_client,
+            domain="invalid.com",
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify 0% score email was discarded
+        assert len(updated_contacts) == 1
+        contact = updated_contacts[0]
+        assert contact["email"] is None  # Email should be None (discarded)
+        assert contact["email_source"] == []  # Sources should be cleared
+        assert contact["email_verified"] == False
+        assert contact["needs_email_discovery"] == True  # Should trigger discovery
+        assert contact["email_quality_score"] == 0
+        assert total_cost == 0.002
+
+    @pytest.mark.asyncio
+    async def test_verify_all_contact_emails_with_hunter_low_score(self):
+        """Test low score email handling with Hunter.io."""
+        # Mock Hunter.io client
+        hunter_client = MagicMock()
+        hunter_client.verify_email = AsyncMock()
+        
+        # Mock low score response (below threshold)
+        hunter_client.verify_email.return_value = {
+            "score": 45,
+            "status": "risky",
+            "result": "risky",
+            "sources": ["domain_search"],
+            "api_calls": 1,
+            "error": None,
+            "verified_at": "2025-08-27T19:01:20Z",
+            "cost_usd": 0.002
+        }
+        
+        # Test contact with low-quality email
+        contacts = [
+            {
+                "full_name": "Low Quality Email",
+                "email": "risky@example.com",
+                "email_source": ["crawl"]
+            }
+        ]
+        
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run verification
+        updated_contacts, total_cost = await verify_all_contact_emails_with_hunter(
+            contacts=contacts,
+            hunter_client=hunter_client,
+            domain="example.com",
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify low score email handling
+        assert len(updated_contacts) == 1
+        contact = updated_contacts[0]
+        assert contact["email"] == "risky@example.com"  # Email kept but marked as unverified
+        assert contact["email_verified"] == False
+        assert contact["needs_email_replacement"] == True  # Should be marked for replacement
+        assert contact["email_quality_score"] == 45
+        assert "hunter_verified" in contact["email_source"]
+
+    @pytest.mark.asyncio
+    async def test_verify_all_contact_emails_with_hunter_no_email(self):
+        """Test contacts with no email with Hunter.io."""
+        # Test contacts without emails
+        contacts = [
+            {
+                "full_name": "No Email Contact",
+                "email": None
+            },
+            {
+                "full_name": "Empty Email Contact",
+                "email": ""
+            }
+        ]
+        
+        hunter_client = MagicMock()
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run verification
+        updated_contacts, total_cost = await verify_all_contact_emails_with_hunter(
+            contacts=contacts,
+            hunter_client=hunter_client,
+            domain="example.com",
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify contacts without emails are marked for discovery
+        assert len(updated_contacts) == 2
+        assert total_cost == 0.0  # No API calls for contacts without emails
+        
+        for contact in updated_contacts:
+            assert contact["email_verified"] == False
+            assert contact["needs_email_discovery"] == True
+        
+        # Hunter.io should not be called for empty emails
+        hunter_client.verify_email.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_discover_and_verify_emails_with_hunter_successful_discovery(self):
+        """Test successful email discovery and verification with Hunter.io."""
+        # Mock enrichment router
+        enrichment_router = MagicMock()
+        enrichment_router.find_email = AsyncMock()
+        
+        # Mock successful email discovery
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.data = MagicMock()
+        mock_result.data.email = "discovered@example.com"
+        mock_result.cost = 0.015
+        enrichment_router.find_email.return_value = mock_result
+        
+        # Mock Hunter.io client
+        hunter_client = MagicMock()
+        hunter_client.verify_email = AsyncMock()
+        
+        # Mock successful Hunter.io verification
+        hunter_client.verify_email.return_value = {
+            "score": 85,
+            "status": "valid",
+            "result": "deliverable",
+            "sources": ["domain_search"],
+            "api_calls": 1,
+            "error": None,
+            "verified_at": "2025-08-27T19:01:20Z",
+            "cost_usd": 0.002
+        }
+        
+        # Test contacts needing discovery
+        contacts = [
+            {
+                "full_name": "John Doe",
+                "first_name": "John",
+                "last_name": "Doe",
+                "email": None,
+                "needs_email_discovery": True
+            }
+        ]
+        
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run discovery
+        updated_contacts, total_cost = await discover_and_verify_emails_with_hunter(
+            contacts=contacts,
+            domain="example.com",
+            enrichment_router=enrichment_router,
+            hunter_client=hunter_client,
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify results
+        assert len(updated_contacts) == 1
+        contact = updated_contacts[0]
+        assert contact["email"] == "discovered@example.com"
+        assert contact["email_verified"] == True
+        assert contact["email_quality_score"] == 85
+        assert contact["email_source"] == ["provider", "hunter_verified"]
+        assert "needs_email_discovery" not in contact  # Flag should be cleared
+        assert total_cost == 0.017  # 0.015 discovery + 0.002 verification
+
+    @pytest.mark.asyncio
+    async def test_discover_and_verify_emails_with_hunter_email_replacement(self):
+        """Test email replacement for low-quality emails with Hunter.io."""
+        # Mock enrichment router
+        enrichment_router = MagicMock()
+        enrichment_router.find_email = AsyncMock()
+        
+        # Mock successful email discovery
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.data = MagicMock()
+        mock_result.data.email = "better@example.com"
+        mock_result.cost = 0.015
+        enrichment_router.find_email.return_value = mock_result
+        
+        # Mock Hunter.io client
+        hunter_client = MagicMock()
+        hunter_client.verify_email = AsyncMock()
+        
+        # Mock successful Hunter.io verification for new email
+        hunter_client.verify_email.return_value = {
+            "score": 85,
+            "status": "valid",
+            "result": "deliverable",
+            "sources": ["domain_search"],
+            "api_calls": 1,
+            "error": None,
+            "verified_at": "2025-08-27T19:01:20Z",
+            "cost_usd": 0.002
+        }
+        
+        # Test contacts with low-quality emails needing replacement
+        contacts = [
+            {
+                "full_name": "Jane Smith",
+                "first_name": "Jane",
+                "last_name": "Smith",
+                "email": "old@example.com",
+                "email_quality_score": 45,
+                "email_verified": False,
+                "needs_email_replacement": True
+            }
+        ]
+        
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run discovery and replacement
+        updated_contacts, total_cost = await discover_and_verify_emails_with_hunter(
+            contacts=contacts,
+            domain="example.com",
+            enrichment_router=enrichment_router,
+            hunter_client=hunter_client,
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify replacement
+        assert len(updated_contacts) == 1
+        contact = updated_contacts[0]
+        assert contact["email"] == "better@example.com"  # New email
+        assert contact["email_verified"] == True
+        assert contact["email_quality_score"] == 85
+        assert contact["replaced_email"] == "old@example.com"  # Original email tracked
+        assert contact["email_quality_improvement"] == 40  # 85 - 45
+        assert "needs_email_replacement" not in contact  # Flag cleared
+
+    @pytest.mark.asyncio
+    async def test_discover_and_verify_emails_with_hunter_skip_verified(self):
+        """Test that contacts with verified emails are skipped."""
+        # Test contacts with already verified emails
+        contacts = [
+            {
+                "full_name": "Already Verified",
+                "first_name": "Already",
+                "last_name": "Verified",
+                "email": "verified@example.com",
+                "email_verified": True,
+                "email_quality_score": 90
+            },
+            {
+                "full_name": "Needs Discovery",
+                "first_name": "Needs",
+                "last_name": "Discovery",
+                "email": None,
+                "needs_email_discovery": True
+            }
+        ]
+        
+        enrichment_router = MagicMock()
+        hunter_client = MagicMock()
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run discovery
+        updated_contacts, total_cost = await discover_and_verify_emails_with_hunter(
+            contacts=contacts,
+            domain="example.com",
+            enrichment_router=enrichment_router,
+            hunter_client=hunter_client,
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify first contact was skipped (already verified)
+        contact1 = updated_contacts[0]
+        assert contact1["email"] == "verified@example.com"
+        assert contact1["email_verified"] == True
+        
+        # Discovery should not have been called for verified contact
+        enrichment_router.find_email.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_discover_and_verify_emails_with_hunter_failed_discovery(self):
+        """Test handling of failed email discovery."""
+        # Mock enrichment router with failed discovery
+        enrichment_router = MagicMock()
+        enrichment_router.find_email = AsyncMock()
+        
+        # Mock failed discovery
+        mock_result = MagicMock()
+        mock_result.success = False
+        mock_result.data = None
+        mock_result.cost = 0.015
+        enrichment_router.find_email.return_value = mock_result
+        
+        # Test contacts needing discovery
+        contacts = [
+            {
+                "full_name": "No Email Found",
+                "first_name": "No",
+                "last_name": "Found",
+                "email": None,
+                "needs_email_discovery": True
+            }
+        ]
+        
+        hunter_client = MagicMock()
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run discovery
+        updated_contacts, total_cost = await discover_and_verify_emails_with_hunter(
+            contacts=contacts,
+            domain="example.com",
+            enrichment_router=enrichment_router,
+            hunter_client=hunter_client,
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify contact remains unchanged
+        assert len(updated_contacts) == 1
+        contact = updated_contacts[0]
+        assert contact["email"] is None
+        assert contact["needs_email_discovery"] == True  # Flag should remain
+        assert total_cost == 0.0  # No successful discovery or verification
+
+    @pytest.mark.asyncio
+    async def test_discover_and_verify_emails_with_hunter_low_score_discovered(self):
+        """Test handling of discovered emails that fail Hunter.io verification."""
+        # Mock enrichment router
+        enrichment_router = MagicMock()
+        enrichment_router.find_email = AsyncMock()
+        
+        # Mock successful email discovery
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.data = MagicMock()
+        mock_result.data.email = "lowscore@example.com"
+        mock_result.cost = 0.015
+        enrichment_router.find_email.return_value = mock_result
+        
+        # Mock Hunter.io client
+        hunter_client = MagicMock()
+        hunter_client.verify_email = AsyncMock()
+        
+        # Mock low score Hunter.io verification
+        hunter_client.verify_email.return_value = {
+            "score": 30,
+            "status": "risky",
+            "result": "risky",
+            "sources": ["domain_search"],
+            "api_calls": 1,
+            "error": None,
+            "verified_at": "2025-08-27T19:01:20Z",
+            "cost_usd": 0.002
+        }
+        
+        # Test contacts needing discovery
+        contacts = [
+            {
+                "full_name": "Low Score Discovery",
+                "first_name": "Low",
+                "last_name": "Score",
+                "email": None,
+                "needs_email_discovery": True
+            }
+        ]
+        
+        logger = MagicMock()
+        costs_config = {"hunter": 0.002}
+        
+        # Run discovery
+        updated_contacts, total_cost = await discover_and_verify_emails_with_hunter(
+            contacts=contacts,
+            domain="example.com",
+            enrichment_router=enrichment_router,
+            hunter_client=hunter_client,
+            logger=logger,
+            costs_config=costs_config,
+            min_score=70
+        )
+        
+        # Verify low score email handling
+        assert len(updated_contacts) == 1
+        contact = updated_contacts[0]
+        assert contact["email"] == "lowscore@example.com"  # Email kept
+        assert contact["email_verified"] == False  # But marked as unverified
+        assert contact["email_quality_score"] == 30
+        assert contact["needs_email_discovery"] == True  # Flag remains for future attempts
+        assert total_cost == 0.017  # 0.015 discovery + 0.002 verification
+
+    def test_select_best_contact_with_email_quality_hunter_verified(self):
+        """Test enhanced contact selection prioritizing Hunter.io verified emails."""
+        contacts = [
+            {
+                "contact_id": "1",
+                "role": "CEO",
+                "email": "ceo@example.com",
+                "email_verified": True,
+                "email_quality_score": 85,
+                "linkedin": "linkedin.com/in/ceo"
+            },
+            {
+                "contact_id": "2", 
+                "role": "Marketing Manager",
+                "email": "marketing@example.com",
+                "email_verified": False,
+                "email_quality_score": 45,
+                "linkedin": "linkedin.com/in/marketing"
+            },
+            {
+                "contact_id": "3",
+                "role": "VP Sales",
+                "email": None,
+                "email_verified": False,
+                "email_quality_score": 0
+            }
+        ]
+        
+        role_priority_config = {
+            "CEO": 1,
+            "VP Sales": 2,
+            "Marketing Manager": 5
+        }
+        
+        # Should select contact 1 (CEO with verified email) despite VP Sales having higher role priority
+        best_contact_id = select_best_contact_with_email_quality(contacts, role_priority_config)
+        assert best_contact_id == "1"
+
+    def test_select_best_contact_with_email_quality_no_verified_emails(self):
+        """Test contact selection when no emails are verified."""
+        contacts = [
+            {
+                "contact_id": "1",
+                "role": "CEO",
+                "email": "ceo@example.com",
+                "email_verified": False,
+                "email_quality_score": 60
+            },
+            {
+                "contact_id": "2",
+                "role": "VP Sales", 
+                "email": "vp@example.com",
+                "email_verified": False,
+                "email_quality_score": 55
+            }
+        ]
+        
+        role_priority_config = {
+            "CEO": 1,
+            "VP Sales": 2
+        }
+        
+        # Should select CEO (higher role priority when email quality is similar)
+        best_contact_id = select_best_contact_with_email_quality(contacts, role_priority_config)
+        assert best_contact_id == "1"
+
+    def test_select_best_contact_with_email_quality_no_contacts(self):
+        """Test contact selection with empty contact list."""
+        result = select_best_contact_with_email_quality([], {})
+        assert result is None
 
 
 if __name__ == "__main__":

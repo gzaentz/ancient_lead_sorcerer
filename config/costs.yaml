@@ -2,15 +2,15 @@
 # All costs are in USD per unit
 
 coresignal:
-  unit: 'lookup'
+  unit: "lookup"
   usd_per_unit: 0.0100
 
 mailgun:
-  unit: 'smtp_validation'
+  unit: "smtp_validation"
   usd_per_unit: 0.0020
 
 snovio:
-  unit: 'credit'
+  unit: "credit"
   usd_per_unit: 0.0150
   # Snov.io pricing:
   # - 1 credit per prospect search
@@ -18,7 +18,7 @@ snovio:
   # - No charge for searches with zero results
 
 company_enrich:
-  unit: 'lookup'
+  unit: "lookup"
   usd_per_unit: 0.0100
   # CompanyEnrich pricing:
   # - $0.01 per company lookup
@@ -26,15 +26,22 @@ company_enrich:
   # - $0.015 per email lookup
 
 anymail_finder:
-  unit: 'lookup'
+  unit: "lookup"
   usd_per_unit: 0.0080
   # Anymail Finder pricing:
   # - $0.008 per company lookup
   # - $0.015 per contact lookup
   # - $0.012 per email lookup
 
+hunter:
+  unit: "verification"
+  usd_per_unit: 0.0020
+  # Hunter.io pricing:
+  # - $0.002 per email verification
+  # - Rate limit: 10 requests per second
+
 apollo:
-  unit: 'credit'
+  unit: "credit"
   usd_per_unit: 0.0150
   # Apollo pricing:
   # - 1 credit per search request
@@ -42,13 +49,13 @@ apollo:
   # - Bulk operations may have different pricing
 
 openrouter:
-  unit: '1k_tokens'
+  unit: "1k_tokens"
   usd_per_unit: 0.0020
 
 gse:
-  unit: 'request'
+  unit: "request"
   usd_per_unit: 0.0005
 
 firecrawl:
-  unit: 'extract'
+  unit: "extract"
   usd_per_unit: 0.0010

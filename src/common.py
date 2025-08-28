@@ -1476,6 +1476,6 @@ def get_email_status_rank(email_status: str) -> int:
     Returns:
         Status rank (lower = higher priority)
     """
-    status_ranks = {"valid": 0, "risky": 1, "catch_all": 2, "unknown": 3, "invalid": 4}
+    status_ranks = {"valid": 0, "risky": 1, "catch_all": 2, "unknown": 3, "invalid": 4, "no_email": 5}
 
-    return status_ranks.get(email_status, 4)
+    return status_ranks.get(email_status, 5)

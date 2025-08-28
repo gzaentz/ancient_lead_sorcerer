@@ -509,7 +509,8 @@
           "email": {
             "type": ["string", "null"],
             "format": "email",
-            "maxLength": 2048
+            "maxLength": 2048,
+            "description": "Contact email address (can be null if Hunter.io score is 0%)"
           },
           "email_confidence": {
             "type": ["number", "null"],
@@ -530,10 +531,88 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["provider", "csv"]
+              "enum": ["provider", "csv", "hunter_verified", "crawl", "apollo"]
             },
-            "minItems": 1,
-            "maxItems": 2
+            "minItems": 0,
+            "maxItems": 5
+          },
+          "hunter_verification": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer", 
+                "minimum": 0, 
+                "maximum": 100,
+                "description": "Hunter.io email quality score (0-100%)"
+              },
+              "status": {
+                "type": "string", 
+                "enum": ["valid", "invalid", "risky", "unknown", "error", "timeout", "rate_limited"],
+                "description": "Hunter.io verification status"
+              },
+              "result": {
+                "type": "string", 
+                "enum": ["deliverable", "undeliverable", "risky", "unknown", "invalid"],
+                "description": "Hunter.io deliverability result"
+              },
+              "sources": {
+                "type": "array", 
+                "items": {"type": "string"},
+                "maxItems": 10,
+                "description": "Hunter.io verification sources"
+              },
+              "api_calls": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of API calls made"
+              },
+              "error": {
+                "type": ["string", "null"],
+                "maxLength": 2048,
+                "description": "Error message if verification failed"
+              },
+              "verified_at": {
+                "type": "string", 
+                "format": "date-time",
+                "description": "ISO-8601 UTC timestamp of verification"
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0.0,
+                "description": "Cost of Hunter.io verification in USD"
+              }
+            },
+            "required": ["score", "status", "result", "api_calls", "cost_usd"],
+            "additionalProperties": false,
+            "description": "Hunter.io email verification results"
+          },
+          "email_quality_score": {
+            "type": "integer", 
+            "minimum": 0, 
+            "maximum": 100,
+            "description": "Email quality score from Hunter.io (0-100%)"
+          },
+          "email_verified": {
+            "type": "boolean",
+            "description": "Whether email has been verified by Hunter.io with passing score"
+          },
+          "replaced_email": {
+            "type": ["string", "null"],
+            "format": "email",
+            "maxLength": 2048,
+            "description": "Original email that was replaced by Hunter.io discovery"
+          },
+          "email_quality_improvement": {
+            "type": "integer",
+            "description": "Quality score improvement from email replacement (percentage points)"
+          },
+          "needs_email_discovery": {
+            "type": "boolean",
+            "description": "Whether contact needs email discovery"
+          },
+          "needs_email_replacement": {
+            "type": "boolean",
+            "description": "Whether contact needs email replacement due to low quality"
           },
           "phone": {
             "type": "string",
