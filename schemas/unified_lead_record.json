@@ -586,7 +586,7 @@
                 "type": "array", 
                 "items": {"type": "string"},
                 "maxItems": 10,
-                "description": "Hunter.io verification sources"
+                "description": "Sources where the email was found"
               },
               "api_calls": {
                 "type": "integer",
@@ -607,6 +607,22 @@
                 "type": "number",
                 "minimum": 0.0,
                 "description": "Cost of Hunter.io verification in USD"
+              },
+              "retry_attempts": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of retry attempts made during verification"
+              },
+              "http_status": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599,
+                "description": "HTTP status code from Hunter.io API response"
+              },
+              "cached_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO-8601 UTC timestamp when result was cached"
               }
             },
             "required": ["email", "score", "status", "result", "cost_usd"],

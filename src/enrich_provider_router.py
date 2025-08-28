@@ -443,6 +443,16 @@ class EnrichmentProviderRouter:
                 result = await getattr(provider, method_name)(request)
                 if result.success:
                     self._record_success(provider, result)
+                    # CRITICAL: Log which provider succeeded
+                    self.logger.info(f"✅ {provider.name} provider succeeded for {operation_description}")
+                    self.logger.info(f"📊 Provider response: {result.provider}, Cost: ${result.cost:.4f}")
+                    if hasattr(result, 'data') and result.data:
+                        if isinstance(result.data, list):
+                            self.logger.info(f"📋 Data returned: {len(result.data)} items from {provider.name}")
+                        elif hasattr(result.data, 'email') and result.data.email:
+                            self.logger.info(f"📧 Email found via {provider.name}: {result.data.email}")
+                        else:
+                            self.logger.info(f"📋 Data returned from {provider.name}: {type(result.data)}")
                     return result
                 else:
                     self._record_error(provider, result.error)

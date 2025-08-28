@@ -1000,6 +1000,7 @@ class HunterIOClient:
                             self.authentication_errors += 1
                             log.error("🚨 Hunter.io authentication failed - check API key")
                             result = {
+                                "email": email,
                                 "score": 0, 
                                 "status": "error", 
                                 "error": "Authentication failed", 
@@ -1022,6 +1023,7 @@ class HunterIOClient:
                                 continue
                             else:
                                 result = {
+                                    "email": email,
                                     "score": 0, 
                                     "status": "rate_limited", 
                                     "error": "Rate limit exceeded after all retries", 
@@ -1043,6 +1045,7 @@ class HunterIOClient:
                                 continue
                             else:
                                 result = {
+                                    "email": email,
                                     "score": 0, 
                                     "status": "error", 
                                     "error": f"Server error {response.status_code}", 
@@ -1061,6 +1064,7 @@ class HunterIOClient:
                             
                             # Extract Hunter.io response
                             result = {
+                                "email": email,
                                 "score": hunter_data.get("score", 0),
                                 "status": hunter_data.get("status", "unknown"),
                                 "result": hunter_data.get("result", "unknown"),
@@ -1108,6 +1112,7 @@ class HunterIOClient:
                     continue
                 else:
                     result = {
+                        "email": email,
                         "score": 0, 
                         "status": "timeout", 
                         "error": "Request timeout after all retries", 
@@ -1129,6 +1134,7 @@ class HunterIOClient:
                     continue
                 else:
                     result = {
+                        "email": email,
                         "score": 0, 
                         "status": "error", 
                         "error": f"HTTP error {e.response.status_code}: {str(e)}", 
@@ -1150,6 +1156,7 @@ class HunterIOClient:
                     continue
                 else:
                     result = {
+                        "email": email,
                         "score": 0, 
                         "status": "error", 
                         "error": f"Connection error after all retries: {str(e)}", 
@@ -1172,6 +1179,7 @@ class HunterIOClient:
                     continue
                 else:
                     result = {
+                        "email": email,
                         "score": 0, 
                         "status": "error", 
                         "error": f"Unexpected error after all retries: {str(e)}", 
@@ -1221,6 +1229,7 @@ class HunterIOClient:
         for i, email in enumerate(emails):
             if not email or not isinstance(email, str):
                 cached_results[i] = {
+                    "email": email,
                     "score": 0, 
                     "status": "invalid", 
                     "error": "Invalid email format", 
@@ -1261,6 +1270,7 @@ class HunterIOClient:
                     for index, email in valid_emails:
                         if index not in cached_results:
                             cached_results[index] = {
+                                "email": emails[index],
                                 "score": 0, 
                                 "status": "error", 
                                 "error": str(result), 
@@ -1274,6 +1284,7 @@ class HunterIOClient:
         
         # Return results in original order
         return [cached_results.get(i, {
+            "email": emails[i],
             "score": 0, 
             "status": "error", 
             "error": "Verification failed", 
@@ -3581,10 +3592,33 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                                     contact["email_verified"] = True
                                                     contact["email_source"] = ["provider", "hunter_verified"]
                                                     logger.info(f"✅ ContactData email verified: {contact['email']} (score: {score}%)")
+                                                    
+                                                    # Enhanced quality insights logging
+                                                    if score >= 90:
+                                                        logger.info(f"   🏆 High-quality email (90%+) - excellent deliverability")
+                                                    elif score >= 80:
+                                                        logger.info(f"   🥇 Good quality email (80-89%) - good deliverability")
+                                                    elif score >= 70:
+                                                        logger.info(f"   🥈 Acceptable quality email (70-79%) - acceptable deliverability")
                                                 else:
                                                     contact["email_verified"] = False
                                                     contact["needs_email_replacement"] = True
                                                     logger.warning(f"❌ ContactData email failed verification: {contact['email']} (score: {score}%)")
+                                                    
+                                                    # Enhanced failure insights logging
+                                                    if score < 50:
+                                                        logger.info(f"   🚨 Very low quality (0-49%) - high bounce risk")
+                                                    elif score < 70:
+                                                        logger.info(f"   ⚠️ Below threshold (50-69%) - moderate bounce risk")
+                                                    
+                                                    # Log specific status insights
+                                                    status = hunter_result.get("status", "unknown")
+                                                    if status == "risky":
+                                                        logger.info(f"   ⚡ Risky email status - proceed with caution")
+                                                    elif status == "invalid":
+                                                        logger.info(f"   ❌ Invalid email format or domain")
+                                                    elif status == "unknown":
+                                                        logger.info(f"   🤔 Unknown status - verification inconclusive")
                                                 
                                                 # Track Hunter.io cost
                                                 if "costs" not in contact:
@@ -3645,10 +3679,33 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                                                     contact["email_verified"] = True
                                                                     contact["email_source"] = ["provider", "hunter_verified"]
                                                                     logger.info(f"✅ API response email verified: {contact['email']} (score: {score}%)")
+                                                                    
+                                                                    # Enhanced quality insights logging
+                                                                    if score >= 90:
+                                                                        logger.info(f"   🏆 High-quality email (90%+) - excellent deliverability")
+                                                                    elif score >= 80:
+                                                                        logger.info(f"   🥇 Good quality email (80-89%) - good deliverability")
+                                                                    elif score >= 70:
+                                                                        logger.info(f"   🥈 Acceptable quality email (70-79%) - acceptable deliverability")
                                                                 else:
                                                                     contact["email_verified"] = False
                                                                     contact["needs_email_replacement"] = True
                                                                     logger.warning(f"❌ API response email failed verification: {contact['email']} (score: {score}%)")
+                                                                    
+                                                                    # Enhanced failure insights logging
+                                                                    if score < 50:
+                                                                        logger.info(f"   🚨 Very low quality (0-49%) - high bounce risk")
+                                                                    elif score < 70:
+                                                                        logger.info(f"   ⚠️ Below threshold (50-69%) - moderate bounce risk")
+                                                                    
+                                                                    # Log specific status insights
+                                                                    status = hunter_result.get("status", "unknown")
+                                                                    if status == "risky":
+                                                                        logger.info(f"   ⚡ Risky email status - proceed with caution")
+                                                                    elif status == "invalid":
+                                                                        logger.info(f"   ❌ Invalid email format or domain")
+                                                                    elif status == "unknown":
+                                                                        logger.info(f"   🤔 Unknown status - verification inconclusive")
                                                                 
                                                                 # Track Hunter.io cost
                                                                 if "costs" not in contact:
@@ -3962,9 +4019,31 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                             contacts.append(email_contact)
                                             standalone_success = True
                                             logger.info(f"✅ STEP 1 SUCCESS: Created contact with verified email: {discovered_email} (score: {score}%)")
+                                            
+                                            # Enhanced quality insights logging
+                                            if score >= 90:
+                                                logger.info(f"   🏆 High-quality email (90%+) - excellent deliverability")
+                                            elif score >= 80:
+                                                logger.info(f"   🥇 Good quality email (80-89%) - good deliverability")
+                                            elif score >= 70:
+                                                logger.info(f"   🥈 Acceptable quality email (70-79%) - acceptable deliverability")
                                         else:
                                             # STEP 3: Email failed verification - don't create contact
                                             logger.warning(f"❌ STEP 1 FAILED: Discovered email {discovered_email} failed verification (score: {score}%) - proceeding to STEP 2")
+                                            
+                                            # Enhanced failure insights logging
+                                            if score < 50:
+                                                logger.info(f"   🚨 Very low quality (0-49%) - high bounce risk")
+                                            elif score < 70:
+                                                logger.info(f"   ⚠️ Below threshold (50-69%) - moderate bounce risk")
+                                            
+                                            # Log specific status insights
+                                            if status == "risky":
+                                                logger.info(f"   ⚡ Risky email status - proceed with caution")
+                                            elif status == "invalid":
+                                                logger.info(f"   ❌ Invalid email format or domain")
+                                            elif status == "unknown":
+                                                logger.info(f"   🤔 Unknown status - verification inconclusive")
                                         
                                         # Always track Hunter.io cost
                                         total_cost += hunter_result.get("cost_usd", 0.0)
@@ -4040,10 +4119,33 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                                 best_contact["email_verified"] = True
                                                 best_contact["email_source"] = ["provider", "hunter_verified"]
                                                 logger.info(f"✅ STEP 2 SUCCESS: Best contact email verified: {discovered_email} (score: {score}%)")
+                                                
+                                                # Enhanced quality insights logging
+                                                if score >= 90:
+                                                    logger.info(f"   🏆 High-quality email (90%+) - excellent deliverability")
+                                                elif score >= 80:
+                                                    logger.info(f"   🥇 Good quality email (80-89%) - good deliverability")
+                                                elif score >= 70:
+                                                    logger.info(f"   🥈 Acceptable quality email (70-79%) - acceptable deliverability")
                                             else:
                                                 best_contact["email_verified"] = False
                                                 best_contact["needs_email_replacement"] = True
                                                 logger.warning(f"❌ STEP 2 FAILED: Best contact email failed verification: {discovered_email} (score: {score}%) - proceeding to STEP 3")
+                                                
+                                                # Enhanced failure insights logging
+                                                if score < 50:
+                                                    logger.info(f"   🚨 Very low quality (0-49%) - high bounce risk")
+                                                elif score < 70:
+                                                    logger.info(f"   ⚠️ Below threshold (50-69%) - moderate bounce risk")
+                                                
+                                                # Log specific status insights
+                                                status = hunter_result.get("status", "unknown")
+                                                if status == "risky":
+                                                    logger.info(f"   ⚡ Risky email status - proceed with caution")
+                                                elif status == "invalid":
+                                                    logger.info(f"   ❌ Invalid email format or domain")
+                                                elif status == "unknown":
+                                                    logger.info(f"   🤔 Unknown status - verification inconclusive")
                                             
                                             # Track Hunter.io cost
                                             if "costs" not in best_contact:
