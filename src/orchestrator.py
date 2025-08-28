@@ -32,7 +32,7 @@ from src.common import (
 )
 from src.domain import DomainTool
 from src.crawl import CrawlTool
-from src.enrich import run_enrich
+from src.enrich import run_enrich, HunterIOClient
 from src.enrich_provider_router import create_enrichment_router
 
 # ============================================================================
@@ -97,6 +97,59 @@ class LeadSorcererOrchestrator:
         )
         self.permit_manager = PermitManager(max_concurrent)
 
+        # Initialize Hunter.io client with performance optimization settings
+        self.hunter_client = None
+        hunter_api_key = os.environ.get("HUNTER_IO_API_KEY")
+        if hunter_api_key:
+            # Get performance optimization settings from ICP config
+            hunter_config = self.icp_config.get("hunter_io", {})
+            perf_config = hunter_config.get("performance_optimization", {})
+            
+            # Caching settings
+            cache_config = perf_config.get("caching", {})
+            cache_enabled = cache_config.get("enabled", True)
+            cache_ttl_hours = cache_config.get("ttl_hours", 24) if cache_enabled else 0
+            max_cache_size = cache_config.get("max_size", 10000) if cache_enabled else 0
+            
+            # Initialize Hunter.io client with performance and error handling settings
+            if cache_enabled:
+                # Get error handling configuration
+                error_config = perf_config.get("error_handling", {})
+                error_enabled = error_config.get("enabled", True)
+                
+                if error_enabled:
+                    max_retries = error_config.get("max_retries", 3)
+                    base_delay = error_config.get("base_delay", 1.0)
+                    max_delay = error_config.get("max_delay", 60.0)
+                    
+                    self.hunter_client = HunterIOClient(
+                        api_key=hunter_api_key,
+                        cache_ttl_hours=cache_ttl_hours,
+                        max_cache_size=max_cache_size
+                    )
+                    
+                    # Apply error handling configuration
+                    self.hunter_client.max_retries = max_retries
+                    self.hunter_client.base_delay = base_delay
+                    self.hunter_client.max_delay = max_delay
+                    
+                    self.logger.info(f"✅ Hunter.io client initialized with caching and error handling (TTL: {cache_ttl_hours}h, Max size: {max_cache_size}, Retries: {max_retries}, Base delay: {base_delay}s, Max delay: {max_delay}s)")
+                else:
+                    self.hunter_client = HunterIOClient(
+                        api_key=hunter_api_key,
+                        cache_ttl_hours=cache_ttl_hours,
+                        max_cache_size=max_cache_size
+                    )
+                    self.logger.info(f"✅ Hunter.io client initialized with caching only (TTL: {cache_ttl_hours}h, Max size: {max_cache_size})")
+            else:
+                self.hunter_client = HunterIOClient(hunter_api_key)
+                self.logger.info("✅ Hunter.io client initialized without caching")
+        else:
+            self.logger.warning("⚠️ HUNTER_IO_API_KEY not configured - email verification will be limited")
+
+        # Load costs configuration for Hunter.io
+        self.costs_config = load_costs_config()
+
         # Initialize tools based on lead generation mode
         self._initialize_tools()
 
@@ -157,7 +210,13 @@ class LeadSorcererOrchestrator:
             try:
                 from src.apollo.lead_gen import ApolloLeadGen
 
-                self.apollo_tool = ApolloLeadGen(self.icp_config, self.data_dir)
+                self.apollo_tool = ApolloLeadGen(
+                    self.icp_config, 
+                    self.data_dir,
+                    hunter_client=self.hunter_client,
+                    logger=self.logger,
+                    costs_config=self.costs_config
+                )
                 self.logger.info("✅ Apollo lead generation tool initialized")
             except ModuleNotFoundError as e:
                 self.logger.error(f"Apollo package not installed: {e}")
@@ -683,7 +742,11 @@ class LeadSorcererOrchestrator:
             )
             self.logger.info(f"Apollo tool type: {type(self.apollo_tool)}")
 
-            apollo_result = await self.apollo_tool.run()
+            apollo_result = await self.apollo_tool.run(
+                hunter_client=self.hunter_client,
+                logger=self.logger,
+                costs_config=self.costs_config
+            )
             self.logger.info(f"Apollo tool.run() completed, result: {apollo_result}")
 
             if apollo_result.get("errors"):
@@ -711,7 +774,12 @@ class LeadSorcererOrchestrator:
                     "lead_records": passing_leads,
                     "icp_config": self.icp_config,
                 }
-                crawl_result = await self.crawl_tool.run(crawl_payload)
+                crawl_result = await self.crawl_tool.run(
+                    crawl_payload, 
+                    hunter_client=self.hunter_client, 
+                    logger=self.logger, 
+                    costs_config=self.costs_config
+                )
 
                 if crawl_result.get("errors"):
                     self.total_errors.extend(crawl_result["errors"])
@@ -845,7 +913,12 @@ class LeadSorcererOrchestrator:
                 "icp_config": self.icp_config,
                 "extraction_mode": "database",  # Signal to crawl tool
             }
-            crawl_result = await self.crawl_tool.run(crawl_payload)
+            crawl_result = await self.crawl_tool.run(
+                crawl_payload, 
+                hunter_client=self.hunter_client, 
+                logger=self.logger, 
+                costs_config=self.costs_config
+            )
 
             if crawl_result.get("errors"):
                 self.total_errors.extend(crawl_result["errors"])
@@ -948,7 +1021,12 @@ class LeadSorcererOrchestrator:
                 "lead_records": passing_leads,
                 "icp_config": self.icp_config,
             }
-            crawl_result = await self.crawl_tool.run(crawl_payload)
+            crawl_result = await self.crawl_tool.run(
+                crawl_payload, 
+                hunter_client=self.hunter_client, 
+                logger=self.logger, 
+                costs_config=self.costs_config
+            )
 
             if crawl_result.get("errors"):
                 self.total_errors.extend(crawl_result["errors"])
@@ -1275,9 +1353,11 @@ class LeadSorcererOrchestrator:
             for key, value in obj.items():
                 field_path = f"{prefix}.{key}" if prefix else key
 
-                # Special handling for contacts array - include best contact fields
+                # Special handling for contacts array - include best contact fields and Hunter.io fields
                 if key == "contacts" and isinstance(value, list) and value:
                     self._add_best_contact_fields(fields)
+                    # Also add Hunter.io fields for all contacts
+                    self._add_hunter_io_fields(fields)
                 elif isinstance(value, (dict, list)):
                     self._collect_fields(value, field_path, fields)
                 else:
@@ -1305,8 +1385,38 @@ class LeadSorcererOrchestrator:
             "best_contact.department",
             "best_contact.seniority",
             "best_contact.location",
+            # Hunter.io verification fields
+            "best_contact.hunter_verification.score",
+            "best_contact.hunter_verification.status",
+            "best_contact.hunter_verification.result",
+            "best_contact.email_quality_score",
+            "best_contact.email_verified",
+            "best_contact.needs_email_replacement",
+            "best_contact.replaced_email",
+            "best_contact.email_quality_improvement",
         ]
         fields.update(contact_fields)
+
+    def _add_hunter_io_fields(self, fields: set) -> None:
+        """Add Hunter.io verification fields to CSV export."""
+        hunter_io_fields = [
+            "hunter_verification.score",
+            "hunter_verification.status", 
+            "hunter_verification.result",
+            "hunter_verification.disposable",
+            "hunter_verification.webmail",
+            "hunter_verification.mx_record",
+            "hunter_verification.smtp_server",
+            "hunter_verification.smtp_check",
+            "hunter_verification.cost_usd",
+            "email_quality_score",
+            "email_verified",
+            "needs_email_replacement",
+            "replaced_email",
+            "email_quality_improvement",
+            "needs_email_discovery",
+        ]
+        fields.update(hunter_io_fields)
 
     def _get_best_contact_field(self, record: Dict[str, Any], field_name: str) -> str:
         """Get field value from the best contact."""
@@ -1346,6 +1456,11 @@ class LeadSorcererOrchestrator:
                     last_name = best_contact.get("last_name", "")
                     if first_name or last_name:
                         value = f"{first_name} {last_name}".strip()
+            elif field_name.startswith("hunter_verification."):
+                # Handle nested Hunter.io verification fields
+                hunter_verification = best_contact.get("hunter_verification", {})
+                sub_field = field_name.split(".", 1)[1]
+                value = hunter_verification.get(sub_field)
             else:
                 value = best_contact.get(field_name)
 

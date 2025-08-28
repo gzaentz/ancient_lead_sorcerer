@@ -81,6 +81,149 @@
       "default": 0.7,
       "description": "ICP fit threshold for progression"
     },
+    "hunter_io": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to enable Hunter.io email verification"
+        },
+        "min_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 70,
+          "description": "Minimum Hunter.io score required for email verification (0-100%)"
+        },
+        "max_verifications_per_contact": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Maximum number of email verification attempts per contact"
+        },
+        "fallback_discovery": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to attempt email discovery when verification fails"
+        },
+        "cost_tracking": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to track Hunter.io costs in the lead record"
+        },
+        "performance_optimization": {
+          "type": "object",
+          "properties": {
+            "caching": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to enable email verification result caching"
+                },
+                "ttl_hours": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 168,
+                  "default": 24,
+                  "description": "Cache TTL in hours (1-168)"
+                },
+                "max_size": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 100000,
+                  "default": 10000,
+                  "description": "Maximum cache size in entries"
+                }
+              },
+              "additionalProperties": false,
+              "description": "Caching configuration for Hunter.io verification results"
+            },
+            "batch_verification": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to enable batch email verification"
+                },
+                "max_concurrent": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10,
+                  "default": 5,
+                  "description": "Maximum concurrent verification requests"
+                },
+                "batch_threshold": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 100,
+                  "default": 2,
+                  "description": "Minimum contacts to trigger batch verification"
+                }
+              },
+              "additionalProperties": false,
+              "description": "Batch verification configuration"
+            },
+            "error_handling": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to enable enhanced error handling and retry logic"
+                },
+                "max_retries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10,
+                  "default": 3,
+                  "description": "Maximum number of retry attempts for failed requests"
+                },
+                "base_delay": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "default": 1.0,
+                  "description": "Base delay in seconds for exponential backoff"
+                },
+                "max_delay": {
+                  "type": "number",
+                  "minimum": 10.0,
+                  "maximum": 300.0,
+                  "default": 60.0,
+                  "description": "Maximum delay in seconds for exponential backoff"
+                },
+                "retry_on_rate_limit": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to retry requests that hit rate limits"
+                },
+                "retry_on_server_errors": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to retry requests that fail with server errors (5xx)"
+                },
+                "retry_on_timeouts": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether to retry requests that timeout"
+                }
+              },
+              "additionalProperties": false,
+              "description": "Error handling and retry configuration for Hunter.io integration"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Performance optimization and error handling settings for Hunter.io integration"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Hunter.io email verification configuration"
+    },
     "filtering_strict": {
       "type": "boolean",
       "default": true,
@@ -157,18 +300,33 @@
       "properties": {
         "company_usd": {
           "type": "number",
-          "minimum": 0.0
+          "minimum": 0.0,
+          "description": "Maximum cost per company in USD"
         },
         "contact_usd": {
           "type": "number",
-          "minimum": 0.0
+          "minimum": 0.0,
+          "description": "Maximum cost per contact in USD"
         },
         "run_usd_max": {
           "type": "number",
-          "minimum": 0.0
+          "minimum": 0.0,
+          "description": "Maximum total cost per run in USD"
+        },
+        "hunter_io_usd": {
+          "type": "number",
+          "minimum": 0.0,
+          "default": 0.002,
+          "description": "Cost per Hunter.io email verification in USD"
+        },
+        "hunter_io_max_per_run": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Maximum Hunter.io verification cost per run in USD"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Cost caps and limits for various services"
     },
     "role_priority": {
       "type": "object",

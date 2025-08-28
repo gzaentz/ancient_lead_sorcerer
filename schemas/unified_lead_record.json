@@ -539,6 +539,12 @@
           "hunter_verification": {
             "type": "object",
             "properties": {
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 2048,
+                "description": "Email address that was verified"
+              },
               "score": {
                 "type": "integer", 
                 "minimum": 0, 
@@ -554,6 +560,27 @@
                 "type": "string", 
                 "enum": ["deliverable", "undeliverable", "risky", "unknown", "invalid"],
                 "description": "Hunter.io deliverability result"
+              },
+              "disposable": {
+                "type": "boolean",
+                "description": "Whether the email address is disposable/temporary"
+              },
+              "webmail": {
+                "type": "boolean",
+                "description": "Whether the email address is from a webmail provider (Gmail, Yahoo, etc.)"
+              },
+              "mx_record": {
+                "type": "boolean",
+                "description": "Whether the domain has valid MX records"
+              },
+              "smtp_server": {
+                "type": ["string", "null"],
+                "maxLength": 2048,
+                "description": "SMTP server information for the email domain"
+              },
+              "smtp_check": {
+                "type": "boolean",
+                "description": "Whether the SMTP server accepts emails"
               },
               "sources": {
                 "type": "array", 
@@ -582,9 +609,9 @@
                 "description": "Cost of Hunter.io verification in USD"
               }
             },
-            "required": ["score", "status", "result", "api_calls", "cost_usd"],
+            "required": ["email", "score", "status", "result", "cost_usd"],
             "additionalProperties": false,
-            "description": "Hunter.io email verification results"
+            "description": "Hunter.io email verification results with comprehensive deliverability metrics"
           },
           "email_quality_score": {
             "type": "integer", 
@@ -645,6 +672,28 @@
             },
             "maxItems": 5,
             "description": "URLs providing evidence for contact data"
+          },
+          "costs": {
+            "type": "object",
+            "properties": {
+              "hunter_io": {
+                "type": "number",
+                "minimum": 0.0,
+                "description": "Hunter.io verification cost in USD for this contact"
+              },
+              "enrichment": {
+                "type": "number",
+                "minimum": 0.0,
+                "description": "Enrichment cost in USD for this contact"
+              },
+              "discovery": {
+                "type": "number",
+                "minimum": 0.0,
+                "description": "Email discovery cost in USD for this contact"
+              }
+            },
+            "additionalProperties": true,
+            "description": "Cost tracking for this contact across all services"
           }
         },
         "additionalProperties": true

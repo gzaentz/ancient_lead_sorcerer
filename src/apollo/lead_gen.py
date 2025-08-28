@@ -39,11 +39,17 @@ class ApolloLeadGen:
         icp_config: Dict[str, Any],
         data_dir: Optional[str] = None,
         permit_manager: Optional[PermitManager] = None,
+        hunter_client: Optional[Any] = None,
+        logger: Optional[logging.Logger] = None,
+        costs_config: Optional[Dict[str, Any]] = None,
     ):
         """Initialize Apollo Lead Generation with advanced features"""
         self.icp_config = icp_config
         self.data_dir = data_dir
         self.permit_manager = permit_manager or PermitManager()
+        self.hunter_client = hunter_client
+        self.costs_config = costs_config
+        self.external_logger = logger
 
         # Validate Apollo configuration
         self._validate_apollo_config(self.icp_config)
@@ -302,9 +308,14 @@ class ApolloLeadGen:
                             "All business parameters must be loaded from ICP configuration, never hardcoded."
                         )
 
-    async def run(self) -> Dict[str, Any]:
+    async def run(self, hunter_client: Optional[Any] = None, logger: Optional[logging.Logger] = None, costs_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Main entry point for Apollo lead generation.
+
+        Args:
+            hunter_client: Optional Hunter.io client for email verification
+            logger: Optional logger instance
+            costs_config: Optional costs configuration
 
         Returns:
             Lead generation results in unified format
@@ -312,6 +323,11 @@ class ApolloLeadGen:
         Raises:
             ApolloLeadGenError: If lead generation fails
         """
+        # Use provided parameters or fall back to instance variables
+        hunter_client = hunter_client or self.hunter_client
+        costs_config = costs_config or self.costs_config
+        if logger:
+            self.external_logger = logger
         try:
             logger.info("Starting Apollo lead generation")
             logger.info(f"Search filters: {self.search_filters}")
@@ -354,6 +370,45 @@ class ApolloLeadGen:
                 logger.info(
                     f"Schema transformation completed, got {len(lead_records)} lead records"
                 )
+
+                # HUNTER.IO VERIFICATION: Verify ALL Apollo emails
+                if lead_records and hunter_client:
+                    # Dynamic import to avoid circular import
+                    from ..enrich import verify_all_contact_emails_with_hunter
+                    
+                    logger.info(f"🔍 Hunter.io: Verifying Apollo emails for {len(lead_records)} lead records")
+                    total_hunter_cost = 0.0
+                    
+                    for record in lead_records:
+                        contacts = record.get("contacts", [])
+                        if contacts:
+                            domain = record.get("domain", "")
+                            logger.info(f"🔍 Hunter.io: Verifying {len(contacts)} Apollo emails for {domain}")
+                            
+                            verified_contacts, hunter_cost = await verify_all_contact_emails_with_hunter(
+                                contacts=contacts,
+                                hunter_client=hunter_client,
+                                domain=domain,
+                                logger=logger,
+                                costs_config=costs_config or {},
+                                min_score=self.icp_config.get("hunter_min_score", 70)
+                            )
+                            
+                            # Update record with verified contacts
+                            record["contacts"] = verified_contacts
+                            
+                            # Track Hunter.io costs in record
+                            if "costs" not in record:
+                                record["costs"] = {}
+                            if "hunter_io" not in record["costs"]:
+                                record["costs"]["hunter_io"] = 0.0
+                            record["costs"]["hunter_io"] += hunter_cost
+                            
+                            total_hunter_cost += hunter_cost
+                    
+                    logger.info(f"💰 Hunter.io total verification cost for Apollo: ${total_hunter_cost:.4f}")
+                elif lead_records:
+                    logger.warning("⚠️ Hunter.io client not available - Apollo emails will not be verified")
 
                 # Validate lead quality
                 logger.info("About to validate lead quality...")
