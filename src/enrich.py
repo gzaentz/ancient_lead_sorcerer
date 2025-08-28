@@ -873,7 +873,7 @@ class HunterIOClient:
                 
                 log.info(f"🔍 Hunter.io: Starting verification for {email}")
                 
-                async with httpx.AsyncClient(timeout=httpx.Timeout(connect=3.0, read=10.0)) as client:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=3.0, read=10.0, write=5.0, pool=5.0)) as client:
                     response = await client.get(url, params=params)
                     
                     if response.status_code == 401:
@@ -898,13 +898,14 @@ class HunterIOClient:
                     
                     response.raise_for_status()
                     data = response.json()
+                    hunter_data = data.get("data", {})
                     
                     # Extract Hunter.io response
                     result = {
-                        "score": data.get("score", 0),
-                        "status": data.get("status", "unknown"),
-                        "result": data.get("result", "unknown"),
-                        "sources": data.get("sources", []),
+                        "score": hunter_data.get("score", 0),
+                        "status": hunter_data.get("status", "unknown"),
+                        "result": hunter_data.get("result", "unknown"),
+                        "sources": hunter_data.get("sources", []),
                         "api_calls": 1,
                         "error": None,
                         "verified_at": now_z(),
