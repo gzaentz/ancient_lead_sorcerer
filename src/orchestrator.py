@@ -97,6 +97,9 @@ class LeadSorcererOrchestrator:
         )
         self.permit_manager = PermitManager(max_concurrent)
 
+        # Load costs configuration for Hunter.io
+        self.costs_config = load_costs_config()
+
         # Initialize Hunter.io client with performance optimization settings
         self.hunter_client = None
         hunter_api_key = os.environ.get("HUNTER_IO_API_KEY")
@@ -146,9 +149,6 @@ class LeadSorcererOrchestrator:
                 self.logger.info("✅ Hunter.io client initialized without caching")
         else:
             self.logger.warning("⚠️ HUNTER_IO_API_KEY not configured - email verification will be limited")
-
-        # Load costs configuration for Hunter.io
-        self.costs_config = load_costs_config()
 
         # Initialize tools based on lead generation mode
         self._initialize_tools()

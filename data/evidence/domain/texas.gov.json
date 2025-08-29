@@ -1,40 +1,20 @@
 {
   "domain": "texas.gov",
   "queries": [
-    "family owned dental practices multiple offices Texas"
+    "fund of funds crypto investments"
   ],
-  "fetched_at": "2025-08-27T23:01:12.541963Z",
+  "fetched_at": "2025-08-29T14:09:49.488673Z",
   "serp_results": [
     {
-      "url": "https://www.dshs.texas.gov/center-health-statistics/texas-primary-care-office-tpco/federally-qualified-health-centers-fqhc",
-      "title": "Federally Qualified Health Centers (FQHCs) | Texas DSHS",
-      "snippet": "Texas Primary Care Office (TPCO); Federally Qualified Health Centers (FQHCs) ... Increasingly more FQHCs offer additional services, such as dental, mental health,\u00a0...",
-      "query": "family owned dental practices multiple offices Texas",
-      "page_index": 1,
+      "url": "https://senate.texas.gov/news.php?id=20250218a",
+      "title": "The Texas State Senate \u2013 News - 20250218a",
+      "snippet": "Feb 18, 2025 ... ... fund. These funds work similarly to a mutual or index fund, though invested in various crypto currencies rather than stocks or bonds. The crypto\u00a0...",
+      "query": "fund of funds crypto investments",
+      "page_index": 4,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-27T23:00:57.063095Z",
-      "domain": "texas.gov"
-    },
-    {
-      "url": "https://www.dshs.texas.gov/dental-health/find-a-dentist",
-      "title": "Find a Dentist | Texas DSHS",
-      "snippet": "Jan 29, 2025 ... Dental Health Regional Offices ... Texas Mission of Mercy (TMOM) is a mobile dental clinic run by volunteers that travels around Texas.",
-      "query": "family owned dental practices multiple offices Texas",
-      "page_index": 1,
-      "rank_on_page": 0,
-      "fetched_at": "2025-08-27T23:00:57.304817Z",
-      "domain": "texas.gov"
-    },
-    {
-      "url": "https://comptroller.texas.gov/",
-      "title": "Texas Comptroller of Public Accounts",
-      "snippet": "Senate Bill 2 (89th Legislature) establishes an education savings account program to assist Texas families and was signed into law May 3. Our office has begun\u00a0...",
-      "query": "family owned dental practices multiple offices Texas",
-      "page_index": 1,
-      "rank_on_page": 0,
-      "fetched_at": "2025-08-27T23:00:57.409855Z",
+      "fetched_at": "2025-08-29T14:07:05.734874Z",
       "domain": "texas.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "98e51db2119cf62bc50202839dcc22711e35e841e12a40ab4131754f7f27d886"
+  "scoring_prompt_fingerprint": "79bebb5ec9ca5fbfa44fe867f294face00df2e1632102f817f6073bea34b3259"
 }

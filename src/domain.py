@@ -115,64 +115,116 @@ class LLMScorer:
         self.fallback_model = "gpt-3.5-turbo"
 
     def _build_scoring_prompt(
-        self, title: str, snippet: str, query: str, icp_text: str
+        self, title: str, snippet: str, query: str, icp_config: Dict[str, Any]
     ) -> str:
         """
-        Build scoring prompt for LLM.
+        Build scoring prompt for LLM using full ICP configuration.
 
         Args:
             title: SERP result title
             snippet: SERP result snippet
             query: Search query used
-            icp_text: ICP description
+            icp_config: Full ICP configuration dictionary
 
         Returns:
             Formatted prompt string
         """
-        return f"""You are evaluating whether a company matches an Ideal Customer Profile (ICP).
+        # Extract key ICP information
+        icp_text = icp_config.get("icp_text", "")
+        icp_name = icp_config.get("name", "Unknown ICP")
+        
+        # Get intent configuration if available
+        intent_config = icp_config.get("intent_config", {})
+        high_intent_signals = intent_config.get("intent_signals", {}).get("high_intent", [])
+        low_intent_signals = intent_config.get("intent_signals", {}).get("low_intent", [])
+        
+        # Get validation criteria
+        validation_criteria = intent_config.get("validation_criteria", {})
+        required_attributes = validation_criteria.get("required_attributes", [])
+        disqualified_attributes = validation_criteria.get("disqualifying_attributes", [])
+        size_validation = validation_criteria.get("size_validation", {})
+        
+        # Build dynamic prompt based on available ICP config
+        prompt = f"""You are evaluating whether a company matches the Ideal Customer Profile (ICP): "{icp_name}"
 
-ICP Description: {icp_text}
+ICP DESCRIPTION: {icp_text}
 
-Search Query: {query}
+SEARCH QUERY: {query}
 
-Company Information:
+COMPANY INFORMATION:
 Title: {title}
 Description: {snippet}
 
-Rate this company from 0.0 to 1.0 based on how well it matches the ICP.
-Consider factors like:
-- Industry relevance
-- Company size and stage
-- Geographic location
-- Technology focus
-- Business model alignment
+EVALUATION CRITERIA:
+"""
+        
+        # Add intent signals if available
+        if high_intent_signals:
+            prompt += f"\nHIGH INTENT SIGNALS (Score +0.8 if found):\n"
+            for signal in high_intent_signals[:5]:  # Limit to top 5
+                prompt += f"- {signal}\n"
+        
+        if low_intent_signals:
+            prompt += f"\nLOW INTENT SIGNALS (Score -0.5 if found):\n"
+            for signal in low_intent_signals[:5]:  # Limit to top 5
+                prompt += f"- {signal}\n"
+        
+        # Add validation criteria if available
+        if required_attributes:
+            prompt += f"\nREQUIRED ATTRIBUTES (Must have):\n"
+            for attr in required_attributes:
+                prompt += f"- {attr}\n"
+        
+        if disqualified_attributes:
+            prompt += f"\nDISQUALIFYING ATTRIBUTES (Must NOT have):\n"
+            for attr in disqualified_attributes[:5]:  # Limit to top 5
+                prompt += f"- {attr}\n"
+        
+        # Add size validation if available
+        if size_validation:
+            min_emp = size_validation.get("min_employees", 1)
+            max_emp = size_validation.get("max_employees", 200)
+            preferred = size_validation.get("preferred_range", "1-50")
+            prompt += f"\nSIZE REQUIREMENTS:\n- Minimum employees: {min_emp}\n- Maximum employees: {max_emp}\n- Preferred range: {preferred}\n"
+        
+        prompt += f"""
+SCORING INSTRUCTIONS:
+1. Start with base score 0.3
+2. Add +0.8 for each HIGH INTENT signal found
+3. Subtract -0.5 for each LOW INTENT signal found
+4. Ensure company has all REQUIRED ATTRIBUTES
+5. Reject if company has any DISQUALIFYING ATTRIBUTES
+6. Consider size requirements and industry relevance
+7. Focus on whether this company would be interested in investing in AI/crypto hedge funds
 
 Return only a JSON object with this exact format:
 {{
     "score": <float between 0.0 and 1.0>,
-    "reason": "<brief explanation of score>",
-    "flags": ["<any disqualifying flags like geo_mismatch, size_mismatch, etc.>"]
+    "reason": "<detailed explanation of score including specific signals found>",
+    "flags": ["<any disqualifying flags like size_mismatch, industry_mismatch, etc.>"]
 }}
 
-Example flags: geo_mismatch, size_mismatch, industry_mismatch, stage_mismatch, technology_mismatch"""
+Example flags: size_mismatch, industry_mismatch, geo_mismatch, disqualified_attribute, missing_required_attribute"""
+        
+        return prompt
 
     async def score_domain(
-        self, title: str, snippet: str, query: str, icp_text: str
+        self, title: str, snippet: str, query: str, icp_config: Dict[str, Any]
     ) -> Tuple[float, str, List[str], str, str]:
         """
-        Score a domain using LLM.
+        Score a domain using LLM with full ICP configuration.
 
         Args:
             title: SERP result title
             snippet: SERP result snippet
             query: Search query used
-            icp_text: ICP description
+            icp_config: Full ICP configuration dictionary
 
         Returns:
             Tuple of (score, reason, flags, model_used, prompt_fingerprint)
         """
         async with self.semaphore_pool:
-            prompt = self._build_scoring_prompt(title, snippet, query, icp_text)
+            prompt = self._build_scoring_prompt(title, snippet, query, icp_config)
             prompt_fingerprint = hashlib.sha256(prompt.encode()).hexdigest()
 
             try:
@@ -765,7 +817,7 @@ class DomainTool:
                     result["title"],
                     result["snippet"],
                     result["query"],
-                    self.icp_config["icp_text"],
+                    self.icp_config,
                 )
 
                 # Update record with scoring results
@@ -815,7 +867,7 @@ class DomainTool:
                         result["title"]
                         + result["snippet"]
                         + result["query"]
-                        + self.icp_config["icp_text"]
+                        + str(self.icp_config)
                     )
                     // 4
                 )

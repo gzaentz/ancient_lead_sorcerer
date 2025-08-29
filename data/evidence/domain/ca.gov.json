@@ -1,20 +1,20 @@
 {
   "domain": "ca.gov",
   "queries": [
-    "family owned dental practices multiple offices California"
+    "fund of funds crypto investments"
   ],
-  "fetched_at": "2025-08-27T21:05:14.293980Z",
+  "fetched_at": "2025-08-29T14:09:49.521860Z",
   "serp_results": [
     {
-      "url": "https://www.dbc.ca.gov/licensees/dds/permits/fictitious_name.shtml",
-      "title": "Application for Fictitious Name Permit - Dental Board of California",
-      "snippet": "Submit evidence that the dental practice is entirely owned or leased by the ... Dental offices practicing as an Individual/Sole Ownership do not require\u00a0...",
-      "query": "family owned dental practices multiple offices California",
-      "page_index": 1,
+      "url": "https://dfpi.ca.gov/consumers/crypto/crypto-scam-tracker/",
+      "title": "Crypto Scam Tracker - DFPI",
+      "snippet": "Jul 30, 2025 ... Benjamin\u201d who claimed to be part of a finance team for an investment company called CBESX. The victim responded, and Mr. Benjamin instructed the\u00a0...",
+      "query": "fund of funds crypto investments",
+      "page_index": 7,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-27T21:04:47.373332Z",
+      "fetched_at": "2025-08-29T14:07:11.824634Z",
       "domain": "ca.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "88a51462f791b69b7ee75ac7dfd11d2d9a83edbf60b530bcfdf0615f9c1092fc"
+  "scoring_prompt_fingerprint": "50827442ffde9ccf29b5309f9f3f91f67d042c79207c0bfc07f9bdee2f200ed9"
 }

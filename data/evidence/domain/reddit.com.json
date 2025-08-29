@@ -1,20 +1,20 @@
 {
   "domain": "reddit.com",
   "queries": [
-    "dental practice networks 5+ locations independent ownership"
+    "family office cryptocurrency investments"
   ],
-  "fetched_at": "2025-08-18T22:41:18.840302Z",
+  "fetched_at": "2025-08-29T14:20:54.083603Z",
   "serp_results": [
     {
-      "url": "https://www.reddit.com/r/DentalSchool/comments/1hqvtfr/i_own_a_5myear_dental_practice_i_do_all_on_4/",
-      "title": "I own a 5M/year dental practice, I do all on 4 surgeries and other ...",
-      "snippet": "Jan 1, 2025 ... ... locations and have just one huge practice. Then my ... So now it's me and my partner with a practice that could support 5+ dentists.",
-      "query": "dental practice networks 5+ locations independent ownership",
-      "page_index": 1,
+      "url": "https://www.reddit.com/r/startups/comments/1m29w0q/i_was_one_click_away_of_bankrupting_my_startup_a/",
+      "title": "I was one click away of bankrupting my startup: A story of a ...",
+      "snippet": "Jul 17, 2025 ... ... family office interested in investing USD 2.4M in our company. The ... East Side Investments AG (Swiss-based entity listed to receive the crypto\u00a0...",
+      "query": "family office cryptocurrency investments",
+      "page_index": 8,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:40:19.326221Z",
+      "fetched_at": "2025-08-29T14:17:39.989258Z",
       "domain": "reddit.com"
     }
   ],
-  "scoring_prompt_fingerprint": "e6d1373e20dc8d5bd5a6209e1b98d6f01bf41c57a5178f7fa684b10e578682c9"
+  "scoring_prompt_fingerprint": "4c94e404b875509a9a6ba50491d0edeaea128eeb14d0858aaa408e869fb3102d"
 }
