@@ -2,11 +2,13 @@
   "name": "Crypto AI Hedge Fund Investors ICP",
   "icp_text": "Institutional investors, fund of funds, family offices, and investment firms with demonstrated interest and past investments in cryptocurrency, blockchain, artificial intelligence, and hedge fund strategies. Focus on entities that have previously invested in crypto funds, AI companies, or alternative investment vehicles.",
   
-  "lead_generation_mode": "search",
+  "lead_generation_mode": "url",
   
   "queries": [
-    "family office cryptocurrency investments"
+    "family office crypto AI investments"
   ],
+  "specific_urls": ["https://craincurrency.com/","https://prestelandpartners.com/","https://rafflesgroup.co/"],
+
   
   "required_fields": {
     "company": ["name", "domain", "industry", "size", "location", "description"],
@@ -154,7 +156,7 @@
   },
   
   "search": {
-    "max_pages": 1
+    "max_pages": 5
   },
   
   "testing": {
@@ -184,6 +186,89 @@
     "Vice President": 12,
     "Senior Vice President": 13,
     "default": 99
+  },
+  
+  "decision_makers": {
+    "priority_threshold": 10,
+    "include_variations": true,
+    "title_variations": {
+      "ceo": [
+        "Chief Executive Officer",
+        "Chief Executive",
+        "CEO",
+        "Founder & CEO",
+        "CEO and Founder",
+        "Founder, CEO",
+        "CEO, Founder"
+      ],
+      "owner": [
+        "Founder",
+        "Proprietor",
+        "Owner",
+        "Founder & Owner"
+      ],
+      "president": [
+        "Chief Executive",
+        "Executive Director",
+        "President",
+        "Founder & President"
+      ],
+      "vp": [
+        "Vice President",
+        "Vice-President",
+        "VP"
+      ],
+      "director": [
+        "Managing Director",
+        "Executive Director",
+        "General Manager",
+        "Director",
+        "Founder & Director"
+      ],
+      "head": [
+        "Head of",
+        "Department Head",
+        "Division Head",
+        "Head"
+      ]
+    },
+    "common_variations": {
+      "ceo": [
+        "Chief Executive Officer",
+        "Chief Executive",
+        "CEO",
+        "Founder & CEO",
+        "CEO and Founder"
+      ],
+      "owner": [
+        "Founder",
+        "Proprietor",
+        "Owner"
+      ],
+      "president": [
+        "President",
+        "Executive Director"
+      ],
+      "vp": [
+        "Vice President",
+        "VP"
+      ],
+      "director": [
+        "Managing Director",
+        "Director"
+      ],
+      "head": [
+        "Head of",
+        "Head"
+      ]
+    },
+    "manager_titles": [
+      "Operations Manager",
+      "General Manager",
+      "Department Manager",
+      "Investment Manager",
+      "Portfolio Manager"
+    ]
   },
   
   "exports": {

@@ -3440,69 +3440,64 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                 else:
                                     prospects = []
 
-                                # Build decision-maker titles from role priorities
+                                # Build decision-maker titles from ICP config
+                                # Configuration structure:
+                                # "decision_makers": {
+                                #   "priority_threshold": 10,  // Max priority to include
+                                #   "include_variations": true,  // Whether to add title variations
+                                #   "title_variations": {  // Custom variations per role
+                                #     "ceo": ["CEO", "Founder & CEO", "CEO and Founder"],
+                                #     "owner": ["Founder", "Proprietor"]
+                                #   },
+                                #   "common_variations": {  // Fallback variations for key roles
+                                #     "ceo": ["Chief Executive Officer", "CEO"]
+                                #   },
+                                #   "manager_titles": ["Operations Manager", "General Manager"]
+                                # }
                                 role_priority = icp_config.get("role_priority", {})
                                 decision_maker_titles = []
+                                
+                                # Get decision maker configuration from ICP config
+                                decision_maker_config = icp_config.get("decision_makers", {})
+                                decision_maker_threshold = decision_maker_config.get("priority_threshold", 10)
+                                title_variations = decision_maker_config.get("title_variations", {})
+                                include_variations = decision_maker_config.get("include_variations", True)
 
                                 for role, priority in role_priority.items():
-                                    if priority <= 5:  # Focus on high-priority roles
+                                    if priority <= decision_maker_threshold:
                                         decision_maker_titles.append(role.title())
-                                        # Add common variations
-                                        if role.lower() == "ceo":
-                                            decision_maker_titles.extend(
-                                                [
-                                                    "Chief Executive Officer",
-                                                    "Chief Executive",
-                                                ]
-                                            )
-                                        elif role.lower() == "owner":
-                                            decision_maker_titles.extend(
-                                                ["Founder", "Proprietor"]
-                                            )
-                                        elif role.lower() == "president":
-                                            decision_maker_titles.extend(
-                                                [
-                                                    "Chief Executive",
-                                                    "Executive Director",
-                                                ]
-                                            )
-                                        elif role.lower() == "vp":
-                                            decision_maker_titles.extend(
-                                                ["Vice President", "Vice-President"]
-                                            )
-                                        elif role.lower() == "director":
-                                            decision_maker_titles.extend(
-                                                [
-                                                    "Managing Director",
-                                                    "Executive Director",
-                                                    "General Manager",
-                                                ]
-                                            )
-                                        elif role.lower() == "head":
-                                            decision_maker_titles.extend(
-                                                [
-                                                    "Head of",
-                                                    "Department Head",
-                                                    "Division Head",
-                                                ]
-                                            )
+                                        
+                                        # Add title variations if enabled and configured
+                                        if include_variations and title_variations:
+                                            role_lower = role.lower()
+                                            if role_lower in title_variations:
+                                                decision_maker_titles.extend(title_variations[role_lower])
+                                            
+                                            # Fallback to common variations for key roles if not explicitly configured
+                                            elif role_lower in ["ceo", "owner", "president", "vp", "director", "head"]:
+                                                common_variations = decision_maker_config.get("common_variations", {}).get(role_lower, [])
+                                                if common_variations:
+                                                    decision_maker_titles.extend(common_variations)
+                                        
+                                        # Handle manager titles specifically
                                         elif role.lower() == "manager":
-                                            # Use configurable manager titles from ICP config, or fall back to generic ones
-                                            manager_titles = icp_config.get(
-                                                "role_priority", {}
-                                            ).get(
-                                                "manager_titles",
-                                                [
-                                                    "Operations Manager",
-                                                    "General Manager",
-                                                    "Department Manager",
-                                                ],
-                                            )
-                                            decision_maker_titles.extend(manager_titles)
+                                            manager_titles = decision_maker_config.get("manager_titles", [])
+                                            if manager_titles:
+                                                decision_maker_titles.extend(manager_titles)
 
                                 decision_set = {
                                     t.lower() for t in decision_maker_titles
                                 }
+                                
+                                # Log decision maker configuration for debugging
+                                logger.info(f"🔍 Decision maker configuration for {normalized_domain}:")
+                                logger.info(f"   Priority threshold: {decision_maker_threshold}")
+                                logger.info(f"   Include variations: {include_variations}")
+                                logger.info(f"   Total decision maker titles: {len(decision_maker_titles)}")
+                                if decision_maker_titles:
+                                    logger.info(f"   Sample titles: {decision_maker_titles[:5]}")
+                                if title_variations:
+                                    logger.info(f"   Custom variations configured for: {list(title_variations.keys())}")
 
                                 # Process prospects and build contacts
                                 for profile in prospects[:5]:  # Limit to 5 contacts

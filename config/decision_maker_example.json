@@ -1,0 +1,149 @@
+{
+  "name": "Decision Maker Configuration Examples",
+  "description": "Examples of how to configure decision makers for different ICP types",
+  
+  "role_priority": {
+    "CEO": 1,
+    "Founder": 1,
+    "Owner": 1,
+    "Managing Partner": 2,
+    "Partner": 3,
+    "Managing Director": 4,
+    "Director": 5,
+    "VP": 6,
+    "Head": 7,
+    "Manager": 8,
+    "default": 99
+  },
+  
+  "decision_makers": {
+    "priority_threshold": 8,
+    "include_variations": true,
+    
+    "title_variations": {
+      "ceo": [
+        "Chief Executive Officer",
+        "Chief Executive",
+        "CEO",
+        "Founder & CEO",
+        "CEO and Founder",
+        "Founder, CEO",
+        "CEO, Founder",
+        "Executive Director",
+        "Managing Director"
+      ],
+      "founder": [
+        "Founder",
+        "Co-Founder",
+        "Founding Partner",
+        "Founding Member",
+        "Original Owner"
+      ],
+      "owner": [
+        "Owner",
+        "Proprietor",
+        "Principal Owner",
+        "Sole Proprietor",
+        "Business Owner"
+      ],
+      "partner": [
+        "Partner",
+        "Managing Partner",
+        "Senior Partner",
+        "Equity Partner",
+        "General Partner"
+      ],
+      "director": [
+        "Managing Director",
+        "Executive Director",
+        "Creative Director",
+        "Art Director",
+        "Technical Director",
+        "Director"
+      ],
+      "vp": [
+        "Vice President",
+        "VP",
+        "Senior Vice President",
+        "Executive Vice President",
+        "Associate Vice President"
+      ],
+      "head": [
+        "Head of",
+        "Department Head",
+        "Division Head",
+        "Team Lead",
+        "Section Head",
+        "Head"
+      ]
+    },
+    
+    "common_variations": {
+      "ceo": [
+        "Chief Executive Officer",
+        "CEO",
+        "Executive Director"
+      ],
+      "founder": [
+        "Founder",
+        "Co-Founder"
+      ],
+      "owner": [
+        "Owner",
+        "Proprietor"
+      ],
+      "partner": [
+        "Partner",
+        "Managing Partner"
+      ],
+      "director": [
+        "Managing Director",
+        "Director"
+      ],
+      "vp": [
+        "Vice President",
+        "VP"
+      ],
+      "head": [
+        "Head of",
+        "Head"
+      ]
+    },
+    
+    "manager_titles": [
+      "Operations Manager",
+      "General Manager",
+      "Department Manager",
+      "Project Manager",
+      "Product Manager",
+      "Sales Manager",
+      "Marketing Manager",
+      "Finance Manager",
+      "HR Manager",
+      "IT Manager"
+    ]
+  },
+  
+  "examples": {
+    "family_office": {
+      "description": "For family offices, focus on decision makers who can allocate capital",
+      "priority_threshold": 5,
+      "key_roles": ["CEO", "Founder", "Managing Partner", "Chief Investment Officer"]
+    },
+    "startup": {
+      "description": "For startups, focus on founders and early team members",
+      "priority_threshold": 3,
+      "key_roles": ["Founder", "Co-Founder", "CEO", "CTO", "COO"]
+    },
+    "enterprise": {
+      "description": "For enterprise, focus on senior executives and directors",
+      "priority_threshold": 7,
+      "key_roles": ["CEO", "CFO", "CTO", "VP", "Director"]
+    },
+    "consulting": {
+      "description": "For consulting firms, focus on partners and principals",
+      "priority_threshold": 4,
+      "key_roles": ["Partner", "Managing Partner", "Principal", "Director"]
+    }
+  }
+}
