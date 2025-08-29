@@ -1464,6 +1464,20 @@ class LeadSorcererOrchestrator:
             else:
                 value = best_contact.get(field_name)
 
+            # Debug logging for job_title field
+            if field_name == "job_title":
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"🔍 DEBUG: _get_best_contact_field called with field_name='{field_name}'")
+                logger.info(f"🔍 DEBUG: best_contact_id='{best_contact_id}'")
+                logger.info(f"🔍 DEBUG: contacts count={len(contacts)}")
+                logger.info(f"🔍 DEBUG: best_contact found={best_contact is not None}")
+                if best_contact:
+                    logger.info(f"🔍 DEBUG: best_contact keys={list(best_contact.keys())}")
+                    logger.info(f"🔍 DEBUG: best_contact.job_title={best_contact.get('job_title')}")
+                    logger.info(f"🔍 DEBUG: best_contact.role={best_contact.get('role')}")
+                logger.info(f"🔍 DEBUG: final value='{value}'")
+
             if value is None:
                 return ""
             elif isinstance(value, bool):
@@ -1472,7 +1486,10 @@ class LeadSorcererOrchestrator:
                 return "|".join(str(v) if v is not None else "" for v in value)
             else:
                 return str(value)
-        except Exception:
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Error in _get_best_contact_field: {e}")
             return ""
 
     def _get_field_value(self, record: Dict[str, Any], field_path: str) -> str:

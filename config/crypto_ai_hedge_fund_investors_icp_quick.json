@@ -185,6 +185,10 @@
     "Investment Manager": 11,
     "Vice President": 12,
     "Senior Vice President": 13,
+    "CEO": 1,
+    "Founder": 1,
+    "Owner": 2,
+    "President": 3,
     "default": 99
   },
   
