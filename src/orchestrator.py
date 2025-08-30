@@ -580,25 +580,25 @@ class LeadSorcererOrchestrator:
             True if we should bypass domain discovery and crawl specific URLs directly
         """
         specific_urls = self.icp_config.get("specific_urls", [])
-        self.icp_config.get("bypass_domain_discovery", False)
-
-        # Bypass domain discovery if we have specific URLs
-        # This prioritizes specific targets for rapid iteration and cost optimization
-        has_specific_urls = len(specific_urls) > 0
-
-        # COST OPTIMIZATION: Always bypass when specific URLs are provided
-        # This saves API costs by skipping search queries
-        should_bypass = has_specific_urls
+        lead_generation_mode = self.icp_config.get("lead_generation_mode", "search")
+        
+        # Only bypass domain discovery when lead_generation_mode is explicitly "url"
+        # This respects the user's mode choice and allows search mode to work with test URLs
+        should_bypass = lead_generation_mode == "url" and len(specific_urls) > 0
 
         if should_bypass:
             self.logger.info(
-                f"🚀 BYPASSING DOMAIN DISCOVERY: {len(specific_urls)} specific URLs provided"
+                f"🚀 BYPASSING DOMAIN DISCOVERY: {len(specific_urls)} specific URLs provided (URL mode)"
             )
             self.logger.info(
                 "💰 Cost optimization: Skipping search queries, going directly to crawl"
             )
             self.logger.info(
                 f"📊 Specific URLs: {specific_urls[:3]}{'...' if len(specific_urls) > 3 else ''}"
+            )
+        elif len(specific_urls) > 0 and lead_generation_mode != "url":
+            self.logger.info(
+                f"📊 Specific URLs provided but running in {lead_generation_mode} mode - will use for validation"
             )
 
         return should_bypass
