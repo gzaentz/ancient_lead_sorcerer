@@ -1,20 +1,20 @@
 {
   "domain": "reddit.com",
   "queries": [
-    "family office cryptocurrency investments"
+    "family owned dental practices multiple offices California"
   ],
-  "fetched_at": "2025-08-29T14:20:54.083603Z",
+  "fetched_at": "2025-09-02T14:36:39.020181Z",
   "serp_results": [
     {
-      "url": "https://www.reddit.com/r/startups/comments/1m29w0q/i_was_one_click_away_of_bankrupting_my_startup_a/",
-      "title": "I was one click away of bankrupting my startup: A story of a ...",
-      "snippet": "Jul 17, 2025 ... ... family office interested in investing USD 2.4M in our company. The ... East Side Investments AG (Swiss-based entity listed to receive the crypto\u00a0...",
-      "query": "family office cryptocurrency investments",
-      "page_index": 8,
+      "url": "https://www.reddit.com/r/Dentistry/comments/xqj42r/high_associate_salary_vs_owning_your_own_practice/",
+      "title": "High associate salary vs owning your own practice? : r/Dentistry",
+      "snippet": "Sep 28, 2022 ... I have several friends/assistants from previous positions that are on board and have been pulling me to open an office because they love working\u00a0...",
+      "query": "family owned dental practices multiple offices California",
+      "page_index": 4,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-29T14:17:39.989258Z",
+      "fetched_at": "2025-09-02T14:34:04.047732Z",
       "domain": "reddit.com"
     }
   ],
-  "scoring_prompt_fingerprint": "4c94e404b875509a9a6ba50491d0edeaea128eeb14d0858aaa408e869fb3102d"
+  "scoring_prompt_fingerprint": "0484e256a1fcef169e5428e305cd609b55eba544fb2015ec1f43c8a542a48b56"
 }

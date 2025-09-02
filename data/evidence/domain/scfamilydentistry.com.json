@@ -3,7 +3,7 @@
   "queries": [
     "family owned dental practices multiple offices California"
   ],
-  "fetched_at": "2025-08-27T21:05:14.290090Z",
+  "fetched_at": "2025-09-02T14:36:38.994478Z",
   "serp_results": [
     {
       "url": "https://scfamilydentistry.com/",
@@ -12,9 +12,9 @@
       "query": "family owned dental practices multiple offices California",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-27T21:04:46.563142Z",
+      "fetched_at": "2025-09-02T14:33:59.534919Z",
       "domain": "scfamilydentistry.com"
     }
   ],
-  "scoring_prompt_fingerprint": "14f652f9f847b7c8b702748af39b6e5282d74266f20122238c1298931f9c88a3"
+  "scoring_prompt_fingerprint": "b8a587396606a4a304867237c2a9e3f5c95d683a79feb278d829597f2e9677b2"
 }

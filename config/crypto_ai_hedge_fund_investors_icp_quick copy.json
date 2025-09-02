@@ -1,0 +1,928 @@
+{
+  "name": "Crypto AI Hedge Fund Investors ICP",
+  "icp_text": "Institutional investors, fund of funds, family offices, and investment firms with demonstrated interest and past investments in cryptocurrency, blockchain, artificial intelligence, and hedge fund strategies. Focus on entities that have previously invested in crypto funds, AI companies, or alternative investment vehicles.",
+  
+  "lead_generation_mode": "url",
+  
+  "queries": [
+    "family office crypto AI investments"
+  ],
+  "specific_urls": ["https://www.studerfamilyoffice.com/","https://vmsam.com/",
+  "https://avenir.hk/","https://www.c.capital/","https://www.rafflesgroup.co", "https://www.aethelpartners.com/",
+  "https://www.brookergroup.com/","https://www.revogroup.co/","https://www.cooperfamilyoffice.com/","https://boonventures.com","https://dunhillventures.com/"],
+
+  "required_fields": {
+    "company": ["name", "domain", "industry", "size", "location", "description"],
+    "contact": ["first_name", "last_name", "title", "email", "linkedin_url"]
+  },
+  
+  "optional_fields": {
+    "company": ["website", "technologies", "funding_stage", "employee_count", "revenue_range"],
+    "contact": ["phone", "department", "seniority", "company_name"]
+  },
+  
+  "threshold": 0.8,
+  "filtering_strict": true,
+  "mode": "thorough",
+  
+  "apollo": {
+    "enabled": true,
+    "fallback_to_traditional": true,
+    
+    "search": {
+      "strategy": "company_first",
+      "max_results": 10,
+      
+      "company_filters": {
+        "industry": [
+          "Investment Management",
+          "Venture Capital",
+          "Private Equity",
+          "Financial Services",
+          "Asset Management",
+          "Wealth Management",
+          "Investment Banking",
+          "Hedge Fund",
+          "Family Office",
+          "Fund of Funds",
+          "Alternative Investments",
+          "Cryptocurrency",
+          "Blockchain",
+          "Artificial Intelligence",
+          "Fintech",
+          "Investment Advisory"
+        ],
+        "size": [
+          "1-10",
+          "11-50"
+        ],
+        "location": [
+          "United States",
+          "United Kingdom",
+          "Switzerland",
+          "Singapore",
+          "Hong Kong",
+          "Canada",
+          "Germany",
+          "Netherlands",
+          "Luxembourg",
+          "Cayman Islands",
+          "Bermuda",
+          "United Arab Emirates"
+        ],
+        "technologies": [
+          "Blockchain",
+          "Cryptocurrency",
+          "Artificial Intelligence",
+          "Machine Learning",
+          "Data Analytics",
+          "Cloud Computing",
+          "API Integration",
+          "Mobile Applications"
+        ],
+        "funding_stage": [
+          "Series A",
+          "Series B",
+          "Series C",
+          "Series D",
+          "Private Equity",
+          "Established",
+          "IPO"
+        ]
+      },
+      
+      "person_filters": {
+        "job_titles": [
+          "Managing Partner",
+          "Partner",
+          "Managing Director",
+          "Director",
+          "Principal",
+          "Investment Director",
+          "Investment Manager",
+          "Portfolio Manager",
+          "Chief Investment Officer",
+          "Chief Executive Officer",
+          "President",
+          "Vice President",
+          "Senior Vice President",
+          "Head of Investments",
+          "Head of Alternative Investments",
+          "Head of Private Markets",
+          "Investment Committee Member"
+        ],
+        "seniority": [
+          "C-Level",
+          "Partner",
+          "Managing Director",
+          "Director",
+          "Principal",
+          "VP",
+          "Head"
+        ],
+        "departments": [
+          "Investment",
+          "Private Equity",
+          "Venture Capital",
+          "Alternative Investments",
+          "Portfolio Management",
+          "Asset Management",
+          "Investment Committee",
+          "Executive",
+          "Business Development"
+        ]
+      }
+    },
+    
+    "enrich": {
+      "enabled": true,
+      "quality_thresholds": {
+        "min_employee_count": 1,
+        "min_contact_quality": 0.85,
+        "required_contact_fields": ["email", "title", "linkedin_url"],
+        "required_company_fields": ["description", "industry"]
+      }
+    }
+  },
+  
+  "refresh_policy": {
+    "revisit_after_days": 60,
+    "failure_revisit_days": 7,
+    "domain_serp_ttl_hours": 48,
+    "crawl_ttl_days": 30
+  },
+  
+  "concurrency": {
+    "max_concurrent_requests": 3
+  },
+  
+  "search": {
+    "max_pages": 1
+  },
+  
+  "testing": {
+    "process_rejected": false,
+    "process_low_crawl": false
+  },
+  
+  "caps": {
+    "company_usd": 0.05,
+    "contact_usd": 0.08,
+    "run_usd_max": 25.0,
+    "apollo_credits_max": 2000
+  },
+  
+  "role_priority": {
+    "Managing Partner": 1,
+    "Partner": 2,
+    "Managing Director": 3,
+    "Chief Investment Officer": 4,
+    "Investment Director": 5,
+    "Principal": 6,
+    "Director": 7,
+    "Head of Investments": 8,
+    "Head of Alternative Investments": 9,
+    "Portfolio Manager": 10,
+    "Investment Manager": 11,
+    "Vice President": 12,
+    "Senior Vice President": 13,
+    "CEO": 1,
+    "Founder": 1,
+    "Owner": 2,
+    "President": 3,
+    "default": 99
+  },
+  
+  "decision_makers": {
+    "priority_threshold": 10,
+    "include_variations": true,
+    "title_variations": {
+      "ceo": [
+        "Chief Executive Officer",
+        "Chief Executive",
+        "CEO",
+        "Founder & CEO",
+        "CEO and Founder",
+        "Founder, CEO",
+        "CEO, Founder"
+      ],
+      "owner": [
+        "Founder",
+        "Proprietor",
+        "Owner",
+        "Founder & Owner"
+      ],
+      "president": [
+        "Chief Executive",
+        "Executive Director",
+        "President",
+        "Founder & President"
+      ],
+      "vp": [
+        "Vice President",
+        "Vice-President",
+        "VP"
+      ],
+      "director": [
+        "Managing Director",
+        "Executive Director",
+        "General Manager",
+        "Director",
+        "Founder & Director"
+      ],
+      "head": [
+        "Head of",
+        "Department Head",
+        "Division Head",
+        "Head"
+      ]
+    },
+    "common_variations": {
+      "ceo": [
+        "Chief Executive Officer",
+        "Chief Executive",
+        "CEO",
+        "Founder & CEO",
+        "CEO and Founder"
+      ],
+      "owner": [
+        "Founder",
+        "Proprietor",
+        "Owner"
+      ],
+      "president": [
+        "President",
+        "Executive Director"
+      ],
+      "vp": [
+        "Vice President",
+        "VP"
+      ],
+      "director": [
+        "Managing Director",
+        "Director"
+      ],
+      "head": [
+        "Head of",
+        "Head"
+      ]
+    },
+    "manager_titles": [
+      "Operations Manager",
+      "General Manager",
+      "Department Manager",
+      "Investment Manager",
+      "Portfolio Manager"
+    ]
+  },
+  
+  "exports": {
+    "enabled": true,
+    "formats": ["csv", "json", "xlsx"],
+    "include_apollo_data": true
+  },
+  
+  "default_country": "US",
+  
+  "exclusion_criteria": {
+    "ownership_types": [
+      "Sole Proprietorship",
+      "Partnership (non-investment)",
+      "Non-profit"
+    ],
+    "max_locations": 10,
+    "news_media_exclusions": {
+      "excluded_domains": [
+        "ft.com",
+        "wsj.com", 
+        "bloomberg.com",
+        "reuters.com",
+        "cnbc.com",
+        "forbes.com",
+        "fortune.com",
+        "businessinsider.com",
+        "techcrunch.com",
+        "venturebeat.com",
+        "seekingalpha.com",
+        "marketwatch.com",
+        "investing.com",
+        "yahoo.com",
+        "google.com",
+        "microsoft.com",
+        "apple.com",
+        "amazon.com",
+        "netflix.com",
+        "spotify.com",
+        "linkedin.com",
+        "facebook.com",
+        "twitter.com",
+        "instagram.com",
+        "youtube.com",
+        "reddit.com",
+        "github.com",
+        "stackoverflow.com",
+        "medium.com",
+        "substack.com",
+        "wikipedia.org",
+        "pitchbook.com",
+        "crunchbase.com",
+        "angellist.com",
+        "producthunt.com",
+        "news.ycombinator.com"
+      ],
+      "excluded_keywords": [
+        "news",
+        "media",
+        "publishing",
+        "journalism",
+        "editorial",
+        "reporting",
+        "coverage",
+        "analysis",
+        "insights",
+        "magazine",
+        "newspaper",
+        "blog",
+        "content",
+        "article",
+        "story"
+      ],
+      "excluded_industries": [
+        "Media",
+        "Publishing",
+        "Journalism",
+        "News",
+        "Entertainment",
+        "Social Media"
+      ]
+    },
+    "excluded_keywords": [
+      "consulting",
+      "agency",
+      "freelance",
+      "retail",
+      "consumer",
+      "startup accelerator",
+      "incubator",
+      "news",
+      "media",
+      "publishing",
+      "journalism",
+      "editorial",
+      "reporting",
+      "coverage",
+      "analysis",
+      "insights",
+      "blackrock",
+      "vanguard",
+      "fidelity",
+      "state street",
+      "pimco",
+      "goldman sachs",
+      "morgan stanley",
+      "jpmorgan",
+      "bank of america",
+      "wells fargo",
+      "citigroup",
+      "ubs",
+      "credit suisse",
+      "deutsche bank",
+      "barclays",
+      "hsbc",
+      "nomura",
+      "mitsubishi ufj",
+      "sumitomo mitsui",
+      "mizuho",
+      "allianz",
+      "axa",
+      "prudential",
+      "metlife",
+      "aig",
+      "travelers",
+      "chubb",
+      "berkshire hathaway",
+      "bridgewater",
+      "point72",
+      "citadel",
+      "millennium",
+      "two sigma",
+      "renaissance technologies",
+      "d.e. shaw",
+      "aqr capital",
+      "man group",
+      "brevan howard",
+      "marshall wace",
+      "lone pine",
+      "tiger global",
+      "sequoia",
+      "andreessen horowitz",
+      "kleiner perkins",
+      "greylock",
+      "accel",
+      "bain capital",
+      "kkr",
+      "carlyle group",
+      "apollo global",
+      "blackstone",
+      "tpg",
+      "warburg pincus",
+      "github",
+      "linkedin",
+      "facebook",
+      "twitter",
+      "instagram",
+      "youtube",
+      "reddit",
+      "stack overflow",
+      "substack",
+      "wikipedia",
+      "yahoo",
+      "google",
+      "microsoft",
+      "apple",
+      "amazon",
+      "netflix",
+      "spotify",
+      "slack",
+      "discord",
+      "telegram",
+      "whatsapp",
+      "zoom",
+      "salesforce",
+      "adobe",
+      "ibm",
+      "intel",
+      "nvidia",
+      "amd",
+      "tesla",
+      "spacex",
+      "uber",
+      "lyft",
+      "airbnb",
+      "stripe",
+      "square",
+      "paypal",
+      "coinbase",
+      "binance",
+      "kraken",
+      "robinhood",
+      "webull",
+      "td ameritrade",
+      "charles schwab",
+      "etrade",
+      "interactive brokers",
+      "tradingview",
+      "seeking alpha",
+      "marketwatch",
+      "investing.com",
+      "yahoo finance",
+      "cnbc",
+      "bloomberg",
+      "reuters",
+      "wall street journal",
+      "financial times",
+      "forbes",
+      "fortune",
+      "business insider",
+      "techcrunch",
+      "venturebeat",
+      "pitchbook",
+      "crunchbase",
+      "angellist",
+      "producthunt",
+      "hackernews",
+      "indiehackers"
+    ],
+    "excluded_company_names": [
+      "blackrock",
+      "vanguard",
+      "fidelity",
+      "state street",
+      "pimco",
+      "goldman sachs",
+      "morgan stanley",
+      "jpmorgan",
+      "bank of america",
+      "wells fargo",
+      "citigroup",
+      "ubs",
+      "credit suisse",
+      "deutsche bank",
+      "barclays",
+      "hsbc",
+      "nomura",
+      "mitsubishi ufj",
+      "sumitomo mitsui",
+      "mizuho",
+      "allianz",
+      "axa",
+      "prudential",
+      "metlife",
+      "aig",
+      "travelers",
+      "chubb",
+      "berkshire hathaway",
+      "warren buffett",
+      "bridgewater",
+      "point72",
+      "citadel",
+      "millennium",
+      "two sigma",
+      "renaissance technologies",
+      "d.e. shaw",
+      "aqr capital",
+      "man group",
+      "brevan howard",
+      "marshall wace",
+      "lone pine",
+      "tiger global",
+      "sequoia",
+      "andreessen horowitz",
+      "kleiner perkins",
+      "greylock",
+      "accel",
+      "bain capital",
+      "kkr",
+      "carlyle group",
+      "apollo global",
+      "blackstone",
+      "tpg",
+      "warburg pincus",
+      "github",
+      "linkedin",
+      "facebook",
+      "twitter",
+      "instagram",
+      "youtube",
+      "reddit",
+      "stack overflow",
+      "medium",
+      "substack",
+      "wikipedia",
+      "yahoo",
+      "google",
+      "microsoft",
+      "apple",
+      "amazon",
+      "netflix",
+      "spotify",
+      "slack",
+      "discord",
+      "telegram",
+      "whatsapp",
+      "zoom",
+      "salesforce",
+      "adobe",
+      "oracle",
+      "ibm",
+      "intel",
+      "nvidia",
+      "amd",
+      "tesla",
+      "spacex",
+      "uber",
+      "lyft",
+      "airbnb",
+      "stripe",
+      "square",
+      "paypal",
+      "coinbase",
+      "binance",
+      "kraken",
+      "robinhood",
+      "webull",
+      "td ameritrade",
+      "charles schwab",
+      "etrade",
+      "interactive brokers",
+      "tradingview",
+      "seeking alpha",
+      "marketwatch",
+      "investing.com",
+      "yahoo finance",
+      "cnbc",
+      "bloomberg",
+      "reuters",
+      "wall street journal",
+      "financial times",
+      "forbes",
+      "fortune",
+      "business insider",
+      "techcrunch",
+      "venturebeat",
+      "pitchbook",
+      "crunchbase",
+      "angellist",
+      "producthunt",
+      "hackernews",
+      "indiehackers",
+      "ft.com",
+      "wsj.com",
+      "bloomberg.com",
+      "reuters.com",
+      "cnbc.com",
+      "forbes.com",
+      "fortune.com",
+      "businessinsider.com",
+      "techcrunch.com",
+      "venturebeat.com",
+      "seekingalpha.com",
+      "marketwatch.com",
+      "investing.com",
+      "yahoo.com",
+      "google.com",
+      "microsoft.com",
+      "apple.com",
+      "amazon.com",
+      "netflix.com",
+      "spotify.com",
+      "linkedin.com",
+      "facebook.com",
+      "twitter.com",
+      "instagram.com",
+      "youtube.com",
+      "reddit.com",
+      "github.com",
+      "stackoverflow.com",
+      "medium.com",
+      "substack.com",
+      "wikipedia.org",
+      "pitchbook.com",
+      "crunchbase.com",
+      "angellist.com",
+      "producthunt.com",
+      "news.ycombinator.com"
+    ],
+    "max_assets_under_management_usd": 10000000000,
+    "max_annual_revenue_usd": 5000000000
+  },
+  
+  "targeting": {
+    "location_types": [
+      "Financial Districts",
+      "Major Metropolitan Areas",
+      "Financial Centers",
+      "Offshore Financial Centers"
+    ],
+    "practice_sizes": [
+      "Mid-size Investment Firms",
+      "Large Asset Managers",
+      "Established Family Offices",
+      "Institutional Investment Firms"
+    ],
+    "ownership_models": [
+      "Partnership",
+      "Private Company",
+      "Public Company",
+      "Family-owned",
+      "Institutionally-owned"
+    ]
+  },
+  
+  "intent_config": {
+    "purpose": "crypto_ai_investment_opportunity",
+    "target_action": "invest_in_crypto_ai",
+    "intent_signals": {
+      "high_intent": [
+        "cryptocurrency investments",
+        "blockchain portfolio",
+        "digital asset allocation",
+        "crypto fund management",
+        "AI investment strategy",
+        "alternative investment focus",
+        "family office crypto exposure",
+        "hedge fund crypto positions",
+        "venture capital blockchain",
+        "private equity crypto",
+        "institutional crypto adoption",
+        "crypto trading desk",
+        "blockchain venture fund",
+        "AI startup investments",
+        "crypto mining operations",
+        "DeFi investment strategy",
+        "NFT investment portfolio",
+        "Web3 investment focus",
+        "crypto hedge fund",
+        "digital asset fund"
+      ],
+      "medium_intent": [
+        "financial services technology",
+        "investment management",
+        "wealth management",
+        "asset management",
+        "alternative investments",
+        "investment advisory",
+        "portfolio management",
+        "investment strategy",
+        "financial technology",
+        "investment research",
+        "market analysis",
+        "investment opportunities",
+        "strategic investments",
+        "growth capital",
+        "investment partnerships"
+      ],
+      "low_intent": [
+        "news and media",
+        "consulting services",
+        "legal services",
+        "accounting services",
+        "government agency",
+        "educational institution",
+        "non-profit organization",
+        "retail business",
+        "consumer services",
+        "technology consulting",
+        "marketing agency",
+        "advertising services",
+        "public relations",
+        "research organization",
+        "think tank",
+        "policy institute",
+        "regulatory body",
+        "trade association",
+        "professional services",
+        "business services"
+      ]
+    },
+    "intent_sources": [
+      "about_pages",
+      "investment_strategy",
+      "portfolio_pages",
+      "team_pages",
+      "services_pages",
+      "investment_approach",
+      "fund_information",
+      "strategy_pages",
+      "investment_philosophy",
+      "fund_overview",
+      "investment_criteria",
+      "portfolio_companies",
+      "investment_history",
+      "fund_performance",
+      "investment_team"
+    ],
+    "scoring_rules": {
+      "high_intent_weight": 0.8,
+      "medium_intent_weight": 0.3,
+      "low_intent_weight": -0.5,
+      "base_score": 0.3,
+      "crypto_focus_bonus": 0.3,
+      "ai_focus_bonus": 0.2,
+      "family_office_bonus": 0.2,
+      "investment_firm_bonus": 0.2,
+      "size_bonus": 0.1,
+      "location_bonus": 0.1
+    },
+    "validation_criteria": {
+      "required_attributes": [
+        "investment_firm",
+        "crypto_exposure",
+        "decision_making_capacity"
+      ],
+      "disqualifying_attributes": [
+        "news_media",
+        "consulting_firm",
+        "government_agency",
+        "educational_institution",
+        "non_profit",
+        "retail_business",
+        "consumer_service"
+      ],
+      "size_validation": {
+        "min_employees": 1,
+        "max_employees": 200,
+        "preferred_range": "1-50"
+      },
+      "industry_validation": {
+        "primary": ["Investment Management", "Venture Capital", "Private Equity", "Family Office", "Hedge Fund"],
+        "secondary": ["Financial Services", "Asset Management", "Wealth Management", "Alternative Investments"],
+        "excluded": ["Media", "Consulting", "Legal", "Accounting", "Government", "Education", "Non-profit"]
+      }
+    }
+  },
+  
+  "enrichment_providers": {
+    "apollo": {
+      "enabled": true,
+      "priority": 1,
+      "batch_size": 25
+    },
+    "anymail_finder": {
+      "enabled": true,
+      "priority": 2
+    },
+    "company_enrich": {
+      "enabled": true,
+      "priority": 3
+    },
+    "coresignal": {
+      "enabled": true,
+      "priority": 4
+    },
+    "snovio": {
+      "enabled": true,
+      "priority": 5
+    }
+  },
+  
+  "apollo_advanced": {
+    "rate_limiting": {
+      "requests_per_minute": 40,
+      "requests_per_hour": 800,
+      "burst_limit": 8
+    },
+    
+    "search_optimization": {
+      "use_boolean_queries": true,
+      "exclude_keywords": [
+        "consulting",
+        "agency",
+        "freelance",
+        "individual",
+        "personal",
+        "retail",
+        "consumer",
+        "news",
+        "media",
+        "publishing",
+        "journalism",
+        "editorial",
+        "reporting",
+        "coverage",
+        "analysis",
+        "insights",
+        "magazine",
+        "newspaper",
+        "blog",
+        "content",
+        "article",
+        "story"
+      ],
+      "include_keywords": [
+        "investment",
+        "fund",
+        "capital",
+        "venture",
+        "private equity",
+        "asset management",
+        "wealth management",
+        "family office",
+        "fund of funds",
+        "institutional",
+        "alternative investments"
+      ],
+      "location_radius_miles": 100
+    },
+    
+    "quality_scoring": {
+      "company_score_weights": {
+        "industry_match": 0.35,
+        "size_match": 0.15,
+        "location_match": 0.20,
+        "description_match": 0.30
+      },
+      "contact_score_weights": {
+        "title_match": 0.45,
+        "seniority_match": 0.30,
+        "department_match": 0.15,
+        "location_match": 0.10
+      }
+    },
+    
+    "fallback_strategy": {
+      "enable_traditional_fallback": true,
+      "apollo_failure_threshold": 5,
+      "traditional_fallback_delay_minutes": 10
+    }
+  },
+  
+  "hunter_io": {
+    "enabled": true,
+    "min_score": 80,
+    "max_verifications_per_contact": 2,
+    "fallback_discovery": true,
+    "cost_tracking": true,
+    "performance_optimization": {
+      "caching": {
+        "enabled": true,
+        "ttl_hours": 48,
+        "max_size": 5000
+      },
+      "batch_verification": {
+        "enabled": true,
+        "max_concurrent": 3,
+        "batch_threshold": 5
+      },
+      "error_handling": {
+        "enabled": true,
+        "max_retries": 3,
+        "base_delay": 2.0,
+        "max_delay": 120.0,
+        "retry_on_rate_limit": true,
+        "retry_on_server_errors": true,
+        "retry_on_timeouts": true
+      }
+    }
+  }
+}

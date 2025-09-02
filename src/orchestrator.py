@@ -320,6 +320,8 @@ class LeadSorcererOrchestrator:
         """
         # Check explicit mode first
         explicit_mode = self.icp_config.get("lead_generation_mode")
+        self.logger.info(f"🔍 DEBUG: Raw lead_generation_mode from config: {explicit_mode}")
+        
         if explicit_mode:
             # Handle legacy mode names for backward compatibility
             if explicit_mode == "traditional":
@@ -596,7 +598,11 @@ class LeadSorcererOrchestrator:
             self.logger.info(
                 f"📊 Specific URLs: {specific_urls[:3]}{'...' if len(specific_urls) > 3 else ''}"
             )
-        elif len(specific_urls) > 0 and lead_generation_mode != "url":
+        elif len(specific_urls) > 0 and lead_generation_mode == "search":
+            self.logger.info(
+                f"📊 Specific URLs provided in SEARCH mode - will use for validation/testing, running full domain discovery"
+            )
+        elif len(specific_urls) > 0 and lead_generation_mode not in ["url", "search"]:
             self.logger.info(
                 f"📊 Specific URLs provided but running in {lead_generation_mode} mode - will use for validation"
             )
@@ -991,6 +997,15 @@ class LeadSorcererOrchestrator:
         else:
             # NORMAL MODE: Run domain discovery as usual
             self.logger.info("📊 NORMAL MODE: Running domain discovery")
+            
+            # Check if we have specific URLs in search mode for validation
+            specific_urls = self.icp_config.get("specific_urls", [])
+            lead_generation_mode = self.icp_config.get("lead_generation_mode", "search")
+            
+            if specific_urls and lead_generation_mode == "search":
+                self.logger.info(f"🔍 SEARCH MODE: {len(specific_urls)} specific URLs will be used for validation/testing")
+                self.logger.info(f"📊 Running full domain discovery with queries: {self.icp_config.get('queries', [])}")
+            
             domain_result = await self.domain_tool.run()
 
             if domain_result.get("errors"):

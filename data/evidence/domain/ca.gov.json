@@ -1,20 +1,40 @@
 {
   "domain": "ca.gov",
   "queries": [
-    "fund of funds crypto investments"
+    "family owned dental practices multiple offices California"
   ],
-  "fetched_at": "2025-08-29T14:09:49.521860Z",
+  "fetched_at": "2025-09-02T14:36:38.996303Z",
   "serp_results": [
     {
-      "url": "https://dfpi.ca.gov/consumers/crypto/crypto-scam-tracker/",
-      "title": "Crypto Scam Tracker - DFPI",
-      "snippet": "Jul 30, 2025 ... Benjamin\u201d who claimed to be part of a finance team for an investment company called CBESX. The victim responded, and Mr. Benjamin instructed the\u00a0...",
-      "query": "fund of funds crypto investments",
-      "page_index": 7,
+      "url": "https://www.dbc.ca.gov/licensees/dds/permits/fictitious_name.shtml",
+      "title": "Application for Fictitious Name Permit - Dental Board of California",
+      "snippet": "Submit evidence that the dental practice is entirely owned or leased by the ... Dental offices practicing as an Individual/Sole Ownership do not require\u00a0...",
+      "query": "family owned dental practices multiple offices California",
+      "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-29T14:07:11.824634Z",
+      "fetched_at": "2025-09-02T14:33:59.763604Z",
+      "domain": "ca.gov"
+    },
+    {
+      "url": "https://www.dhcs.ca.gov/Pages/DivisionDirectory.aspx",
+      "title": "Division Directory | DHCS",
+      "snippet": "Jan 23, 2025 ... ... Office of Family Planning, Office of Tribal Affairs, and Pharmacy Benefits. ... business operations support services for CA-MMIS. Clinical\u00a0...",
+      "query": "family owned dental practices multiple offices California",
+      "page_index": 3,
+      "rank_on_page": 0,
+      "fetched_at": "2025-09-02T14:34:02.484789Z",
+      "domain": "ca.gov"
+    },
+    {
+      "url": "https://www.cdph.ca.gov/Programs/CHSI/pages/Vital-Records.aspx",
+      "title": "Vital Records",
+      "snippet": "Apr 2, 2025 ... The California Department of Public Health is dedicated to optimizing the health and well-being of Californians.",
+      "query": "family owned dental practices multiple offices California",
+      "page_index": 4,
+      "rank_on_page": 0,
+      "fetched_at": "2025-09-02T14:34:04.126434Z",
       "domain": "ca.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "50827442ffde9ccf29b5309f9f3f91f67d042c79207c0bfc07f9bdee2f200ed9"
+  "scoring_prompt_fingerprint": "12245c08c16eda3eeea175afeee408b7a945c1a5cb3d7ef7349df7ed184abd53"
 }

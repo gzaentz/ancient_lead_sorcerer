@@ -1,20 +1,20 @@
 {
   "domain": "hhs.gov",
   "queries": [
-    "regional dental practice chains non-PE backed"
+    "family owned dental practices multiple offices California"
   ],
-  "fetched_at": "2025-08-18T22:41:18.833302Z",
+  "fetched_at": "2025-09-02T14:36:39.015855Z",
   "serp_results": [
     {
-      "url": "https://www.hhs.gov/sites/default/files/hhs-consolidation-health-care-markets-rfi-response-report.pdf",
-      "title": "HHS Consolidation in Health Care Markets RFI Response",
-      "snippet": "Jan 14, 2025 ... ... PE-backed anesthesiologist physician management companies compared to non-PE backed equivalents.61 In addition to these sharp price\u00a0...",
-      "query": "regional dental practice chains non-PE backed",
-      "page_index": 1,
+      "url": "https://ocrportal.hhs.gov/ocr/breach/breach_report.jsf",
+      "title": "U.S. Department of Health and Human Services Office for Civil ...",
+      "snippet": "Kathalene Keller Riney NP, LLC DBA Life in Motion Family Wellness Center ... CA, Business Associate, 529, 07/25/2025, Hacking/IT Incident, Network Server, No.",
+      "query": "family owned dental practices multiple offices California",
+      "page_index": 3,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:40:03.824383Z",
+      "fetched_at": "2025-09-02T14:34:02.881785Z",
       "domain": "hhs.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "c90930398b31f779456e5dbb361e4d78208be7c09bc4a53bc067335c1e8d375c"
+  "scoring_prompt_fingerprint": "ac76d48610fadfde57a40c683d2e10075ee2d8b6f2c918a60c97293c006d5aed"
 }

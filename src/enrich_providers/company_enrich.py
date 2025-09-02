@@ -156,54 +156,25 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         """
         Enrich company contacts using CompanyEnrich.
 
-        Note: CompanyEnrich doesn't have a separate contacts endpoint.
-        We use the main company enrichment endpoint and extract any available contact info.
+        Note: CompanyEnrich API does not provide individual contact information.
+        This method returns failure to allow fallback to providers that do support contact discovery.
 
         Args:
             request: Enrichment request with domain
 
         Returns:
-            Enrichment result with contact data
+            Enrichment result indicating failure (to trigger fallback to other providers)
         """
         domain = request.domain
-        try:
-            await self._rate_limit()
-
-            url = f"{self.base_url}/companies/enrich"
-            params = {"domain": domain}
-            headers = {"Authorization": f"Basic {self.api_key}"}
-
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get(url, params=params, headers=headers)
-                data = await self._handle_response(response, "contact enrichment")
-
-                # CompanyEnrich doesn't provide detailed contact lists, so we return basic company info
-                # as a contact placeholder
-                company_name = data.get("name", domain)
-                contact_data = ContactData(
-                    first_name=company_name.split()[0] if company_name else "",
-                    last_name=" ".join(company_name.split()[1:])
-                    if company_name and len(company_name.split()) > 1
-                    else "",
-                    full_name=company_name,
-                    company_name=company_name,
-                    company_domain=domain,
-                )
-
-                return EnrichmentResult(
-                    success=True,
-                    data=[contact_data],
-                    provider="company_enrich",
-                    cost=0.01,  # CompanyEnrich cost per company lookup
-                )
-
-        except Exception as exc:
-            logging.error(
-                f"CompanyEnrich contact enrichment failed for {domain}: {exc}"
-            )
-            return EnrichmentResult(
-                success=False, error=str(exc), provider="company_enrich"
-            )
+        logging.info(
+            f"CompanyEnrich contact enrichment not supported for {domain} - returning failure to trigger fallback"
+        )
+        return EnrichmentResult(
+            success=False,
+            error="CompanyEnrich API does not provide individual contact information - use company enrichment instead",
+            provider="company_enrich",
+            cost=0.0,  # No cost since we're not making an API call
+        )
 
     async def find_email(self, request: EnrichmentRequest) -> EnrichmentResult:
         """
@@ -409,14 +380,25 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         """
         Get all domain prospects using CompanyEnrich.
 
+        Note: CompanyEnrich API does not provide individual prospect/contact information.
+        This method returns failure to allow fallback to providers that do support prospect discovery.
+
         Args:
             request: Enrichment request with domain
 
         Returns:
-            Enrichment result with prospects data
+            Enrichment result indicating failure (to trigger fallback to other providers)
         """
-        # CompanyEnrich doesn't have a prospects endpoint, so we'll use contacts instead
-        return await self.enrich_contacts(request)
+        domain = request.domain
+        logging.info(
+            f"CompanyEnrich prospect discovery not supported for {domain} - returning failure to trigger fallback"
+        )
+        return EnrichmentResult(
+            success=False,
+            error="CompanyEnrich API does not provide individual prospect information - use company enrichment instead",
+            provider="company_enrich",
+            cost=0.0,  # No cost since we're not making an API call
+        )
 
     async def search_prospect_email(
         self, request: EnrichmentRequest

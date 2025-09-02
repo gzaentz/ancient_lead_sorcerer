@@ -1,20 +1,20 @@
 {
   "domain": "vadentist.com",
   "queries": [
-    "multi-office dental practices family owned"
+    "family owned dental practices multiple offices California"
   ],
-  "fetched_at": "2025-08-18T22:41:18.843422Z",
+  "fetched_at": "2025-09-02T14:36:39.008963Z",
   "serp_results": [
     {
       "url": "https://vadentist.com/",
       "title": "VA Family Dentistry: A Team Approach to Dental Care in Richmond ...",
-      "snippet": "We're a multi-specialty practice. Virginia Family Dentistry aims to provide lifelong patients with the most comprehensive dental care possible \u2013 all in one\u00a0...",
-      "query": "multi-office dental practices family owned",
-      "page_index": 1,
+      "snippet": "Our practice includes 17 convenient locations and over 70 general dentists and dental specialists. ... With multiple locations in Central Virginia, there's\u00a0...",
+      "query": "family owned dental practices multiple offices California",
+      "page_index": 2,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-18T22:40:33.311343Z",
+      "fetched_at": "2025-09-02T14:34:01.695265Z",
       "domain": "vadentist.com"
     }
   ],
-  "scoring_prompt_fingerprint": "4213589ca169e47a20629b33ad885640d717c17d7a5aa3c0d10f908d2abaa0aa"
+  "scoring_prompt_fingerprint": "4457e7fe4ac022195838e15901ff0d53aac0dcd98b9c6506db50fe1f0bd78d0a"
 }
