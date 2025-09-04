@@ -7,8 +7,7 @@
   "queries": [
     "family office crypto AI investments"
   ],
-  "specific_urls": ["https://www.nikolajsencapital.ch","https://bayshorecap.com",
-  "https://www.whampoagroup.com","https://bluepoolcapital.com"],
+  "specific_urls": ["https://www.raptorgroup.com"],
   "required_fields": {
     "company": ["name", "domain", "industry", "size", "location", "description"],
     "contact": ["first_name", "last_name", "title", "email", "linkedin_url"]
