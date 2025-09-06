@@ -32,7 +32,6 @@ from .common import (
     generate_lead_id,
     load_costs_config,
     load_schema_checksum,
-    normalize_domain,
     now_z,
     round4,
     recompute_total_cost,
@@ -118,7 +117,9 @@ class LLMScorer:
         self, title: str, snippet: str, query: str, icp_config: Dict[str, Any]
     ) -> str:
         """Build simple pass/fail prompt using hard rules from ICP config."""
-        icp_hard_rules = icp_config.get("icp_hard_rules", "No specific hard rules defined")
+        icp_hard_rules = icp_config.get(
+            "icp_hard_rules", "No specific hard rules defined"
+        )
 
         return f"""You are a lead-scoring function. Analyze each domain against the ICP HARD rules using ONLY the provided inputs: (domain, snippet).
 
@@ -177,7 +178,13 @@ Snippet: {snippet}"""
                 return passed, reason, [], model_used, prompt_fingerprint
 
             except json.JSONDecodeError:
-                return False, "Invalid JSON response from LLM", ["json_parse_error"], model_used, prompt_fingerprint
+                return (
+                    False,
+                    "Invalid JSON response from LLM",
+                    ["json_parse_error"],
+                    model_used,
+                    prompt_fingerprint,
+                )
 
 
 # ============================================================================
@@ -415,7 +422,7 @@ class DomainTool:
                     context={
                         "invalid_field": "icp_hard_rules",
                         "stage": TOOL_NAME,
-                        "message": "icp_hard_rules must be a string"
+                        "message": "icp_hard_rules must be a string",
                     },
                 )
             )
@@ -518,7 +525,7 @@ class DomainTool:
             "icp": {
                 "pre_score": None,  # Will be set to boolean (True/False)
                 "pre_reason": None,
-                "pre_pass": None,   # Boolean - main decision field
+                "pre_pass": None,  # Boolean - main decision field
                 "pre_flags": [],
                 "scoring_meta": {
                     "method": "pass_fail",
@@ -580,11 +587,16 @@ class DomainTool:
         # Parse URL to extract hostname
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(url)
             domain = parsed.hostname or ""
 
             # If no hostname found and URL doesn't look like a proper URL, use the original
-            if not domain and url and not url.startswith(("http://", "https://", "ftp://")):
+            if (
+                not domain
+                and url
+                and not url.startswith(("http://", "https://", "ftp://"))
+            ):
                 domain = url
         except Exception:
             domain = url if url else ""
@@ -790,14 +802,24 @@ class DomainTool:
                 # Update status based on pass/fail result
                 if passed:
                     record["status"] = "scored"
-                    append_status(record["status_history"], "scored", "Passed hard rules validation")
+                    append_status(
+                        record["status_history"],
+                        "scored",
+                        "Passed hard rules validation",
+                    )
                 else:
                     record["status"] = "rejected"
-                    append_status(record["status_history"], "rejected", f"Failed hard rules: {reason}")
+                    append_status(
+                        record["status_history"],
+                        "rejected",
+                        f"Failed hard rules: {reason}",
+                    )
 
                 # Add audit entry
                 append_audit(
-                    record, "Domain", f"Scored domain {domain} with result {'PASS' if passed else 'FAIL'}"
+                    record,
+                    "Domain",
+                    f"Scored domain {domain} with result {'PASS' if passed else 'FAIL'}",
                 )
 
                 # Calculate costs
@@ -966,7 +988,9 @@ class DomainTool:
                 cache_hit_rate = cache_hits / (cache_hits + cache_misses)
 
             # Boolean-based pass/fail metrics
-            pass_count = sum(1 for r in scored_domains if r.get("icp", {}).get("pre_pass", False))
+            pass_count = sum(
+                1 for r in scored_domains if r.get("icp", {}).get("pre_pass", False)
+            )
             fail_count = count_out - pass_count
             pass_rate = pass_count / count_out if count_out > 0 else 0.0
 

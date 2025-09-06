@@ -1607,9 +1607,7 @@ async def verify_all_contact_emails_with_hunter(
                     elif status == "invalid":
                         logger.debug("   ❌ Invalid email format or domain")
                     elif status == "unknown":
-                        logger.debug(
-                            "   🤔 Unknown status - verification inconclusive"
-                        )
+                        logger.debug("   🤔 Unknown status - verification inconclusive")
 
                     contact["email_verified"] = False
                     failed_count += 1
@@ -1719,9 +1717,7 @@ async def verify_all_contact_emails_with_hunter(
                     elif status == "invalid":
                         logger.debug("   ❌ Invalid email format or domain")
                     elif status == "unknown":
-                        logger.debug(
-                            "   🤔 Unknown status - verification inconclusive"
-                        )
+                        logger.debug("   🤔 Unknown status - verification inconclusive")
 
                     contact["email_verified"] = False
                     failed_count += 1
@@ -2567,7 +2563,9 @@ async def select_best_contact_llm(
 
     def fallback_function(contacts_param, _):
         track_llm_performance_metric("fallback_to_rule_based")
-        return select_best_contact_with_email_quality(contacts_param, role_priority_config), {
+        return select_best_contact_with_email_quality(
+            contacts_param, role_priority_config
+        ), {
             "total_cost_usd": 0.0,
             "cost_details": [],
             "total_calls": 0,
@@ -3336,7 +3334,9 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                             # Handle both dataclass objects and dictionaries
                             if hasattr(enriched_data, "__dataclass_fields__"):
                                 # It's a dataclass object, access attributes directly
-                                if enriched_data.name:
+                                # Don't override company name from AnymailFinder as it degrades data quality
+                                # Only update name if we don't have one or if the enriched name is significantly better
+                                if enriched_data.name and not company.get("name"):
                                     company["name"] = enriched_data.name
                                     fields_updated += 1
                                 if enriched_data.description:
@@ -3356,7 +3356,11 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                     fields_updated += 1
                             else:
                                 # It's a dictionary, use .get() method
-                                if enriched_data.get("name"):
+                                # Don't override company name from AnymailFinder as it degrades data quality
+                                # Only update name if we don't have one or if the enriched name is significantly better
+                                if enriched_data.get("name") and not company.get(
+                                    "name"
+                                ):
                                     company["name"] = enriched_data["name"]
                                     fields_updated += 1
                                 if enriched_data.get("description"):
@@ -3532,11 +3536,15 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     total_cost += hunter_cost_2
 
                 # Re-evaluate decision maker status for all contacts based on ICP configuration
-                logger.info(f"🔍 Re-evaluating decision maker status for {len(contacts)} contacts based on ICP configuration")
+                logger.info(
+                    f"🔍 Re-evaluating decision maker status for {len(contacts)} contacts based on ICP configuration"
+                )
 
                 # Get decision maker configuration from ICP config
                 decision_maker_config = icp_config.get("decision_makers", {})
-                decision_maker_threshold = decision_maker_config.get("priority_threshold", 10)
+                decision_maker_threshold = decision_maker_config.get(
+                    "priority_threshold", 10
+                )
 
                 # Build decision maker titles from role_priority
                 decision_maker_titles = []
@@ -3559,13 +3567,18 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                         else:
                             # Check partial matches
                             for decision_title in decision_set:
-                                if (decision_title in role_lower or role_lower in decision_title):
+                                if (
+                                    decision_title in role_lower
+                                    or role_lower in decision_title
+                                ):
                                     is_decision_maker = True
                                     break
 
                         # Update decision maker status
                         contact["decision_maker"] = is_decision_maker
-                        logger.info(f"🔍 Contact {contact.get('full_name', 'Unknown')} ({role}): decision_maker={is_decision_maker}")
+                        logger.info(
+                            f"🔍 Contact {contact.get('full_name', 'Unknown')} ({role}): decision_maker={is_decision_maker}"
+                        )
 
                 # Contact selection will happen after contact discovery
                 llm_selection_cost = 0.0  # Initialize cost tracking

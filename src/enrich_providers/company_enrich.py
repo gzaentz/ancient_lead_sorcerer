@@ -32,7 +32,11 @@ from .base import (
 class CompanyEnrichProvider(BaseEnrichmentProvider):
     """CompanyEnrich API enrichment provider."""
 
-    def __init__(self, api_key: Optional[str] = None, costs_config: Optional[Dict[str, float]] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        costs_config: Optional[Dict[str, float]] = None,
+    ):
         """
         Initialize CompanyEnrich provider.
 
@@ -53,7 +57,9 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
 
         # Load costs from config or use defaults
         self.costs_config = costs_config or {}
-        self.company_lookup_cost = self.costs_config.get("company_enrich", 0.001)  # Default from costs.yaml
+        self.company_lookup_cost = self.costs_config.get(
+            "company_enrich", 0.001
+        )  # Default from costs.yaml
 
         logging.info("CompanyEnrich provider initialized")
 

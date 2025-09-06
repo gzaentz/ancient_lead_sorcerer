@@ -484,7 +484,9 @@ class SearchQueryOptimizer:
 class ApolloClient:
     """Enhanced Apollo API client with intelligent batching, caching, and search optimization"""
 
-    def __init__(self, config: ApolloConfig, costs_config: Optional[Dict[str, float]] = None):
+    def __init__(
+        self, config: ApolloConfig, costs_config: Optional[Dict[str, float]] = None
+    ):
         self.config = config
         self.api_key = config.api_key
         self.base_url = config.base_url
@@ -499,7 +501,9 @@ class ApolloClient:
 
         # Load costs from config or use defaults
         self.costs_config = costs_config or {}
-        self.usd_per_credit = self.costs_config.get("apollo", 0.01975)  # Default from costs.yaml
+        self.usd_per_credit = self.costs_config.get(
+            "apollo", 0.01975
+        )  # Default from costs.yaml
 
     async def __aenter__(self):
         logger.info(f"Initializing Apollo session with API key: {self.api_key[:10]}...")

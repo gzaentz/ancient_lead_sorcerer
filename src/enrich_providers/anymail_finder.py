@@ -32,7 +32,11 @@ from .base import (
 class AnymailFinderProvider(BaseEnrichmentProvider):
     """Anymail Finder API enrichment provider."""
 
-    def __init__(self, api_key: Optional[str] = None, costs_config: Optional[Dict[str, float]] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        costs_config: Optional[Dict[str, float]] = None,
+    ):
         """
         Initialize Anymail Finder provider.
 
@@ -51,8 +55,12 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
 
         # Load costs from config or use defaults
         self.costs_config = costs_config or {}
-        self.company_lookup_cost = self.costs_config.get("anymail_finder", 0.008)  # Default from costs.yaml
-        self.email_lookup_cost = self.costs_config.get("anymail_finder", 0.008)  # Default from costs.yaml
+        self.company_lookup_cost = self.costs_config.get(
+            "anymail_finder", 0.008
+        )  # Default from costs.yaml
+        self.email_lookup_cost = self.costs_config.get(
+            "anymail_finder", 0.008
+        )  # Default from costs.yaml
 
         logging.info("Anymail Finder provider initialized")
 
@@ -296,10 +304,10 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         company = CompanyData(domain=domain)
 
         # Anymail Finder doesn't provide meaningful company data
-        # Don't override company name as it degrades data quality
+        # Don't set company name as it degrades data quality
+        # The enrichment logic will preserve existing company names from crawl data
         # Only set basic domain info if no existing company data
-        if not company.name:
-            company.name = domain.split(".")[0].title()  # Extract company name from domain
+        # Note: This should rarely be used as company names should come from crawl data
 
         return company
 

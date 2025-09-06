@@ -124,7 +124,9 @@ class EnrichmentProviderRouter:
         # Note: Anymail Finder is initialized first for contact/email discovery priority
         if self._should_use_provider("anymail_finder", ProviderTier.TIER_0):
             try:
-                self.providers[ProviderTier.TIER_0].append(AnymailFinderProvider(costs_config=self.costs_config))
+                self.providers[ProviderTier.TIER_0].append(
+                    AnymailFinderProvider(costs_config=self.costs_config)
+                )
                 initialized_providers["tier_0"].append("AnymailFinder")
                 self.logger.info("✅ AnymailFinder provider initialized successfully")
             except Exception as exc:
@@ -135,7 +137,9 @@ class EnrichmentProviderRouter:
 
         if self._should_use_provider("company_enrich", ProviderTier.TIER_0):
             try:
-                self.providers[ProviderTier.TIER_0].append(CompanyEnrichProvider(costs_config=self.costs_config))
+                self.providers[ProviderTier.TIER_0].append(
+                    CompanyEnrichProvider(costs_config=self.costs_config)
+                )
                 initialized_providers["tier_0"].append("CompanyEnrich")
                 self.logger.info("✅ CompanyEnrich provider initialized successfully")
             except Exception as exc:
@@ -158,7 +162,9 @@ class EnrichmentProviderRouter:
                     )
 
                 self.providers[ProviderTier.TIER_0].append(
-                    ApolloEnrichProvider(apollo_provider_config, costs_config=self.costs_config)
+                    ApolloEnrichProvider(
+                        apollo_provider_config, costs_config=self.costs_config
+                    )
                 )
                 initialized_providers["tier_0"].append("Apollo")
                 self.logger.info(
@@ -723,7 +729,7 @@ class EnrichmentProviderRouter:
 def create_enrichment_router(
     icp_config: Optional[Dict[str, Any]] = None,
     logger: Optional[logging.Logger] = None,
-    costs_config: Optional[Dict[str, float]] = None
+    costs_config: Optional[Dict[str, float]] = None,
 ) -> EnrichmentProviderRouter:
     """
     Factory function to create enrichment provider router instances.
