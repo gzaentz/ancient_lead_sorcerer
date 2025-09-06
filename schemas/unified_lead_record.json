@@ -522,7 +522,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["unknown", "valid", "risky", "invalid", "catch_all"]
+              "enum": ["unknown", "valid", "risky", "invalid", "catch_all", "no_email"]
             },
             "minItems": 1,
             "maxItems": 5
@@ -553,7 +553,7 @@
               },
               "status": {
                 "type": "string", 
-                "enum": ["valid", "invalid", "risky", "unknown", "error", "timeout", "rate_limited"],
+                "enum": ["valid", "invalid", "risky", "unknown", "error", "timeout", "rate_limited", "accept_all"],
                 "description": "Hunter.io verification status"
               },
               "result": {
@@ -584,7 +584,22 @@
               },
               "sources": {
                 "type": "array", 
-                "items": {"type": "string"},
+                "items": {
+                  "oneOf": [
+                    {"type": "string"},
+                    {
+                      "type": "object",
+                      "properties": {
+                        "domain": {"type": "string"},
+                        "uri": {"type": "string"},
+                        "extracted_on": {"type": "string"},
+                        "last_seen_on": {"type": "string"},
+                        "still_on_page": {"type": "boolean"}
+                      },
+                      "additionalProperties": true
+                    }
+                  ]
+                },
                 "maxItems": 10,
                 "description": "Sources where the email was found"
               },
@@ -658,7 +673,7 @@
             "description": "Whether contact needs email replacement due to low quality"
           },
           "phone": {
-            "type": "string",
+            "type": ["string", "null"],
             "pattern": "^\\+[1-9]\\d{1,14}$",
             "maxLength": 20,
             "description": "E.164 formatted phone number"
@@ -886,20 +901,29 @@
           "required": ["domain", "crawl", "enrich"],
           "properties": {
             "domain": {
-              "type": "object",
-              "required": ["version", "schema_version"],
-              "properties": {
-                "version": {
-                  "type": ["string", "null"],
-                  "maxLength": 2048
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["version", "schema_version"],
+                  "properties": {
+                    "version": {
+                      "type": ["string", "null"],
+                      "maxLength": 2048
+                    },
+                    "schema_version": {
+                      "type": ["string", "null"],
+                      "maxLength": 64,
+                      "description": "SHA256 hash of schema used"
+                    }
+                  },
+                  "additionalProperties": false
                 },
-                "schema_version": {
-                  "type": ["string", "null"],
-                  "maxLength": 64,
-                  "description": "SHA256 hash of schema used"
+                {
+                  "type": "string",
+                  "enum": ["bypassed"],
+                  "description": "Domain discovery was bypassed"
                 }
-              },
-              "additionalProperties": false
+              ]
             },
             "crawl": {
               "type": "object",
@@ -942,13 +966,22 @@
             "domain_cache_hit": {
               "type": ["boolean", "null"],
               "description": "Whether domain search used cached results"
+            },
+            "hit": {
+              "type": ["boolean", "null"],
+              "description": "Whether cache was hit"
+            },
+            "key": {
+              "type": ["string", "null"],
+              "maxLength": 2048,
+              "description": "Cache key used"
             }
           },
           "additionalProperties": false
         },
         "evidence_paths": {
           "type": "object",
-          "required": ["domain", "crawl", "enrich"],
+          "required": ["crawl", "enrich"],
           "properties": {
             "domain": {
               "type": ["string", "null"],
@@ -967,6 +1000,26 @@
             }
           },
           "additionalProperties": false
+        },
+        "bypassed_domain_discovery": {
+          "type": ["boolean", "null"],
+          "description": "Whether domain discovery was bypassed"
+        },
+        "created_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO-8601 UTC timestamp of creation"
+        },
+        "source": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Source of the lead (e.g., specific_urls, search, etc.)"
+        },
+        "specific_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "Specific URL that was targeted"
         }
       },
       "additionalProperties": false
@@ -1059,9 +1112,27 @@
           "minimum": 0.0,
           "default": 0.0,
           "description": "Total cost in USD across all stages"
+        },
+        "llm_usd": {
+          "type": "number",
+          "minimum": 0.0,
+          "default": 0.0,
+          "description": "Cost in USD for LLM operations"
         }
       },
       "additionalProperties": false
+    },
+    "costs": {
+      "type": "object",
+      "properties": {
+        "hunter_io": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Hunter.io verification cost in USD"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Additional cost tracking for specific services"
     }
   },
   "additionalProperties": false

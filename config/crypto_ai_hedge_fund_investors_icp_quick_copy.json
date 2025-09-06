@@ -7,9 +7,9 @@
   "queries": [
     "family office crypto AI investments"
   ],
-  "specific_urls": ["https://www.studerfamilyoffice.com/","https://vmsam.com/",
-  "https://avenir.hk/","https://www.c.capital/","https://www.rafflesgroup.co", "https://www.aethelpartners.com/",
-  "https://www.brookergroup.com/","https://www.revogroup.co/","https://www.cooperfamilyoffice.com/","https://boonventures.com","https://dunhillventures.com/"],
+  "specific_urls": ["https://www.whampoagroup.com","https://bluepoolcapital.com","https://vmsam.com/",
+  "https://avenir.hk/","https://www.c.capital/","https://www.rafflesgroup.co",
+  "https://www.revogroup.co/","https://www.cooperfamilyoffice.com/","https://dunhillventures.com/","https://www.raptorgroup.com"],
 
   "required_fields": {
     "company": ["name", "domain", "industry", "size", "location", "description"],
