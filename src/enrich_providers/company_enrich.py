@@ -32,12 +32,13 @@ from .base import (
 class CompanyEnrichProvider(BaseEnrichmentProvider):
     """CompanyEnrich API enrichment provider."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, costs_config: Optional[Dict[str, float]] = None):
         """
         Initialize CompanyEnrich provider.
 
         Args:
             api_key: CompanyEnrich API key (defaults to env var COMPANY_ENRICH_API_KEY)
+            costs_config: Costs configuration dictionary
         """
         super().__init__(name="CompanyEnrich", tier=ProviderTier.TIER_0)
         self.api_key = api_key or os.getenv("COMPANY_ENRICH_API_KEY")
@@ -49,6 +50,10 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         self._min_request_interval = (
             0.2  # 200ms between requests (5 RPS limit, conservative for 300/min)
         )
+
+        # Load costs from config or use defaults
+        self.costs_config = costs_config or {}
+        self.company_lookup_cost = self.costs_config.get("company_enrich", 0.001)  # Default from costs.yaml
 
         logging.info("CompanyEnrich provider initialized")
 
@@ -141,7 +146,7 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
                     success=True,
                     data=company_data,
                     provider="company_enrich",
-                    cost=0.01,  # CompanyEnrich cost per company lookup
+                    cost=self.company_lookup_cost,  # Use costs.yaml value
                 )
 
         except Exception as exc:
@@ -221,7 +226,7 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
                     success=True,
                     data=contact_data,
                     provider="company_enrich",
-                    cost=0.01,  # CompanyEnrich cost per company lookup
+                    cost=self.company_lookup_cost,  # Use costs.yaml value
                 )
 
         except Exception as exc:

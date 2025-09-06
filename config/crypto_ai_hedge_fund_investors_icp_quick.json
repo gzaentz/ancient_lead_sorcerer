@@ -2,13 +2,12 @@
   "name": "Crypto AI Hedge Fund Investors ICP",
   "icp_text": "Institutional investors, fund of funds, family offices, and investment firms with demonstrated interest and past investments in cryptocurrency, blockchain, artificial intelligence, and hedge fund strategies. Focus on entities that have previously invested in crypto funds, AI companies, or alternative investment vehicles.",
 
-  "lead_generation_mode": "url",
+  "lead_generation_mode": "search",
 
   "queries": [
     "family office crypto AI investments"
   ],
-  "specific_urls": ["https://www.nikolajsencapital.ch","https://bayshorecap.com",
-  "https://www.whampoagroup.com","https://bluepoolcapital.com"],
+  "specific_urls": ["https://www.nikolajsencapital.ch"],
   "required_fields": {
     "company": ["name", "domain", "industry", "size", "location", "description"],
     "contact": ["first_name", "last_name", "title", "email", "linkedin_url"]
@@ -19,7 +18,7 @@
     "contact": ["phone", "department", "seniority", "company_name"]
   },
 
-  "icp_hard_rules": "Industry must be Investment Management, Venture Capital, or Private Equity. Company size must be 1-10 or 11-50 employees. Location must be United States, United Kingdom, or Hong Kong. Must NOT contain keywords: consulting, agency, news, media.",
+  "icp_hard_rules": "Must be an investment fund or family office.",
   "mode": "thorough",
 
   "apollo": {

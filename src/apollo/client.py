@@ -484,7 +484,7 @@ class SearchQueryOptimizer:
 class ApolloClient:
     """Enhanced Apollo API client with intelligent batching, caching, and search optimization"""
 
-    def __init__(self, config: ApolloConfig):
+    def __init__(self, config: ApolloConfig, costs_config: Optional[Dict[str, float]] = None):
         self.config = config
         self.api_key = config.api_key
         self.base_url = config.base_url
@@ -496,6 +496,10 @@ class ApolloClient:
         self.credits_used = 0  # Track API credits used
         self.total_requests = 0  # Track total API requests made
         self.total_errors = 0  # Track total API errors
+
+        # Load costs from config or use defaults
+        self.costs_config = costs_config or {}
+        self.usd_per_credit = self.costs_config.get("apollo", 0.01975)  # Default from costs.yaml
 
     async def __aenter__(self):
         logger.info(f"Initializing Apollo session with API key: {self.api_key[:10]}...")
@@ -1368,13 +1372,12 @@ class ApolloClient:
         Returns:
             Cost summary including credits used and estimated USD cost
         """
-        # Apollo pricing: 1 credit = $0.015 USD
-        usd_per_credit = 0.015
-        total_usd = self.credits_used * usd_per_credit
+        # Use costs.yaml value for Apollo pricing
+        total_usd = self.credits_used * self.usd_per_credit
 
         return {
             "credits_used": self.credits_used,
-            "usd_per_credit": usd_per_credit,
+            "usd_per_credit": self.usd_per_credit,
             "total_usd": total_usd,
             "total_requests": self.total_requests,
             "total_errors": self.total_errors,

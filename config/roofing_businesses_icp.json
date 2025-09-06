@@ -1,0 +1,288 @@
+{
+  "name": "Roofing Businesses ICP",
+  "icp_text": "US-based roofing companies, contractors, and roofing service providers looking to expand their marketing reach through targeted advertising. Focus on established roofing businesses with decision-making owners, marketing heads, or key personnel responsible for advertising and marketing investments.",
+
+  "lead_generation_mode": "search",
+
+  "queries": [
+    "roofing company houston texas"
+  ],
+
+  "required_fields": {
+    "company": ["name", "domain", "industry", "location", "description"],
+    "contact": ["first_name", "last_name", "title", "email"]
+  },
+
+  "optional_fields": {
+    "company": ["website", "employee_count", "revenue_range", "founded_year"],
+    "contact": ["phone", "linkedin_url", "department", "seniority"]
+  },
+
+  "icp_hard_rules": "Must be a roofing company.",
+  "mode": "thorough",
+
+  "apollo": {
+    "enabled": true,
+    "fallback_to_traditional": true,
+
+    "search": {
+      "strategy": "company_first",
+      "max_results": 10,
+
+      "company_filters": {
+        "industry": [
+          "Construction",
+          "Roofing",
+          "Contractor",
+          "Home Improvement",
+          "Building Services",
+          "Commercial Construction",
+          "Residential Construction"
+        ],
+        "size": [
+          "1-10",
+          "11-50",
+          "51-200"
+        ],
+        "location": [
+          "United States"
+        ]
+      },
+
+      "person_filters": {
+        "job_titles": [
+          "Owner",
+          "Founder",
+          "President",
+          "CEO",
+          "Chief Executive Officer",
+          "Marketing Manager",
+          "Marketing Director",
+          "Head of Marketing",
+          "VP Marketing",
+          "Vice President Marketing",
+          "Business Development Manager",
+          "Sales Manager",
+          "General Manager",
+          "Operations Manager",
+          "Project Manager"
+        ],
+        "seniority": [
+          "C-Level",
+          "Owner",
+          "Founder",
+          "VP",
+          "Director",
+          "Manager",
+          "Head"
+        ],
+        "departments": [
+          "Marketing",
+          "Sales",
+          "Business Development",
+          "Executive",
+          "Operations",
+          "Management"
+        ]
+      }
+    },
+
+    "enrich": {
+      "enabled": true,
+      "quality_thresholds": {
+        "min_employee_count": 1,
+        "min_contact_quality": 0.75,
+        "required_contact_fields": ["email", "title"],
+        "required_company_fields": ["description", "industry"]
+      }
+    }
+  },
+
+  "refresh_policy": {
+    "revisit_after_days": 90,
+    "failure_revisit_days": 14,
+    "domain_serp_ttl_hours": 72,
+    "crawl_ttl_days": 30
+  },
+
+  "concurrency": {
+    "max_concurrent_requests": 2
+  },
+
+  "search": {
+    "max_pages": 1
+  },
+
+  "testing": {
+    "process_rejected": false,
+    "process_low_crawl": false,
+    "force_contact_discovery": true
+  },
+
+  "caps": {
+    "company_usd": 0.03,
+    "contact_usd": 0.05,
+    "run_usd_max": 15.0
+  },
+
+  "role_priority": {
+    "Owner": 1,
+    "Founder": 1,
+    "CEO": 2,
+    "President": 2,
+    "Chief Executive Officer": 2,
+    "Marketing Director": 3,
+    "Head of Marketing": 3,
+    "VP Marketing": 4,
+    "Vice President Marketing": 4,
+    "Marketing Manager": 5,
+    "Business Development Manager": 6,
+    "Sales Manager": 7,
+    "General Manager": 8,
+    "Operations Manager": 9,
+    "Project Manager": 10,
+    "default": 99
+  },
+
+  "decision_makers": {
+    "priority_threshold": 8,
+    "include_variations": true,
+    "title_variations": {
+      "owner": [
+        "Owner",
+        "Founder",
+        "Proprietor",
+        "Founder & Owner",
+        "Owner/Operator"
+      ],
+      "ceo": [
+        "CEO",
+        "Chief Executive Officer",
+        "Chief Executive",
+        "Founder & CEO",
+        "CEO and Founder"
+      ],
+      "president": [
+        "President",
+        "Founder & President",
+        "President & CEO"
+      ],
+      "marketing": [
+        "Marketing Director",
+        "Head of Marketing",
+        "VP Marketing",
+        "Vice President Marketing",
+        "Marketing Manager",
+        "Marketing Head"
+      ],
+      "sales": [
+        "Sales Manager",
+        "Head of Sales",
+        "VP Sales",
+        "Sales Director"
+      ]
+    }
+  },
+
+  "exports": {
+    "enabled": true,
+    "formats": ["csv", "json"]
+  },
+
+  "default_country": "US",
+
+  "exclusion_criteria": {
+    "ownership_types": [
+      "Non-profit"
+    ],
+    "excluded_keywords": [
+      "news",
+      "media",
+      "publishing",
+      "journalism",
+      "editorial",
+      "reporting",
+      "coverage",
+      "analysis",
+      "insights",
+      "magazine",
+      "newspaper",
+      "blog",
+      "content",
+      "article",
+      "story",
+      "consulting",
+      "agency",
+      "freelance",
+      "individual",
+      "personal",
+      "retail",
+      "consumer",
+      "software",
+      "technology",
+      "tech",
+      "saas",
+      "app",
+      "platform"
+    ],
+    "excluded_industries": [
+      "Media",
+      "Publishing",
+      "Journalism",
+      "News",
+      "Entertainment",
+      "Social Media",
+      "Software",
+      "Technology",
+      "Consulting",
+      "Agency"
+    ]
+  },
+
+  "targeting": {
+    "location_types": [
+      "Metropolitan Areas",
+      "Suburban Areas",
+      "Urban Centers"
+    ],
+    "practice_sizes": [
+      "Small Roofing Contractors",
+      "Mid-size Roofing Companies",
+      "Established Roofing Businesses"
+    ],
+    "ownership_models": [
+      "Family-owned",
+      "Partnership",
+      "Private Company",
+      "LLC",
+      "Corporation"
+    ]
+  },
+
+  "enrichment_providers": {
+    "anymail_finder": {
+      "enabled": true,
+      "priority": 1
+    },
+    "apollo": {
+      "enabled": true,
+      "priority": 2
+    },
+    "company_enrich": {
+      "enabled": true,
+      "priority": 3
+    },
+    "coresignal": {
+      "enabled": true,
+      "priority": 4
+    }
+  },
+
+  "hunter_io": {
+    "enabled": true,
+    "min_score": 75,
+    "max_verifications_per_contact": 2,
+    "fallback_discovery": true,
+    "cost_tracking": true
+  }
+}

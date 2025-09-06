@@ -3221,7 +3221,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
             }
 
         # Initialize enrichment provider router with shared logger
-        enrichment_router = create_enrichment_router(icp_config, logger)
+        enrichment_router = create_enrichment_router(icp_config, logger, costs_config)
         mailgun_client = MailgunClient(mailgun_login, mailgun_password)
 
         # Initialize Hunter.io client

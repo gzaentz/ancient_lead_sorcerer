@@ -32,12 +32,13 @@ from .base import (
 class AnymailFinderProvider(BaseEnrichmentProvider):
     """Anymail Finder API enrichment provider."""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, costs_config: Optional[Dict[str, float]] = None):
         """
         Initialize Anymail Finder provider.
 
         Args:
             api_key: Anymail Finder API key (defaults to env var ANYMAIL_FINDER_API_KEY)
+            costs_config: Costs configuration dictionary
         """
         super().__init__(name="AnymailFinder", tier=ProviderTier.TIER_0)
         self.api_key = api_key or os.getenv("ANYMAIL_FINDER_API_KEY")
@@ -47,6 +48,11 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         self.base_url = "https://api.anymailfinder.com/v5.1"
         self._last_request_time = 0.0
         self._min_request_interval = 0.2  # 200ms between requests (5 RPS limit)
+
+        # Load costs from config or use defaults
+        self.costs_config = costs_config or {}
+        self.company_lookup_cost = self.costs_config.get("anymail_finder", 0.008)  # Default from costs.yaml
+        self.email_lookup_cost = self.costs_config.get("anymail_finder", 0.008)  # Default from costs.yaml
 
         logging.info("Anymail Finder provider initialized")
 
@@ -150,11 +156,16 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                 # Map Anymail Finder response to CompanyData
                 company_data = self._map_company_response(data, domain)
 
+                # Only charge if a valid email is returned (per AnymailFinder API docs)
+                cost = 0.0
+                if data.get("email") and data.get("email_status") == "valid":
+                    cost = self.company_lookup_cost  # Use costs.yaml value
+
                 return EnrichmentResult(
                     success=True,
                     data=company_data,
                     provider="anymail_finder",
-                    cost=0.02,  # Anymail Finder decision-maker endpoint costs 2 credits
+                    cost=cost,
                 )
 
         except Exception as exc:
@@ -199,11 +210,16 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                 # Map Anymail Finder response to ContactData list
                 contacts_data = self._map_contacts_response(data)
 
+                # Only charge if a valid email is returned (per AnymailFinder API docs)
+                cost = 0.0
+                if data.get("email") and data.get("email_status") == "valid":
+                    cost = self.company_lookup_cost  # Use costs.yaml value
+
                 return EnrichmentResult(
                     success=True,
                     data=contacts_data,
                     provider="anymail_finder",
-                    cost=0.02,  # Anymail Finder decision-maker endpoint costs 2 credits
+                    cost=cost,
                 )
 
         except Exception as exc:
@@ -246,11 +262,16 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
                 # Map Anymail Finder response to ContactData
                 contact_data = self._map_email_response(data)
 
+                # Only charge if a valid email is returned (per AnymailFinder API docs)
+                cost = 0.0
+                if data.get("email") and data.get("email_status") == "valid":
+                    cost = self.email_lookup_cost  # Use costs.yaml value
+
                 return EnrichmentResult(
                     success=True,
                     data=contact_data,
                     provider="anymail_finder",
-                    cost=0.012,  # Anymail Finder cost per email lookup
+                    cost=cost,
                 )
 
         except Exception as exc:
@@ -274,12 +295,11 @@ class AnymailFinderProvider(BaseEnrichmentProvider):
         """
         company = CompanyData(domain=domain)
 
-        # Anymail Finder doesn't provide company data, so we create basic info
-        company.name = domain.split(".")[0].title()  # Extract company name from domain
-
-        # Try to get company info from the response if available
-        if response_data.get("person_company_name"):
-            company.name = response_data["person_company_name"]
+        # Anymail Finder doesn't provide meaningful company data
+        # Don't override company name as it degrades data quality
+        # Only set basic domain info if no existing company data
+        if not company.name:
+            company.name = domain.split(".")[0].title()  # Extract company name from domain
 
         return company
 

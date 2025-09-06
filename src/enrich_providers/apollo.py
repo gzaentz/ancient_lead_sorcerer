@@ -29,17 +29,22 @@ class ApolloEnrichProvider(BaseEnrichmentProvider):
     must be loaded from configuration, never from source code defaults.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], costs_config: Optional[Dict[str, float]] = None):
         """
         Initialize Apollo enrichment provider.
 
         Args:
             config: Provider configuration containing Apollo settings
+            costs_config: Costs configuration dictionary
         """
         super().__init__("apollo", ProviderTier.TIER_0)
 
         # Store config for later use
         self.config = config
+
+        # Load costs from config or use defaults
+        self.costs_config = costs_config or {}
+        self.cost_per_request = self.costs_config.get("apollo", 0.01975)  # Default from costs.yaml
 
         # Initialize Apollo client
         self.apollo_client = self._initialize_apollo_client()
@@ -738,7 +743,7 @@ class ApolloEnrichProvider(BaseEnrichmentProvider):
                 "bulk_operations",
             ],
             "rate_limits": "100 requests per minute",
-            "cost_per_request": 0.015,  # 1 credit = $0.015 USD
+            "cost_per_request": self.cost_per_request,  # Use costs.yaml value
             "supported_fields": self.required_fields,
         }
 

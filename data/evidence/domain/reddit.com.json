@@ -1,20 +1,20 @@
 {
   "domain": "reddit.com",
   "queries": [
-    "family owned dental practices multiple offices California"
+    "roofing company houston texas"
   ],
-  "fetched_at": "2025-09-02T14:36:39.020181Z",
+  "fetched_at": "2025-09-06T22:58:48.335273Z",
   "serp_results": [
     {
-      "url": "https://www.reddit.com/r/Dentistry/comments/xqj42r/high_associate_salary_vs_owning_your_own_practice/",
-      "title": "High associate salary vs owning your own practice? : r/Dentistry",
-      "snippet": "Sep 28, 2022 ... I have several friends/assistants from previous positions that are on board and have been pulling me to open an office because they love working\u00a0...",
-      "query": "family owned dental practices multiple offices California",
-      "page_index": 4,
+      "url": "https://www.reddit.com/r/houston/comments/13wsk21/roofer_recommendations/",
+      "title": "Roofer Recommendations : r/houston",
+      "snippet": "May 31, 2023 ... The roofing company we used put holes in our new plumbing ( PEX ... Houston and most of Texas. Larger drip edge can be provided at an\u00a0...",
+      "query": "roofing company houston texas",
+      "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-02T14:34:04.047732Z",
+      "fetched_at": "2025-09-06T22:58:39.370971Z",
       "domain": "reddit.com"
     }
   ],
-  "scoring_prompt_fingerprint": "0484e256a1fcef169e5428e305cd609b55eba544fb2015ec1f43c8a542a48b56"
+  "scoring_prompt_fingerprint": "81039e201be11058aaf38959f6336ff33caeafea192a4cc30e2c09816906fc54"
 }

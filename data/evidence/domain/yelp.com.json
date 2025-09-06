@@ -1,20 +1,20 @@
 {
   "domain": "yelp.com",
   "queries": [
-    "dental practice groups Florida 5+ locations"
+    "roofing company houston texas"
   ],
-  "fetched_at": "2025-08-27T16:43:06.876725Z",
+  "fetched_at": "2025-09-06T22:58:48.337275Z",
   "serp_results": [
     {
-      "url": "https://www.yelp.com/biz/the-dental-care-group-aventura",
-      "title": "THE DENTAL CARE GROUP - Updated August 2025 - 27 Photos ...",
-      "snippet": "THE DENTAL CARE GROUP, 2797 NE 207th St, Ste 100, Aventura, FL 33180, 27 Photos, Mon - 9:00 am - 6:00 pm, Tue - 9:00 am - 6:00 pm, Wed - 8:00 am - 6:00 pm,\u00a0...",
-      "query": "dental practice groups Florida 5+ locations",
+      "url": "https://www.yelp.com/search?cflt=roofing&find_loc=Houston%2C+TX",
+      "title": "THE BEST 10 ROOFING in HOUSTON, TX - Updated 2025 - Hours ...",
+      "snippet": "Top 10 Best Roofing Near Houston, Texas - With Real Reviews (September 2025) \u00b7 Ebenezer Cornise Framing Construction \u00b7 Onit Roofing \u00b7 Skyline Roofing & Outdoor\u00a0...",
+      "query": "roofing company houston texas",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-27T16:42:47.476623Z",
+      "fetched_at": "2025-09-06T22:58:39.370971Z",
       "domain": "yelp.com"
     }
   ],
-  "scoring_prompt_fingerprint": "6b5550c29a6cad304a34f29ed8783259257c945e020725c3afdc9b806edbcb55"
+  "scoring_prompt_fingerprint": "00ebef9b9e9abce3386fb1ad9fd3bca32a9a0019b76cb45049c3e60815e0b958"
 }

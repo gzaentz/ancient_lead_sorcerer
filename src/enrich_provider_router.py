@@ -44,6 +44,7 @@ class EnrichmentProviderRouter:
         self,
         icp_config: Optional[Dict[str, Any]] = None,
         logger: Optional[logging.Logger] = None,
+        costs_config: Optional[Dict[str, float]] = None,
     ):
         """
         Initialize the enrichment provider router.
@@ -52,9 +53,11 @@ class EnrichmentProviderRouter:
             icp_config: ICP-specific configuration for provider tiers and preferences
                         (No ICP hard-coding - loaded from config files)
             logger: Optional logger instance to use for consistent logging
+            costs_config: Costs configuration dictionary
         """
         self.icp_config = icp_config or {}
         self.logger = logger or logging.getLogger("enrich")
+        self.costs_config = costs_config or {}
         self.providers: Dict[ProviderTier, List[BaseEnrichmentProvider]] = {
             ProviderTier.TIER_0: [],
             ProviderTier.TIER_1: [],
@@ -121,7 +124,7 @@ class EnrichmentProviderRouter:
         # Note: Anymail Finder is initialized first for contact/email discovery priority
         if self._should_use_provider("anymail_finder", ProviderTier.TIER_0):
             try:
-                self.providers[ProviderTier.TIER_0].append(AnymailFinderProvider())
+                self.providers[ProviderTier.TIER_0].append(AnymailFinderProvider(costs_config=self.costs_config))
                 initialized_providers["tier_0"].append("AnymailFinder")
                 self.logger.info("✅ AnymailFinder provider initialized successfully")
             except Exception as exc:
@@ -132,7 +135,7 @@ class EnrichmentProviderRouter:
 
         if self._should_use_provider("company_enrich", ProviderTier.TIER_0):
             try:
-                self.providers[ProviderTier.TIER_0].append(CompanyEnrichProvider())
+                self.providers[ProviderTier.TIER_0].append(CompanyEnrichProvider(costs_config=self.costs_config))
                 initialized_providers["tier_0"].append("CompanyEnrich")
                 self.logger.info("✅ CompanyEnrich provider initialized successfully")
             except Exception as exc:
@@ -155,7 +158,7 @@ class EnrichmentProviderRouter:
                     )
 
                 self.providers[ProviderTier.TIER_0].append(
-                    ApolloEnrichProvider(apollo_provider_config)
+                    ApolloEnrichProvider(apollo_provider_config, costs_config=self.costs_config)
                 )
                 initialized_providers["tier_0"].append("Apollo")
                 self.logger.info(
@@ -718,7 +721,9 @@ class EnrichmentProviderRouter:
 
 # Factory function for creating router instances
 def create_enrichment_router(
-    icp_config: Optional[Dict[str, Any]] = None, logger: Optional[logging.Logger] = None
+    icp_config: Optional[Dict[str, Any]] = None,
+    logger: Optional[logging.Logger] = None,
+    costs_config: Optional[Dict[str, float]] = None
 ) -> EnrichmentProviderRouter:
     """
     Factory function to create enrichment provider router instances.
@@ -726,8 +731,9 @@ def create_enrichment_router(
     Args:
         icp_config: ICP-specific configuration for provider tiers and preferences
         logger: Optional logger instance for consistent logging
+        costs_config: Costs configuration dictionary
 
     Returns:
         Configured EnrichmentProviderRouter instance
     """
-    return EnrichmentProviderRouter(icp_config, logger)
+    return EnrichmentProviderRouter(icp_config, logger, costs_config)
