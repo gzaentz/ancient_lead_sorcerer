@@ -1,36 +1,35 @@
 {
   "name": "Crypto AI Hedge Fund Investors ICP",
   "icp_text": "Institutional investors, fund of funds, family offices, and investment firms with demonstrated interest and past investments in cryptocurrency, blockchain, artificial intelligence, and hedge fund strategies. Focus on entities that have previously invested in crypto funds, AI companies, or alternative investment vehicles.",
-  
+
   "lead_generation_mode": "url",
-  
+
   "queries": [
     "family office crypto AI investments"
   ],
-  "specific_urls": ["https://www.nikolajsencapital.ch","https://bayshorecap.com",
-  "https://www.whampoagroup.com","https://bluepoolcapital.com"],
+  "specific_urls": ["https://www.studerfamilyoffice.com/"],
   "required_fields": {
     "company": ["name", "domain", "industry", "size", "location", "description"],
     "contact": ["first_name", "last_name", "title", "email", "linkedin_url"]
   },
-  
+
   "optional_fields": {
     "company": ["website", "technologies", "funding_stage", "employee_count", "revenue_range"],
     "contact": ["phone", "department", "seniority", "company_name"]
   },
-  
+
   "threshold": 0.8,
   "filtering_strict": true,
   "mode": "thorough",
-  
+
   "apollo": {
     "enabled": true,
     "fallback_to_traditional": true,
-    
+
     "search": {
       "strategy": "company_first",
       "max_results": 10,
-      
+
       "company_filters": {
         "industry": [
           "Investment Management",
@@ -88,7 +87,7 @@
           "IPO"
         ]
       },
-      
+
       "person_filters": {
         "job_titles": [
           "Managing Partner",
@@ -131,7 +130,7 @@
         ]
       }
     },
-    
+
     "enrich": {
       "enabled": true,
       "quality_thresholds": {
@@ -142,34 +141,34 @@
       }
     }
   },
-  
+
   "refresh_policy": {
     "revisit_after_days": 60,
     "failure_revisit_days": 7,
     "domain_serp_ttl_hours": 48,
     "crawl_ttl_days": 30
   },
-  
+
   "concurrency": {
     "max_concurrent_requests": 3
   },
-  
+
   "search": {
     "max_pages": 1
   },
-  
+
   "testing": {
     "process_rejected": false,
     "process_low_crawl": false
   },
-  
+
   "caps": {
     "company_usd": 0.05,
     "contact_usd": 0.08,
     "run_usd_max": 25.0,
     "apollo_credits_max": 2000
   },
-  
+
   "role_priority": {
     "Managing Partner": 1,
     "Partner": 2,
@@ -190,7 +189,7 @@
     "President": 3,
     "default": 99
   },
-  
+
   "decision_makers": {
     "priority_threshold": 10,
     "include_variations": true,
@@ -273,15 +272,15 @@
       "Portfolio Manager"
     ]
   },
-  
+
   "exports": {
     "enabled": true,
     "formats": ["csv", "json", "xlsx"],
     "include_apollo_data": true
   },
-  
+
   "default_country": "US",
-  
+
   "exclusion_criteria": {
     "ownership_types": [
       "Sole Proprietorship",
@@ -292,7 +291,7 @@
     "news_media_exclusions": {
       "excluded_domains": [
         "ft.com",
-        "wsj.com", 
+        "wsj.com",
         "bloomberg.com",
         "reuters.com",
         "cnbc.com",
@@ -654,7 +653,7 @@
     "max_assets_under_management_usd": 10000000000,
     "max_annual_revenue_usd": 5000000000
   },
-  
+
   "targeting": {
     "location_types": [
       "Financial Districts",
@@ -676,7 +675,7 @@
       "Institutionally-owned"
     ]
   },
-  
+
   "intent_config": {
     "purpose": "crypto_ai_investment_opportunity",
     "target_action": "invest_in_crypto_ai",
@@ -799,7 +798,7 @@
       }
     }
   },
-  
+
   "enrichment_providers": {
     "apollo": {
       "enabled": true,
@@ -823,14 +822,14 @@
       "priority": 5
     }
   },
-  
+
   "apollo_advanced": {
     "rate_limiting": {
       "requests_per_minute": 40,
       "requests_per_hour": 800,
       "burst_limit": 8
     },
-    
+
     "search_optimization": {
       "use_boolean_queries": true,
       "exclude_keywords": [
@@ -872,7 +871,7 @@
       ],
       "location_radius_miles": 100
     },
-    
+
     "quality_scoring": {
       "company_score_weights": {
         "industry_match": 0.35,
@@ -887,14 +886,14 @@
         "location_match": 0.10
       }
     },
-    
+
     "fallback_strategy": {
       "enable_traditional_fallback": true,
       "apollo_failure_threshold": 5,
       "traditional_fallback_delay_minutes": 10
     }
   },
-  
+
   "hunter_io": {
     "enabled": true,
     "min_score": 80,

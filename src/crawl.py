@@ -856,7 +856,13 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         # Score >= 3 suggests database site
         return database_score >= 3
 
-    async def run(self, payload: Dict[str, Any], hunter_client: Optional[HunterIOClient] = None, logger: Optional[Any] = None, costs_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def run(
+        self,
+        payload: Dict[str, Any],
+        hunter_client: Optional[HunterIOClient] = None,
+        logger: Optional[Any] = None,
+        costs_config: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
         Main entry point for the crawl tool.
 
@@ -962,7 +968,9 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
 
             for record in records_to_process:
                 try:
-                    result = await self._process_single_record(record, icp_config, hunter_client, costs_config)
+                    result = await self._process_single_record(
+                        record, icp_config, hunter_client, costs_config
+                    )
                     if result["success"]:
                         processed_records.append(result["record"])
                         if result["cache_hit"]:
@@ -1058,7 +1066,11 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
             }
 
     async def _process_single_record(
-        self, record: Dict[str, Any], icp_config: Dict[str, Any], hunter_client: Optional[HunterIOClient] = None, costs_config: Optional[Dict[str, Any]] = None
+        self,
+        record: Dict[str, Any],
+        icp_config: Dict[str, Any],
+        hunter_client: Optional[HunterIOClient] = None,
+        costs_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Process a single lead record.
@@ -1210,7 +1222,9 @@ IMPORTANT: If no clear intent signals are found, set business_intent_score to {i
         # Process extracted data (including cache hits)
         if extracted_data or cache_hit:
             try:
-                await self._process_extracted_data(record, extracted_data, icp_config, hunter_client, costs_config)
+                await self._process_extracted_data(
+                    record, extracted_data, icp_config, hunter_client, costs_config
+                )
 
                 # Configurable industry validation logic
                 is_industry_match = self._validate_industry_match(record, icp_config)
@@ -2195,7 +2209,9 @@ Remember: Extract unique, valuable information about each individual business op
             extracted_data.get("site_type") == "information_database"
             and "listings" in extracted_data
         ):
-            await self._process_database_extracted_data(record, extracted_data, icp_config, hunter_client, costs_config)
+            await self._process_database_extracted_data(
+                record, extracted_data, icp_config, hunter_client, costs_config
+            )
             return
 
             # Process single company data (existing logic)
@@ -2479,28 +2495,34 @@ Remember: Extract unique, valuable information about each individual business op
         # HUNTER.IO VERIFICATION: Verify ALL crawled emails
         if contacts and hunter_client:
             domain = record.get("domain", "")
-            self.logger.info(f"🔍 Hunter.io: Verifying {len(contacts)} crawled emails for {domain}")
+            self.logger.info(
+                f"🔍 Hunter.io: Verifying {len(contacts)} crawled emails for {domain}"
+            )
             contacts, hunter_cost = await verify_all_contact_emails_with_hunter(
                 contacts=contacts,
                 hunter_client=hunter_client,
                 domain=domain,
                 logger=self.logger,
                 costs_config=costs_config or self.costs_config,
-                min_score=icp_config.get("hunter_min_score", 70)
+                min_score=icp_config.get("hunter_min_score", 70),
             )
             # Update record with verified contacts
             record["contacts"] = contacts
-            
+
             # Track Hunter.io costs in crawl results
             if "costs" not in record:
                 record["costs"] = {}
             if "hunter_io" not in record["costs"]:
                 record["costs"]["hunter_io"] = 0.0
             record["costs"]["hunter_io"] += hunter_cost
-            
-            self.logger.info(f"💰 Hunter.io verification cost for {domain}: ${hunter_cost:.4f}")
+
+            self.logger.info(
+                f"💰 Hunter.io verification cost for {domain}: ${hunter_cost:.4f}"
+            )
         elif contacts:
-            self.logger.warning(f"⚠️ Hunter.io client not available - crawled emails from {record.get('domain', '')} will not be verified")
+            self.logger.warning(
+                f"⚠️ Hunter.io client not available - crawled emails from {record.get('domain', '')} will not be verified"
+            )
 
         # Perform ICP validation
         self._validate_icp_fit(record, icp_config)

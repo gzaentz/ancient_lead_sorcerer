@@ -107,48 +107,54 @@ class LeadSorcererOrchestrator:
             # Get performance optimization settings from ICP config
             hunter_config = self.icp_config.get("hunter_io", {})
             perf_config = hunter_config.get("performance_optimization", {})
-            
+
             # Caching settings
             cache_config = perf_config.get("caching", {})
             cache_enabled = cache_config.get("enabled", True)
             cache_ttl_hours = cache_config.get("ttl_hours", 24) if cache_enabled else 0
             max_cache_size = cache_config.get("max_size", 10000) if cache_enabled else 0
-            
+
             # Initialize Hunter.io client with performance and error handling settings
             if cache_enabled:
                 # Get error handling configuration
                 error_config = perf_config.get("error_handling", {})
                 error_enabled = error_config.get("enabled", True)
-                
+
                 if error_enabled:
                     max_retries = error_config.get("max_retries", 3)
                     base_delay = error_config.get("base_delay", 1.0)
                     max_delay = error_config.get("max_delay", 60.0)
-                    
+
                     self.hunter_client = HunterIOClient(
                         api_key=hunter_api_key,
                         cache_ttl_hours=cache_ttl_hours,
-                        max_cache_size=max_cache_size
+                        max_cache_size=max_cache_size,
                     )
-                    
+
                     # Apply error handling configuration
                     self.hunter_client.max_retries = max_retries
                     self.hunter_client.base_delay = base_delay
                     self.hunter_client.max_delay = max_delay
-                    
-                    self.logger.info(f"✅ Hunter.io client initialized with caching and error handling (TTL: {cache_ttl_hours}h, Max size: {max_cache_size}, Retries: {max_retries}, Base delay: {base_delay}s, Max delay: {max_delay}s)")
+
+                    self.logger.info(
+                        f"✅ Hunter.io client initialized with caching and error handling (TTL: {cache_ttl_hours}h, Max size: {max_cache_size}, Retries: {max_retries}, Base delay: {base_delay}s, Max delay: {max_delay}s)"
+                    )
                 else:
                     self.hunter_client = HunterIOClient(
                         api_key=hunter_api_key,
                         cache_ttl_hours=cache_ttl_hours,
-                        max_cache_size=max_cache_size
+                        max_cache_size=max_cache_size,
                     )
-                    self.logger.info(f"✅ Hunter.io client initialized with caching only (TTL: {cache_ttl_hours}h, Max size: {max_cache_size})")
+                    self.logger.info(
+                        f"✅ Hunter.io client initialized with caching only (TTL: {cache_ttl_hours}h, Max size: {max_cache_size})"
+                    )
             else:
                 self.hunter_client = HunterIOClient(hunter_api_key)
                 self.logger.info("✅ Hunter.io client initialized without caching")
         else:
-            self.logger.warning("⚠️ HUNTER_IO_API_KEY not configured - email verification will be limited")
+            self.logger.warning(
+                "⚠️ HUNTER_IO_API_KEY not configured - email verification will be limited"
+            )
 
         # Initialize tools based on lead generation mode
         self._initialize_tools()
@@ -211,11 +217,11 @@ class LeadSorcererOrchestrator:
                 from src.apollo.lead_gen import ApolloLeadGen
 
                 self.apollo_tool = ApolloLeadGen(
-                    self.icp_config, 
+                    self.icp_config,
                     self.data_dir,
                     hunter_client=self.hunter_client,
                     logger=self.logger,
-                    costs_config=self.costs_config
+                    costs_config=self.costs_config,
                 )
                 self.logger.info("✅ Apollo lead generation tool initialized")
             except ModuleNotFoundError as e:
@@ -320,8 +326,10 @@ class LeadSorcererOrchestrator:
         """
         # Check explicit mode first
         explicit_mode = self.icp_config.get("lead_generation_mode")
-        self.logger.info(f"🔍 DEBUG: Raw lead_generation_mode from config: {explicit_mode}")
-        
+        self.logger.info(
+            f"🔍 DEBUG: Raw lead_generation_mode from config: {explicit_mode}"
+        )
+
         if explicit_mode:
             # Handle legacy mode names for backward compatibility
             if explicit_mode == "traditional":
@@ -583,7 +591,7 @@ class LeadSorcererOrchestrator:
         """
         specific_urls = self.icp_config.get("specific_urls", [])
         lead_generation_mode = self.icp_config.get("lead_generation_mode", "search")
-        
+
         # Only bypass domain discovery when lead_generation_mode is explicitly "url"
         # This respects the user's mode choice and allows search mode to work with test URLs
         should_bypass = lead_generation_mode == "url" and len(specific_urls) > 0
@@ -600,7 +608,7 @@ class LeadSorcererOrchestrator:
             )
         elif len(specific_urls) > 0 and lead_generation_mode == "search":
             self.logger.info(
-                f"📊 Specific URLs provided in SEARCH mode - will use for validation/testing, running full domain discovery"
+                "📊 Specific URLs provided in SEARCH mode - will use for validation/testing, running full domain discovery"
             )
         elif len(specific_urls) > 0 and lead_generation_mode not in ["url", "search"]:
             self.logger.info(
@@ -751,7 +759,7 @@ class LeadSorcererOrchestrator:
             apollo_result = await self.apollo_tool.run(
                 hunter_client=self.hunter_client,
                 logger=self.logger,
-                costs_config=self.costs_config
+                costs_config=self.costs_config,
             )
             self.logger.info(f"Apollo tool.run() completed, result: {apollo_result}")
 
@@ -781,10 +789,10 @@ class LeadSorcererOrchestrator:
                     "icp_config": self.icp_config,
                 }
                 crawl_result = await self.crawl_tool.run(
-                    crawl_payload, 
-                    hunter_client=self.hunter_client, 
-                    logger=self.logger, 
-                    costs_config=self.costs_config
+                    crawl_payload,
+                    hunter_client=self.hunter_client,
+                    logger=self.logger,
+                    costs_config=self.costs_config,
                 )
 
                 if crawl_result.get("errors"):
@@ -920,10 +928,10 @@ class LeadSorcererOrchestrator:
                 "extraction_mode": "database",  # Signal to crawl tool
             }
             crawl_result = await self.crawl_tool.run(
-                crawl_payload, 
-                hunter_client=self.hunter_client, 
-                logger=self.logger, 
-                costs_config=self.costs_config
+                crawl_payload,
+                hunter_client=self.hunter_client,
+                logger=self.logger,
+                costs_config=self.costs_config,
             )
 
             if crawl_result.get("errors"):
@@ -997,15 +1005,19 @@ class LeadSorcererOrchestrator:
         else:
             # NORMAL MODE: Run domain discovery as usual
             self.logger.info("📊 NORMAL MODE: Running domain discovery")
-            
+
             # Check if we have specific URLs in search mode for validation
             specific_urls = self.icp_config.get("specific_urls", [])
             lead_generation_mode = self.icp_config.get("lead_generation_mode", "search")
-            
+
             if specific_urls and lead_generation_mode == "search":
-                self.logger.info(f"🔍 SEARCH MODE: {len(specific_urls)} specific URLs will be used for validation/testing")
-                self.logger.info(f"📊 Running full domain discovery with queries: {self.icp_config.get('queries', [])}")
-            
+                self.logger.info(
+                    f"🔍 SEARCH MODE: {len(specific_urls)} specific URLs will be used for validation/testing"
+                )
+                self.logger.info(
+                    f"📊 Running full domain discovery with queries: {self.icp_config.get('queries', [])}"
+                )
+
             domain_result = await self.domain_tool.run()
 
             if domain_result.get("errors"):
@@ -1037,10 +1049,10 @@ class LeadSorcererOrchestrator:
                 "icp_config": self.icp_config,
             }
             crawl_result = await self.crawl_tool.run(
-                crawl_payload, 
-                hunter_client=self.hunter_client, 
-                logger=self.logger, 
-                costs_config=self.costs_config
+                crawl_payload,
+                hunter_client=self.hunter_client,
+                logger=self.logger,
+                costs_config=self.costs_config,
             )
 
             if crawl_result.get("errors"):
@@ -1416,7 +1428,7 @@ class LeadSorcererOrchestrator:
         """Add Hunter.io verification fields to CSV export."""
         hunter_io_fields = [
             "hunter_verification.score",
-            "hunter_verification.status", 
+            "hunter_verification.status",
             "hunter_verification.result",
             "hunter_verification.disposable",
             "hunter_verification.webmail",
@@ -1482,15 +1494,24 @@ class LeadSorcererOrchestrator:
             # Debug logging for job_title field
             if field_name == "job_title":
                 import logging
+
                 logger = logging.getLogger(__name__)
-                logger.info(f"🔍 DEBUG: _get_best_contact_field called with field_name='{field_name}'")
+                logger.info(
+                    f"🔍 DEBUG: _get_best_contact_field called with field_name='{field_name}'"
+                )
                 logger.info(f"🔍 DEBUG: best_contact_id='{best_contact_id}'")
                 logger.info(f"🔍 DEBUG: contacts count={len(contacts)}")
                 logger.info(f"🔍 DEBUG: best_contact found={best_contact is not None}")
                 if best_contact:
-                    logger.info(f"🔍 DEBUG: best_contact keys={list(best_contact.keys())}")
-                    logger.info(f"🔍 DEBUG: best_contact.job_title={best_contact.get('job_title')}")
-                    logger.info(f"🔍 DEBUG: best_contact.role={best_contact.get('role')}")
+                    logger.info(
+                        f"🔍 DEBUG: best_contact keys={list(best_contact.keys())}"
+                    )
+                    logger.info(
+                        f"🔍 DEBUG: best_contact.job_title={best_contact.get('job_title')}"
+                    )
+                    logger.info(
+                        f"🔍 DEBUG: best_contact.role={best_contact.get('role')}"
+                    )
                 logger.info(f"🔍 DEBUG: final value='{value}'")
 
             if value is None:
@@ -1503,6 +1524,7 @@ class LeadSorcererOrchestrator:
                 return str(value)
         except Exception as e:
             import logging
+
             logger = logging.getLogger(__name__)
             logger.error(f"❌ Error in _get_best_contact_field: {e}")
             return ""

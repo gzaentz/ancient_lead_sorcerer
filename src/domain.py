@@ -132,18 +132,24 @@ class LLMScorer:
         # Extract key ICP information
         icp_text = icp_config.get("icp_text", "")
         icp_name = icp_config.get("name", "Unknown ICP")
-        
+
         # Get intent configuration if available
         intent_config = icp_config.get("intent_config", {})
-        high_intent_signals = intent_config.get("intent_signals", {}).get("high_intent", [])
-        low_intent_signals = intent_config.get("intent_signals", {}).get("low_intent", [])
-        
+        high_intent_signals = intent_config.get("intent_signals", {}).get(
+            "high_intent", []
+        )
+        low_intent_signals = intent_config.get("intent_signals", {}).get(
+            "low_intent", []
+        )
+
         # Get validation criteria
         validation_criteria = intent_config.get("validation_criteria", {})
         required_attributes = validation_criteria.get("required_attributes", [])
-        disqualified_attributes = validation_criteria.get("disqualifying_attributes", [])
+        disqualified_attributes = validation_criteria.get(
+            "disqualifying_attributes", []
+        )
         size_validation = validation_criteria.get("size_validation", {})
-        
+
         # Build dynamic prompt based on available ICP config
         prompt = f"""You are evaluating whether a company matches the Ideal Customer Profile (ICP): "{icp_name}"
 
@@ -157,37 +163,37 @@ Description: {snippet}
 
 EVALUATION CRITERIA:
 """
-        
+
         # Add intent signals if available
         if high_intent_signals:
-            prompt += f"\nHIGH INTENT SIGNALS (Score +0.8 if found):\n"
+            prompt += "\nHIGH INTENT SIGNALS (Score +0.8 if found):\n"
             for signal in high_intent_signals[:5]:  # Limit to top 5
                 prompt += f"- {signal}\n"
-        
+
         if low_intent_signals:
-            prompt += f"\nLOW INTENT SIGNALS (Score -0.5 if found):\n"
+            prompt += "\nLOW INTENT SIGNALS (Score -0.5 if found):\n"
             for signal in low_intent_signals[:5]:  # Limit to top 5
                 prompt += f"- {signal}\n"
-        
+
         # Add validation criteria if available
         if required_attributes:
-            prompt += f"\nREQUIRED ATTRIBUTES (Must have):\n"
+            prompt += "\nREQUIRED ATTRIBUTES (Must have):\n"
             for attr in required_attributes:
                 prompt += f"- {attr}\n"
-        
+
         if disqualified_attributes:
-            prompt += f"\nDISQUALIFYING ATTRIBUTES (Must NOT have):\n"
+            prompt += "\nDISQUALIFYING ATTRIBUTES (Must NOT have):\n"
             for attr in disqualified_attributes[:5]:  # Limit to top 5
                 prompt += f"- {attr}\n"
-        
+
         # Add size validation if available
         if size_validation:
             min_emp = size_validation.get("min_employees", 1)
             max_emp = size_validation.get("max_employees", 200)
             preferred = size_validation.get("preferred_range", "1-50")
             prompt += f"\nSIZE REQUIREMENTS:\n- Minimum employees: {min_emp}\n- Maximum employees: {max_emp}\n- Preferred range: {preferred}\n"
-        
-        prompt += f"""
+
+        prompt += """
 SCORING INSTRUCTIONS:
 1. Start with base score 0.3
 2. Add +0.8 for each HIGH INTENT signal found
@@ -198,14 +204,14 @@ SCORING INSTRUCTIONS:
 7. Focus on whether this company would be interested in investing in AI/crypto hedge funds
 
 Return only a JSON object with this exact format:
-{{
+{
     "score": <float between 0.0 and 1.0>,
     "reason": "<detailed explanation of score including specific signals found>",
     "flags": ["<any disqualifying flags like size_mismatch, industry_mismatch, etc.>"]
-}}
+}
 
 Example flags: size_mismatch, industry_mismatch, geo_mismatch, disqualified_attribute, missing_required_attribute"""
-        
+
         return prompt
 
     async def score_domain(
