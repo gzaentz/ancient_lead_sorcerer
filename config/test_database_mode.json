@@ -29,6 +29,7 @@
     }
   },
   "icp_text": "Dental practices listed in major online directories",
+  "icp_hard_rules": "The company is a dental practice/office.",
   "required_fields": {
     "company": ["name", "location", "phone"],
     "contact": ["name", "email"]

@@ -117,164 +117,67 @@ class LLMScorer:
     def _build_scoring_prompt(
         self, title: str, snippet: str, query: str, icp_config: Dict[str, Any]
     ) -> str:
-        """
-        Build scoring prompt for LLM using full ICP configuration.
+        """Build simple pass/fail prompt using hard rules from ICP config."""
+        icp_hard_rules = icp_config.get("icp_hard_rules", "No specific hard rules defined")
 
-        Args:
-            title: SERP result title
-            snippet: SERP result snippet
-            query: Search query used
-            icp_config: Full ICP configuration dictionary
+        return f"""You are a lead-scoring function. Analyze each domain against the ICP HARD rules using ONLY the provided inputs: (domain, snippet).
 
-        Returns:
-            Formatted prompt string
-        """
-        # Extract key ICP information
-        icp_text = icp_config.get("icp_text", "")
-        icp_name = icp_config.get("name", "Unknown ICP")
+Do not use outside knowledge, assumptions, or inferred details. If evidence is absent or unclear, default to FAIL.
 
-        # Get intent configuration if available
-        intent_config = icp_config.get("intent_config", {})
-        high_intent_signals = intent_config.get("intent_signals", {}).get(
-            "high_intent", []
-        )
-        low_intent_signals = intent_config.get("intent_signals", {}).get(
-            "low_intent", []
-        )
+Output STRICTLY valid JSON (no line breaks, no code blocks, no extra fields):
+{{"score":"<FAIL|PASS>","reason":"<≤40 words, explicitly cite snippet or domain evidence>"}}
 
-        # Get validation criteria
-        validation_criteria = intent_config.get("validation_criteria", {})
-        required_attributes = validation_criteria.get("required_attributes", [])
-        disqualified_attributes = validation_criteria.get(
-            "disqualifying_attributes", []
-        )
-        size_validation = validation_criteria.get("size_validation", {})
+Definitions:
+FAIL – one or more HARD rules are not clearly satisfied based on domain/snippet.
+PASS – all HARD rules are clearly satisfied.
 
-        # Build dynamic prompt based on available ICP config
-        prompt = f"""You are evaluating whether a company matches the Ideal Customer Profile (ICP): "{icp_name}"
+ICP HARD rules:
+{icp_hard_rules}
 
-ICP DESCRIPTION: {icp_text}
-
-SEARCH QUERY: {query}
-
-COMPANY INFORMATION:
-Title: {title}
-Description: {snippet}
-
-EVALUATION CRITERIA:
-"""
-
-        # Add intent signals if available
-        if high_intent_signals:
-            prompt += "\nHIGH INTENT SIGNALS (Score +0.8 if found):\n"
-            for signal in high_intent_signals[:5]:  # Limit to top 5
-                prompt += f"- {signal}\n"
-
-        if low_intent_signals:
-            prompt += "\nLOW INTENT SIGNALS (Score -0.5 if found):\n"
-            for signal in low_intent_signals[:5]:  # Limit to top 5
-                prompt += f"- {signal}\n"
-
-        # Add validation criteria if available
-        if required_attributes:
-            prompt += "\nREQUIRED ATTRIBUTES (Must have):\n"
-            for attr in required_attributes:
-                prompt += f"- {attr}\n"
-
-        if disqualified_attributes:
-            prompt += "\nDISQUALIFYING ATTRIBUTES (Must NOT have):\n"
-            for attr in disqualified_attributes[:5]:  # Limit to top 5
-                prompt += f"- {attr}\n"
-
-        # Add size validation if available
-        if size_validation:
-            min_emp = size_validation.get("min_employees", 1)
-            max_emp = size_validation.get("max_employees", 200)
-            preferred = size_validation.get("preferred_range", "1-50")
-            prompt += f"\nSIZE REQUIREMENTS:\n- Minimum employees: {min_emp}\n- Maximum employees: {max_emp}\n- Preferred range: {preferred}\n"
-
-        prompt += """
-SCORING INSTRUCTIONS:
-1. Start with base score 0.3
-2. Add +0.8 for each HIGH INTENT signal found
-3. Subtract -0.5 for each LOW INTENT signal found
-4. Ensure company has all REQUIRED ATTRIBUTES
-5. Reject if company has any DISQUALIFYING ATTRIBUTES
-6. Consider size requirements and industry relevance
-7. Focus on whether this company would be interested in investing in AI/crypto hedge funds
-
-Return only a JSON object with this exact format:
-{
-    "score": <float between 0.0 and 1.0>,
-    "reason": "<detailed explanation of score including specific signals found>",
-    "flags": ["<any disqualifying flags like size_mismatch, industry_mismatch, etc.>"]
-}
-
-Example flags: size_mismatch, industry_mismatch, geo_mismatch, disqualified_attribute, missing_required_attribute"""
-
-        return prompt
+Domain: {title}
+Snippet: {snippet}"""
 
     async def score_domain(
         self, title: str, snippet: str, query: str, icp_config: Dict[str, Any]
-    ) -> Tuple[float, str, List[str], str, str]:
-        """
-        Score a domain using LLM with full ICP configuration.
-
-        Args:
-            title: SERP result title
-            snippet: SERP result snippet
-            query: Search query used
-            icp_config: Full ICP configuration dictionary
-
-        Returns:
-            Tuple of (score, reason, flags, model_used, prompt_fingerprint)
-        """
+    ) -> Tuple[bool, str, List[str], str, str]:
+        """Score a domain using simple pass/fail prompt."""
         async with self.semaphore_pool:
             prompt = self._build_scoring_prompt(title, snippet, query, icp_config)
             prompt_fingerprint = hashlib.sha256(prompt.encode()).hexdigest()
 
             try:
-                # Try primary model first
                 response = await self.client.chat.completions.create(
                     model=self.primary_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
-                    max_tokens=500,
+                    max_tokens=100,
                 )
                 model_used = self.primary_model
             except Exception:
-                # Fallback to secondary model
                 response = await self.client.chat.completions.create(
                     model=self.fallback_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
-                    max_tokens=500,
+                    max_tokens=100,
                 )
                 model_used = self.fallback_model
 
             content = response.choices[0].message.content.strip()
 
-            # Parse JSON response
             try:
                 result = json.loads(content)
-                score = float(result.get("score", 0.0))
+                score_str = result.get("score", "FAIL").upper()
                 reason = result.get("reason", "No reason provided")
-                flags = result.get("flags", [])
 
-                # Validate score range
-                score = max(0.0, min(1.0, score))
+                # Enforce 40-word limit on reason
+                if len(reason.split()) > 40:
+                    reason = " ".join(reason.split()[:40]) + "..."
 
-                return score, reason, flags, model_used, prompt_fingerprint
-            except (json.JSONDecodeError, ValueError, KeyError) as e:
-                # Fallback to default values if parsing fails
-                logging.warning(f"Failed to parse LLM response: {e}")
-                return (
-                    0.0,
-                    "Failed to parse response",
-                    [],
-                    model_used,
-                    prompt_fingerprint,
-                )
+                passed = score_str == "PASS"
+                return passed, reason, [], model_used, prompt_fingerprint
+
+            except json.JSONDecodeError:
+                return False, "Invalid JSON response from LLM", ["json_parse_error"], model_used, prompt_fingerprint
 
 
 # ============================================================================
@@ -485,7 +388,7 @@ class DomainTool:
 
     def _validate_icp_config(self) -> List[Dict[str, Any]]:
         """
-        Validate ICP configuration.
+        Validate ICP configuration including icp_hard_rules.
 
         Returns:
             List of validation errors
@@ -493,15 +396,29 @@ class DomainTool:
         errors = []
 
         # Check required fields
-        required_fields = ["name", "icp_text", "queries"]
+        required_fields = ["name", "icp_text", "queries", "icp_hard_rules"]
         for field in required_fields:
-            if field not in self.icp_config:
+            if field not in self.icp_config or self.icp_config[field] is None:
                 errors.append(
                     build_error(
                         ErrorCode.SCHEMA_VALIDATION,
                         context={"missing_field": field, "stage": TOOL_NAME},
                     )
                 )
+
+        # Validate icp_hard_rules field
+        icp_hard_rules = self.icp_config.get("icp_hard_rules")
+        if icp_hard_rules is not None and not isinstance(icp_hard_rules, str):
+            errors.append(
+                build_error(
+                    ErrorCode.SCHEMA_VALIDATION,
+                    context={
+                        "invalid_field": "icp_hard_rules",
+                        "stage": TOOL_NAME,
+                        "message": "icp_hard_rules must be a string"
+                    },
+                )
+            )
 
         # Validate template placeholders
         if "queries" in self.icp_config:
@@ -599,20 +516,19 @@ class DomainTool:
             },
             "contacts": [],
             "icp": {
-                "pre_score": None,
+                "pre_score": None,  # Will be set to boolean (True/False)
                 "pre_reason": None,
-                "pre_pass": None,
+                "pre_pass": None,   # Boolean - main decision field
                 "pre_flags": [],
                 "scoring_meta": {
-                    "method": None,
+                    "method": "pass_fail",
                     "model": None,
                     "prompt_fingerprint": None,
-                    "temperature": None,
+                    "temperature": 0.0,
                 },
                 "crawl_score": None,
                 "crawl_reason": None,
-                "threshold": self.icp_config.get("threshold", 0.7),
-                "filtering_strict": self.icp_config.get("filtering_strict", True),
+                # REMOVED: threshold and filtering_strict - not needed for pass/fail system
             },
             "provenance": {
                 "queries": [query],
@@ -648,7 +564,7 @@ class DomainTool:
         self, item: Dict[str, Any], query: str, page_index: int
     ) -> Dict[str, Any]:
         """
-        Normalize SERP result item.
+        Normalize SERP result and extract hostname only.
 
         Args:
             item: Raw SERP result
@@ -658,9 +574,28 @@ class DomainTool:
         Returns:
             Normalized result
         """
-        # Extract domain from URL
+        # Extract domain from URL - ensure hostname only (no www, no paths)
         url = item.get("link", "")
-        domain = normalize_domain(url)
+
+        # Parse URL to extract hostname
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.hostname or ""
+
+            # If no hostname found and URL doesn't look like a proper URL, use the original
+            if not domain and url and not url.startswith(("http://", "https://", "ftp://")):
+                domain = url
+        except Exception:
+            domain = url if url else ""
+
+        # Additional validation to ensure hostname only
+        if domain and "." in domain:
+            # Remove www. prefix if present
+            if domain.startswith("www."):
+                domain = domain[4:]
+            # Ensure no paths or query parameters
+            domain = domain.split("/")[0].split("?")[0]
 
         return {
             "url": url,
@@ -670,7 +605,7 @@ class DomainTool:
             "page_index": page_index,
             "rank_on_page": item.get("rank", 0),
             "fetched_at": now_z(),
-            "domain": domain,
+            "domain": domain,  # Hostname only as per BRD
         }
 
     async def _search_query(
@@ -814,7 +749,7 @@ class DomainTool:
             self.logger.info(f"🤖 Scoring domain {domain} with LLM...")
             try:
                 (
-                    score,
+                    passed,
                     reason,
                     flags,
                     model_used,
@@ -826,20 +761,19 @@ class DomainTool:
                     self.icp_config,
                 )
 
-                # Update record with scoring results
-                record["icp"]["pre_score"] = round4(score)
+                # Update record with scoring results - DIRECT assignment, no threshold calculations
+                record["icp"]["pre_score"] = passed  # Boolean instead of float
                 record["icp"]["pre_reason"] = reason
                 record["icp"]["pre_flags"] = flags
                 record["icp"]["scoring_meta"] = {
-                    "method": "llm",
+                    "method": "pass_fail",
                     "model": model_used,
                     "prompt_fingerprint": prompt_fingerprint,
                     "temperature": 0.0,
                 }
 
-                # Set pre_pass based on threshold
-                threshold = record["icp"]["threshold"]
-                record["icp"]["pre_pass"] = score >= threshold
+                # Direct assignment from LLM response - no threshold logic needed
+                record["icp"]["pre_pass"] = passed
 
                 # Add discovery evidence
                 record["provenance"]["discovery_evidence"].append(result)
@@ -853,14 +787,17 @@ class DomainTool:
                     None, revisit_after_days, failure_revisit_days, False
                 )
 
-                # Add status history entry
-                append_status(
-                    record["status_history"], "scored", f"Scored with {model_used}"
-                )
+                # Update status based on pass/fail result
+                if passed:
+                    record["status"] = "scored"
+                    append_status(record["status_history"], "scored", "Passed hard rules validation")
+                else:
+                    record["status"] = "rejected"
+                    append_status(record["status_history"], "rejected", f"Failed hard rules: {reason}")
 
                 # Add audit entry
                 append_audit(
-                    record, "Domain", f"Scored domain {domain} with score {score}"
+                    record, "Domain", f"Scored domain {domain} with result {'PASS' if passed else 'FAIL'}"
                 )
 
                 # Calculate costs
@@ -886,8 +823,8 @@ class DomainTool:
 
             except Exception as e:
                 self.logger.error(f"LLM scoring failed for domain {domain}: {e}")
-                # Set default values on scoring failure
-                record["icp"]["pre_score"] = 0.0
+                # Set default values on scoring failure - defaults to FAIL
+                record["icp"]["pre_score"] = False  # Boolean instead of float
                 record["icp"]["pre_reason"] = f"Scoring failed: {str(e)}"
                 record["icp"]["pre_pass"] = False
                 record["icp"]["pre_flags"] = ["scoring_error"]
@@ -898,8 +835,9 @@ class DomainTool:
                     None, 0, failure_revisit_days, True
                 )
 
-                # Add status history entry
-                append_status(record["status_history"], "scored", "Scoring failed")
+                # Add status history entry - defaults to rejected on error
+                record["status"] = "rejected"
+                append_status(record["status_history"], "rejected", "Scoring failed")
 
                 # Add audit entry
                 append_audit(
@@ -1018,7 +956,7 @@ class DomainTool:
             # Save domain history
             self.domain_history.save_history(domain_ttl_days)
 
-            # Calculate metrics
+            # Calculate simple pass/fail metrics
             count_in = len(queries)
             count_out = len(scored_domains)
             duration_ms = int((time.time() - start_time) * 1000)
@@ -1027,10 +965,10 @@ class DomainTool:
             if cache_hits + cache_misses > 0:
                 cache_hit_rate = cache_hits / (cache_hits + cache_misses)
 
-            pass_rate = None
-            if count_out > 0:
-                pass_count = sum(1 for r in scored_domains if r["icp"]["pre_pass"])
-                pass_rate = pass_count / count_out
+            # Boolean-based pass/fail metrics
+            pass_count = sum(1 for r in scored_domains if r.get("icp", {}).get("pre_pass", False))
+            fail_count = count_out - pass_count
+            pass_rate = pass_count / count_out if count_out > 0 else 0.0
 
             total_cost = sum(r["cost"]["domain_usd"] for r in scored_domains)
 
@@ -1047,6 +985,9 @@ class DomainTool:
                     "total": total_cost,
                 },
             )
+
+            # Add fail_count for better visibility (not in standard metrics)
+            metrics["fail_count"] = fail_count
 
             return {
                 "data": {"lead_records": scored_domains},

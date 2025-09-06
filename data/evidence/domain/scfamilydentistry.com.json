@@ -1,20 +1,20 @@
 {
   "domain": "scfamilydentistry.com",
   "queries": [
-    "family owned dental practices multiple offices California"
+    "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-09-02T14:36:38.994478Z",
+  "fetched_at": "2025-09-06T18:37:42.527010Z",
   "serp_results": [
     {
       "url": "https://scfamilydentistry.com/",
       "title": "Southern California Family Dentistry - Dental Implants and ...",
       "snippet": "Southern California Family Dentistry is a multi-location dental practice specializing in Implants and Orthodontics. Our offices are conveniently located\u00a0...",
-      "query": "family owned dental practices multiple offices California",
+      "query": "California dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-02T14:33:59.534919Z",
+      "fetched_at": "2025-09-06T18:37:33.204008Z",
       "domain": "scfamilydentistry.com"
     }
   ],
-  "scoring_prompt_fingerprint": "b8a587396606a4a304867237c2a9e3f5c95d683a79feb278d829597f2e9677b2"
+  "scoring_prompt_fingerprint": "83f0ae152a36deec066b3a71217d43c7d24514ac4079dd4193cdb8f97a0d89ea"
 }

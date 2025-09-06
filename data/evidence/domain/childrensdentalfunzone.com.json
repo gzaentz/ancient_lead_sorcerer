@@ -1,20 +1,20 @@
 {
   "domain": "childrensdentalfunzone.com",
   "queries": [
-    "family owned dental practices multiple offices California"
+    "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-09-02T14:36:39.024542Z",
+  "fetched_at": "2025-09-06T18:37:42.530009Z",
   "serp_results": [
     {
       "url": "https://www.childrensdentalfunzone.com/",
       "title": "Pediatric Dentist Santa Clarita, CA | Van Nuys, CA",
       "snippet": "Multiple Locations in Southern California. Choosing a dental clinic for your child is a big decision, and at Children's Dental FunZone, we make it easy. With\u00a0...",
-      "query": "family owned dental practices multiple offices California",
-      "page_index": 5,
+      "query": "California dental practice multiple locations",
+      "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-02T14:34:05.371567Z",
+      "fetched_at": "2025-09-06T18:37:33.204008Z",
       "domain": "childrensdentalfunzone.com"
     }
   ],
-  "scoring_prompt_fingerprint": "eb16e0d4d1f935fab14454eb841443aa36e0127110cfaf294e7fdee6ca4da6f0"
+  "scoring_prompt_fingerprint": "d14a1868efd2dc4501e824fc4fd2a33e2c501efac6184ff337918cd36233e678"
 }

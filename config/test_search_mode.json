@@ -6,6 +6,7 @@
     "dental practices California"
   ],
   "icp_text": "Independent dental practices in California looking for acquisition opportunities",
+  "icp_hard_rules": "The company is a dental practice/office.",
   "required_fields": {
     "company": ["name", "location", "website"],
     "contact": ["name", "email", "role"]

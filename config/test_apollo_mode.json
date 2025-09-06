@@ -3,6 +3,7 @@
   "description": "Test configuration for pure Apollo mode",
   "lead_generation_mode": "apollo",
   "icp_text": "Technology companies in Silicon Valley with 50-500 employees",
+  "icp_hard_rules": "Industry must be Technology or Software. Company size must be 50-500 employees. Location must be San Francisco, San Jose, or Palo Alto.",
   "apollo": {
     "enabled": true,
     "search": {

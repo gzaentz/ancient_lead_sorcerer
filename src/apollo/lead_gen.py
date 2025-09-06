@@ -403,9 +403,8 @@ class ApolloLeadGen:
                                 domain=domain,
                                 logger=logger,
                                 costs_config=costs_config or {},
-                                min_score=self.icp_config.get("hunter_min_score", 70),
+                                min_score=self.icp_config.get("hunter_io", {}).get("min_score", 70),
                             )
-
                             # Update record with verified contacts
                             record["contacts"] = verified_contacts
 

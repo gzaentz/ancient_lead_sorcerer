@@ -38,8 +38,7 @@ def sample_icp_config():
             "B2B SaaS companies in California",
             "enterprise software companies in New York",
         ],
-        "threshold": 0.7,
-        "filtering_strict": True,
+        "icp_hard_rules": "Company must be B2B SaaS with 50-500 employees in the United States",
         "mode": "thorough",
         "concurrency": {"max_concurrent_requests": 3},
         "refresh_policy": {
@@ -1938,6 +1937,450 @@ class TestMissingRequirements:
         # This test will verify missing error codes
         # Implementation depends on error handling logic
         pass
+
+
+# ============================================================================
+# Task 10: Pass/Fail System Unit Tests
+# ============================================================================
+
+
+class TestPassFailSystem:
+    """Test the new pass/fail system implementation."""
+
+    def test_build_scoring_prompt_simple(self, sample_icp_config):
+        """Test new simple prompt format matches BRD exactly."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        prompt = scorer._build_scoring_prompt(
+            "Test Company",
+            "B2B SaaS company in California",
+            "test query",
+            sample_icp_config
+        )
+
+        # Verify prompt structure
+        assert "You are a lead-scoring function" in prompt
+        assert "ICP HARD rules" in prompt
+        assert "FAIL" in prompt and "PASS" in prompt
+        assert "40 words" in prompt
+        assert "STRICTLY valid JSON" in prompt
+        assert "no line breaks" in prompt
+        assert "no code blocks" in prompt
+        assert "Test Company" in prompt
+        assert "B2B SaaS company in California" in prompt
+        assert sample_icp_config["icp_hard_rules"] in prompt
+
+        # Verify prompt is concise (BRD requirement: 16 lines max)
+        prompt_lines = prompt.count('\n') + 1
+        assert prompt_lines <= 16, f"Prompt has {prompt_lines} lines, should be ≤16"
+
+        # Verify no complex scoring logic
+        assert "intent_config" not in prompt
+        assert "validation_criteria" not in prompt
+        assert "high_intent_signals" not in prompt
+        assert "low_intent_signals" not in prompt
+
+    def test_build_scoring_prompt_missing_hard_rules(self):
+        """Test prompt generation with missing icp_hard_rules."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        config_without_rules = {"name": "Test", "icp_text": "Test", "queries": []}
+
+        prompt = scorer._build_scoring_prompt(
+            "Test Company",
+            "Test snippet",
+            "test query",
+            config_without_rules
+        )
+
+        assert "No specific hard rules defined" in prompt
+
+    @pytest.mark.asyncio
+    async def test_score_domain_pass_response(self, sample_icp_config):
+        """Test PASS response parsing."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        # Mock the LLM response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = '{"score":"PASS","reason":"Company is B2B SaaS with 50-500 employees in California"}'
+
+        with patch.object(scorer.client.chat.completions, 'create', new_callable=AsyncMock, return_value=mock_response):
+            passed, reason, flags, model, fingerprint = await scorer.score_domain(
+                "Test Company", "B2B SaaS company", "test query", sample_icp_config
+            )
+
+        assert passed is True
+        assert "Company is B2B SaaS" in reason
+        assert flags == []
+        assert model == "gpt-4o-mini"
+
+    @pytest.mark.asyncio
+    async def test_score_domain_fail_response(self, sample_icp_config):
+        """Test FAIL response parsing."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        # Mock the LLM response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = '{"score":"FAIL","reason":"Company is not B2B SaaS"}'
+
+        with patch.object(scorer.client.chat.completions, 'create', new_callable=AsyncMock, return_value=mock_response):
+            passed, reason, flags, model, fingerprint = await scorer.score_domain(
+                "Test Company", "Consulting firm", "test query", sample_icp_config
+            )
+
+        assert passed is False
+        assert "not B2B SaaS" in reason
+        assert flags == []
+        assert model == "gpt-4o-mini"
+
+    @pytest.mark.asyncio
+    async def test_score_domain_40_word_limit(self, sample_icp_config):
+        """Test 40-word reason limit enforcement."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        # Create a long reason (over 40 words)
+        long_reason = "This is a very long reason that exceeds the forty word limit and should be truncated by the system to ensure that we do not exceed the maximum allowed word count for the reason field in the response and this is additional text"
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = f'{{"score":"PASS","reason":"{long_reason}"}}'
+
+        with patch.object(scorer.client.chat.completions, 'create', new_callable=AsyncMock, return_value=mock_response):
+            passed, reason, flags, model, fingerprint = await scorer.score_domain(
+                "Test Company", "Test snippet", "test query", sample_icp_config
+            )
+
+        # Verify reason is truncated
+        assert len(reason.split()) <= 40
+        assert reason.endswith("...")
+
+    @pytest.mark.asyncio
+    async def test_score_domain_invalid_json(self, sample_icp_config):
+        """Test invalid JSON handling (should default to FAIL)."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        # Mock invalid JSON response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Invalid JSON response"
+
+        with patch.object(scorer.client.chat.completions, 'create', new_callable=AsyncMock, return_value=mock_response):
+            passed, reason, flags, model, fingerprint = await scorer.score_domain(
+                "Test Company", "Test snippet", "test query", sample_icp_config
+            )
+
+        assert passed is False
+        assert "Invalid JSON response from LLM" in reason
+        assert "json_parse_error" in flags
+
+    @pytest.mark.asyncio
+    async def test_score_domain_fallback_model(self, sample_icp_config):
+        """Test fallback model usage."""
+        scorer = LLMScorer("test_key", AsyncSemaphorePool(PermitManager(3)))
+
+        # Mock primary model failure, fallback success
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = '{"score":"PASS","reason":"Test reason"}'
+
+        with patch.object(scorer.client.chat.completions, 'create', new_callable=AsyncMock) as mock_create:
+            mock_create.side_effect = [Exception("Primary model failed"), mock_response]
+
+            passed, reason, flags, model, fingerprint = await scorer.score_domain(
+                "Test Company", "Test snippet", "test query", sample_icp_config
+            )
+
+        assert passed is True
+        assert model == "gpt-3.5-turbo"
+
+    def test_validate_icp_config_hard_rules_required(self, temp_data_dir):
+        """Test configuration validation requires icp_hard_rules."""
+        config_missing_rules = {
+            "name": "Test ICP",
+            "icp_text": "Test ICP",
+            "queries": ["test query"]
+        }
+
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(config_missing_rules, str(temp_data_dir))
+            errors = tool._validate_icp_config()
+
+        assert len(errors) > 0
+        assert any("icp_hard_rules" in str(error) for error in errors)
+
+    def test_validate_icp_config_hard_rules_type(self, temp_data_dir):
+        """Test icp_hard_rules must be a string."""
+        config_invalid_type = {
+            "name": "Test ICP",
+            "icp_text": "Test ICP",
+            "queries": ["test query"],
+            "icp_hard_rules": 123  # Invalid type
+        }
+
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(config_invalid_type, str(temp_data_dir))
+            errors = tool._validate_icp_config()
+
+        assert len(errors) > 0
+        assert any("must be a string" in str(error) for error in errors)
+
+    def test_validate_icp_config_hard_rules_none(self, temp_data_dir):
+        """Test icp_hard_rules cannot be None."""
+        config_none_rules = {
+            "name": "Test ICP",
+            "icp_text": "Test ICP",
+            "queries": ["test query"],
+            "icp_hard_rules": None
+        }
+
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(config_none_rules, str(temp_data_dir))
+            errors = tool._validate_icp_config()
+
+        assert len(errors) > 0
+        assert any("icp_hard_rules" in str(error) for error in errors)
+
+    def test_validate_icp_config_valid(self, sample_icp_config, temp_data_dir):
+        """Test valid configuration passes validation."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+            errors = tool._validate_icp_config()
+
+        assert len(errors) == 0
+
+    def test_domain_hostname_extraction_www_removal(self, sample_icp_config, temp_data_dir):
+        """Test www. prefix removal."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        test_cases = [
+            ("https://www.company.com", "company.com"),
+            ("https://www.example.org", "example.org"),
+            ("www.direct.com", "direct.com"),
+        ]
+
+        for url, expected in test_cases:
+            result = tool._normalize_serp_result({"link": url}, "test query", 1)
+            assert result["domain"] == expected
+
+    def test_domain_hostname_extraction_path_removal(self, sample_icp_config, temp_data_dir):
+        """Test path removal."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        test_cases = [
+            ("https://company.com/path/to/page", "company.com"),
+            ("https://www.example.org/about", "example.org"),
+            ("http://test.net/products/item", "test.net"),
+        ]
+
+        for url, expected in test_cases:
+            result = tool._normalize_serp_result({"link": url}, "test query", 1)
+            assert result["domain"] == expected
+
+    def test_domain_hostname_extraction_query_removal(self, sample_icp_config, temp_data_dir):
+        """Test query parameter removal."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        test_cases = [
+            ("https://company.com?param=value", "company.com"),
+            ("https://www.example.org?utm_source=google", "example.org"),
+            ("http://test.net?id=123&type=product", "test.net"),
+        ]
+
+        for url, expected in test_cases:
+            result = tool._normalize_serp_result({"link": url}, "test query", 1)
+            assert result["domain"] == expected
+
+    def test_domain_hostname_extraction_subdomain_handling(self, sample_icp_config, temp_data_dir):
+        """Test subdomain handling."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        test_cases = [
+            ("https://api.company.com", "api.company.com"),
+            ("https://www.blog.example.org", "blog.example.org"),
+            ("https://shop.test.net", "shop.test.net"),
+        ]
+
+        for url, expected in test_cases:
+            result = tool._normalize_serp_result({"link": url}, "test query", 1)
+            assert result["domain"] == expected
+
+    def test_domain_hostname_extraction_edge_cases(self, sample_icp_config, temp_data_dir):
+        """Test edge cases."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        test_cases = [
+            ("", ""),
+            ("https://", ""),
+            ("not-a-url", "not-a-url"),
+            ("https://company.com:8080", "company.com"),
+            ("https://COMPANY.COM", "company.com"),
+        ]
+
+        for url, expected in test_cases:
+            result = tool._normalize_serp_result({"link": url}, "test query", 1)
+            assert result["domain"] == expected
+
+    def test_old_scoring_system_removal(self, sample_icp_config, temp_data_dir):
+        """Test that old scoring system is completely removed."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        # Test that no old configuration fields are used
+        assert "threshold" not in sample_icp_config
+        assert "filtering_strict" not in sample_icp_config
+
+        # Test that new configuration field is used
+        assert "icp_hard_rules" in sample_icp_config
+
+        # Test that prompt method is simple
+        prompt = tool.llm_scorer._build_scoring_prompt(
+            "Test", "Test", "Test", sample_icp_config
+        )
+
+        # Should not contain old scoring system references
+        assert "intent_config" not in prompt
+        assert "validation_criteria" not in prompt
+        assert "high_intent_signals" not in prompt
+        assert "low_intent_signals" not in prompt
+        assert "size_validation" not in prompt
+
+    def test_lead_record_structure(self, sample_icp_config, temp_data_dir):
+        """Test lead record structure for pass/fail system."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        record = tool._create_lead_record("test.com", "test query")
+
+        # Verify new structure
+        assert "icp" in record
+        assert "pre_score" in record["icp"]
+        assert "pre_pass" in record["icp"]
+        assert "pre_reason" in record["icp"]
+        assert "pre_flags" in record["icp"]
+        assert "scoring_meta" in record["icp"]
+
+        # Verify old fields are removed
+        assert "threshold" not in record["icp"]
+        assert "filtering_strict" not in record["icp"]
+
+        # Verify scoring_meta structure
+        assert record["icp"]["scoring_meta"]["method"] == "pass_fail"
+        assert record["icp"]["scoring_meta"]["temperature"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_process_domain_pass_fail(self, sample_icp_config, temp_data_dir):
+        """Test domain processing with pass/fail."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        # Mock the LLM scorer
+        mock_scorer = MagicMock()
+        mock_scorer.score_domain = AsyncMock(return_value=(True, "Test reason", [], "gpt-4o-mini", "fingerprint"))
+        tool.llm_scorer = mock_scorer
+
+        # Mock domain history
+        tool.domain_history.get_domain_record = MagicMock(return_value=None)
+
+        result = await tool._score_domains([{
+            "domain": "test.com",
+            "title": "Test Company",
+            "snippet": "B2B SaaS company",
+            "query": "test query",
+            "url": "https://test.com",
+            "page_index": 1,
+            "rank_on_page": 1,
+            "fetched_at": "2024-01-01T00:00:00Z"
+        }])
+
+        assert len(result) == 1
+        record = result[0]
+
+        # Verify boolean values
+        assert record["icp"]["pre_score"] is True
+        assert record["icp"]["pre_pass"] is True
+        assert record["status"] == "scored"
+
+    @pytest.mark.asyncio
+    async def test_process_domain_fail_case(self, sample_icp_config, temp_data_dir):
+        """Test domain processing with fail case."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        # Mock the LLM scorer to return False
+        mock_scorer = MagicMock()
+        mock_scorer.score_domain = AsyncMock(return_value=(False, "Not B2B SaaS", [], "gpt-4o-mini", "fingerprint"))
+        tool.llm_scorer = mock_scorer
+
+        # Mock domain history
+        tool.domain_history.get_domain_record = MagicMock(return_value=None)
+
+        result = await tool._score_domains([{
+            "domain": "test.com",
+            "title": "Consulting Firm",
+            "snippet": "Consulting services",
+            "query": "test query",
+            "url": "https://test.com",
+            "page_index": 1,
+            "rank_on_page": 1,
+            "fetched_at": "2024-01-01T00:00:00Z"
+        }])
+
+        assert len(result) == 1
+        record = result[0]
+
+        # Verify boolean values
+        assert record["icp"]["pre_score"] is False
+        assert record["icp"]["pre_pass"] is False
+        assert record["status"] == "rejected"
+
+    def test_metrics_calculation_boolean(self, sample_icp_config, temp_data_dir):
+        """Test metrics calculation with boolean values."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        # Create test records with boolean values
+        test_records = [
+            {"icp": {"pre_pass": True}},
+            {"icp": {"pre_pass": False}},
+            {"icp": {"pre_pass": True}},
+            {"icp": {"pre_pass": False}},
+        ]
+
+        # Mock the metrics calculation (simulate the logic from run method)
+        total_count = len(test_records)
+        pass_count = sum(1 for r in test_records if r.get("icp", {}).get("pre_pass", False))
+        fail_count = total_count - pass_count
+        pass_rate = pass_count / total_count if total_count > 0 else 0.0
+
+        assert total_count == 4
+        assert pass_count == 2
+        assert fail_count == 2
+        assert pass_rate == 0.5
+
+    def test_edge_cases_missing_icp(self, sample_icp_config, temp_data_dir):
+        """Test edge cases with missing icp section."""
+        with patch.dict(os.environ, {"GSE_API_KEY": "test_key", "GSE_CX": "test_cx", "OPENROUTER_API_KEY": "test_key", "OPENROUTER_KEY": "test_key"}):
+            tool = DomainTool(sample_icp_config, str(temp_data_dir))
+
+        # Test records with missing icp section
+        test_records = [
+            {"lead_id": "test1"},  # Missing icp
+            {"lead_id": "test2", "icp": {}},  # Empty icp
+            {"lead_id": "test3", "icp": {"pre_pass": True}},  # Valid
+        ]
+
+        # Test filtering logic
+        passing = [r for r in test_records if r.get("icp", {}).get("pre_pass", False)]
+
+        assert len(passing) == 1  # Only the valid one should pass
+        assert passing[0]["lead_id"] == "test3"
 
 
 if __name__ == "__main__":

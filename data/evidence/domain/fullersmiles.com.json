@@ -1,20 +1,20 @@
 {
   "domain": "fullersmiles.com",
   "queries": [
-    "dental practice multiple locations California"
+    "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-08-22T20:11:05.979359Z",
+  "fetched_at": "2025-09-06T18:37:42.527010Z",
   "serp_results": [
     {
       "url": "https://fullersmiles.com/",
       "title": "Premier Dental Office In California | Teeth Cleaning Near Me",
       "snippet": "With multiple locations across California, our dental practice is easily accessible to patients in Culver City, Long Beach, Northridge, Huntington Park, Irvine,\u00a0...",
-      "query": "dental practice multiple locations California",
+      "query": "California dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-22T20:10:38.430147Z",
+      "fetched_at": "2025-09-06T18:37:33.204008Z",
       "domain": "fullersmiles.com"
     }
   ],
-  "scoring_prompt_fingerprint": "f0ec332be99dec330033a9da3c48bc6826e3defb71dde53007cc3d6b334afee9"
+  "scoring_prompt_fingerprint": "20613bde87af24cec3143a6be1262ae18238820f0e57e68c4eaf4fe73c91a6c0"
 }

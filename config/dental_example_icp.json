@@ -7,10 +7,7 @@
     "https://www.usdentalpractices.com/dental-practice-for-sale/greater-philadelphia-pa-endodontic-practice",
     "https://www.usdentalpractices.com/dental-practice-for-sale/oral-surgeon-practice-philadelphia"
   ],
-  "validation_config": {
-    "industry_keywords": ["dental", "healthcare", "medical"],
-    "company_name_keywords": ["dentist", "orthodont", "oral", "surgeon", "endodont"]
-  },
+  "icp_hard_rules": "The company is a dental practice/office.",
   "domain_discovery": {
     "url_patterns": ["/listing/", "/practice-for-sale/", "/property/", "/opportunity/"],
     "exclude_patterns": ["/admin", "/login", "/search", "/contact", "/about"],

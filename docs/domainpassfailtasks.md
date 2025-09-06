@@ -88,18 +88,18 @@ Snippet: {snippet}"""
 
 ### **Testing Requirements**
 
-- [ ] Test with valid `icp_hard_rules` configuration
-- [ ] Test with missing `icp_hard_rules` (should use default)
-- [ ] Verify prompt structure matches BRD exactly (16 lines max)
-- [ ] Test prompt generation for different ICP types
+- [x] Test with valid `icp_hard_rules` configuration
+- [x] Test with missing `icp_hard_rules` (should use default)
+- [x] Verify prompt structure matches BRD exactly (16 lines max)
+- [x] Test prompt generation for different ICP types
 
 **Acceptance Criteria**:
 
-- [ ] Prompt matches BRD exactly (16 lines max)
-- [ ] Uses simple `icp_hard_rules` string from config
-- [ ] No complex scoring logic
-- [ ] Enforces 40-word reason limit
-- [ ] Strict JSON validation (no line breaks, no code blocks)
+- [x] Prompt matches BRD exactly (16 lines max)
+- [x] Uses simple `icp_hard_rules` string from config
+- [x] No complex scoring logic
+- [x] Enforces 40-word reason limit
+- [x] Strict JSON validation (no line breaks, no code blocks)
 
 ---
 
@@ -172,21 +172,21 @@ async def score_domain(self, title: str, snippet: str, query: str, icp_config: D
 
 ### **Testing Requirements**
 
-- [ ] Test PASS response parsing
-- [ ] Test FAIL response parsing
-- [ ] Test 40-word reason limit enforcement
-- [ ] Test invalid JSON handling (should default to FAIL)
-- [ ] Test boolean return type validation
-- [ ] Test reduced token usage (verify 100 max_tokens)
+- [x] Test PASS response parsing
+- [x] Test FAIL response parsing
+- [x] Test 40-word reason limit enforcement
+- [x] Test invalid JSON handling (should default to FAIL)
+- [x] Test boolean return type validation
+- [x] Test reduced token usage (verify 100 max_tokens)
 
 **Acceptance Criteria**:
 
-- [ ] Returns boolean instead of float score
-- [ ] Handles PASS/FAIL string responses
-- [ ] Enforces 40-word reason limit
-- [ ] Reduced token usage (100 vs 500)
-- [ ] Simplified error handling (matches BRD approach)
-- [ ] Defaults to FAIL on any parsing errors
+- [x] Returns boolean instead of float score
+- [x] Handles PASS/FAIL string responses
+- [x] Enforces 40-word reason limit
+- [x] Reduced token usage (100 vs 500)
+- [x] Simplified error handling (matches BRD approach)
+- [x] Defaults to FAIL on any parsing errors
 
 ---
 
@@ -244,19 +244,19 @@ def _process_domain(self, domain: str, query: str) -> Dict[str, Any]:
 
 ### **Testing Requirements**
 
-- [ ] Test pass case (should set status to "scored")
-- [ ] Test fail case (should set status to "rejected")
-- [ ] Test boolean assignment to `pre_pass` field
-- [ ] Test status history updates
-- [ ] Test orchestrator filtering compatibility
+- [x] Test pass case (should set status to "scored")
+- [x] Test fail case (should set status to "rejected")
+- [x] Test boolean assignment to `pre_pass` field
+- [x] Test status history updates
+- [x] Test orchestrator filtering compatibility
 
 **Acceptance Criteria**:
 
-- [ ] Simplified processing logic
-- [ ] Direct pass/fail assignment (no threshold calculations)
-- [ ] Clear status updates based on boolean result
-- [ ] Removed all threshold logic
-- [ ] Status reflects pass/fail decision directly
+- [x] Simplified processing logic
+- [x] Direct pass/fail assignment (no threshold calculations)
+- [x] Clear status updates based on boolean result
+- [x] Removed all threshold logic
+- [x] Status reflects pass/fail decision directly
 
 ---
 
@@ -319,17 +319,17 @@ def _create_lead_record(self, domain: str, query: str) -> Dict[str, Any]:
 
 ### **Testing Requirements**
 
-- [ ] Test lead record creation with new structure
-- [ ] Verify removed fields are not present
-- [ ] Test boolean field assignments
-- [ ] Test export compatibility with simplified structure
+- [x] Test lead record creation with new structure
+- [x] Verify removed fields are not present
+- [x] Test boolean field assignments
+- [x] Test export compatibility with simplified structure
 
 **Acceptance Criteria**:
 
-- [ ] Simplified ICP structure
-- [ ] Removed threshold and filtering_strict fields completely
-- [ ] Set method to "pass_fail"
-- [ ] Boolean pre_score field ready for pass/fail values
+- [x] Simplified ICP structure
+- [x] Removed threshold and filtering_strict fields completely
+- [x] Set method to "pass_fail"
+- [x] Boolean pre_score field ready for pass/fail values
 
 ---
 
@@ -384,17 +384,17 @@ def _validate_icp_config(self) -> List[Dict[str, Any]]:
 
 ### **Testing Requirements**
 
-- [ ] Test with valid `icp_hard_rules` configuration
-- [ ] Test with missing `icp_hard_rules` (should fail validation)
-- [ ] Test with invalid `icp_hard_rules` type (should fail validation)
-- [ ] Test error message clarity and specificity
+- [x] Test with valid `icp_hard_rules` configuration
+- [x] Test with missing `icp_hard_rules` (should fail validation)
+- [x] Test with invalid `icp_hard_rules` type (should fail validation)
+- [x] Test error message clarity and specificity
 
 **Acceptance Criteria**:
 
-- [ ] Validates icp_hard_rules field is present and required
-- [ ] Validates icp_hard_rules is a string
-- [ ] Provides clear error messages for missing configuration
-- [ ] Simplified validation (removed complex template placeholder logic)
+- [x] Validates icp_hard_rules field is present and required
+- [x] Validates icp_hard_rules is a string
+- [x] Provides clear error messages for missing configuration
+- [x] Simplified validation (removed complex template placeholder logic)
 
 ---
 
@@ -444,19 +444,19 @@ def _calculate_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 ### **Testing Requirements**
 
-- [ ] Test pass/fail count calculations
-- [ ] Test pass rate calculation accuracy
-- [ ] Test metrics with empty results
-- [ ] Test metrics with mixed pass/fail results
-- [ ] Verify cost calculations remain accurate
+- [x] Test pass/fail count calculations
+- [x] Test pass rate calculation accuracy
+- [x] Test metrics with empty results
+- [x] Test metrics with mixed pass/fail results
+- [x] Verify cost calculations remain accurate
 
 **Acceptance Criteria**:
 
-- [ ] Simple pass/fail counts (boolean-based)
-- [ ] Clear pass rate calculation using pre_pass field
-- [ ] Removed all complex scoring statistics
-- [ ] Added fail count metric for better visibility
-- [ ] Metrics align with BRD's simple approach
+- [x] Simple pass/fail counts (boolean-based)
+- [x] Clear pass rate calculation using pre_pass field
+- [x] Removed all complex scoring statistics
+- [x] Added fail count metric for better visibility
+- [x] Metrics align with BRD's simple approach
 
 ---
 
@@ -514,17 +514,17 @@ def _normalize_serp_result(self, item: Dict[str, Any], query: str, page_index: i
 
 ### **Testing Requirements**
 
-- [ ] Test <www>. prefix removal
-- [ ] Test path removal (e.g., /path/to/page)
-- [ ] Test query parameter removal (e.g., ?param=value)
-- [ ] Test subdomain handling
-- [ ] Test edge cases (empty URLs, malformed URLs)
+- [x] Test <www>. prefix removal
+- [x] Test path removal (e.g., /path/to/page)
+- [x] Test query parameter removal (e.g., ?param=value)
+- [x] Test subdomain handling
+- [x] Test edge cases (empty URLs, malformed URLs)
 
 **Acceptance Criteria**:
 
-- [ ] Extracts hostname only (no www, no paths)
-- [ ] Validates domain format
-- [ ] Matches BRD requirement: "Domain (hostname only, e.g., company.com)"
+- [x] Extracts hostname only (no www, no paths)
+- [x] Validates domain format
+- [x] Matches BRD requirement: "Domain (hostname only, e.g., company.com)"
 
 ---
 
@@ -586,18 +586,18 @@ Snippet: {snippet}"""
 
 ### **Testing Requirements**
 
-- [ ] Test that no old scoring references remain
-- [ ] Test that all complex logic is removed
-- [ ] Test that new simple logic works correctly
-- [ ] Test configuration compatibility (should work with simple icp_hard_rules)
+- [x] Test that no old scoring references remain
+- [x] Test that all complex logic is removed
+- [x] Test that new simple logic works correctly
+- [x] Test configuration compatibility (should work with simple icp_hard_rules)
 
 **Acceptance Criteria**:
 
-- [ ] Completely removed old scoring system
-- [ ] No references to intent_config, validation_criteria, or size_validation
-- [ ] No threshold-based processing
-- [ ] Simple pass/fail logic only
-- [ ] Matches BRD exactly (16 lines max)
+- [x] Completely removed old scoring system
+- [x] No references to intent_config, validation_criteria, or size_validation
+- [x] No threshold-based processing
+- [x] Simple pass/fail logic only
+- [x] Matches BRD exactly (16 lines max)
 
 ---
 
@@ -629,21 +629,21 @@ pass_rate = pass_count / count_out if count_out > 0 else 0.0
 
 ### **Testing Requirements**
 
-- [ ] Test orchestrator filtering with boolean values
-- [ ] Test metrics calculation with boolean values
-- [ ] Test Apollo mode compatibility
-- [ ] Test Database mode compatibility
-- [ ] Test Search mode compatibility
-- [ ] Test export functionality with boolean values
+- [x] Test orchestrator filtering with boolean values
+- [x] Test metrics calculation with boolean values
+- [x] Test Apollo mode compatibility
+- [x] Test Database mode compatibility
+- [x] Test Search mode compatibility
+- [x] Test export functionality with boolean values
 
 **Acceptance Criteria**:
 
-- [ ] Orchestrator filtering works with boolean `pre_pass` values
-- [ ] Metrics calculation works with boolean `pre_pass` values
-- [ ] No changes needed to orchestrator.py
-- [ ] Full pipeline compatibility verified
-- [ ] Apollo mode filtering also works with boolean values
-- [ ] Database mode filtering also works with boolean values
+- [x] Orchestrator filtering works with boolean `pre_pass` values
+- [x] Metrics calculation works with boolean `pre_pass` values
+- [x] No changes needed to orchestrator.py
+- [x] Full pipeline compatibility verified
+- [x] Apollo mode filtering also works with boolean values
+- [x] Database mode filtering also works with boolean values
 
 ---
 
@@ -711,22 +711,22 @@ def test_old_scoring_system_removal():
 
 ### **Testing Requirements**
 
-- [ ] Test all new methods with valid inputs
-- [ ] Test all new methods with invalid inputs
-- [ ] Test edge cases and error conditions
-- [ ] Test configuration validation
-- [ ] Test system integration
-- [ ] Test BRD compliance
+- [x] Test all new methods with valid inputs
+- [x] Test all new methods with invalid inputs
+- [x] Test edge cases and error conditions
+- [x] Test configuration validation
+- [x] Test system integration
+- [x] Test BRD compliance
 
 **Acceptance Criteria**:
 
-- [ ] All new methods have unit tests
-- [ ] 40-word reason limit is tested
-- [ ] Domain hostname extraction is tested
-- [ ] Edge cases are covered (missing config, invalid JSON, etc.)
-- [ ] Error handling is tested
-- [ ] BRD compliance is verified in tests
-- [ ] Old scoring system removal is verified
+- [x] All new methods have unit tests
+- [x] 40-word reason limit is tested
+- [x] Domain hostname extraction is tested
+- [x] Edge cases are covered (missing config, invalid JSON, etc.)
+- [x] Error handling is tested
+- [x] BRD compliance is verified in tests
+- [x] Old scoring system removal is verified
 
 ---
 
@@ -760,18 +760,18 @@ def test_old_scoring_system_removal():
 
 ### **Testing Requirements**
 
-- [ ] Test all updated configs with domain tool
-- [ ] Verify icp_hard_rules validation works
-- [ ] Test different ICP types with appropriate rules
-- [ ] Verify rules are clear and actionable
+- [x] Test all updated configs with domain tool
+- [x] Verify icp_hard_rules validation works
+- [x] Test different ICP types with appropriate rules
+- [x] Verify rules are clear and actionable
 
 **Acceptance Criteria**:
 
-- [ ] All test configs have `icp_hard_rules` field
-- [ ] Rules are appropriate for each ICP type
-- [ ] Simple string format (no complex objects)
-- [ ] Clear, actionable hard rules that can be validated from domain/snippet
-- [ ] Rules are concise and specific (≤100 words)
+- [x] All test configs have `icp_hard_rules` field
+- [x] Rules are appropriate for each ICP type
+- [x] Simple string format (no complex objects)
+- [x] Clear, actionable hard rules that can be validated from domain/snippet
+- [x] Rules are concise and specific (≤100 words)
 
 ---
 

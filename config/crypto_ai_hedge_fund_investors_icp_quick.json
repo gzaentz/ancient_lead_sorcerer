@@ -19,8 +19,7 @@
     "contact": ["phone", "department", "seniority", "company_name"]
   },
 
-  "threshold": 0.8,
-  "filtering_strict": true,
+  "icp_hard_rules": "Industry must be Investment Management, Venture Capital, or Private Equity. Company size must be 1-10 or 11-50 employees. Location must be United States, United Kingdom, or Hong Kong. Must NOT contain keywords: consulting, agency, news, media.",
   "mode": "thorough",
 
   "apollo": {
@@ -677,128 +676,6 @@
     ]
   },
 
-  "intent_config": {
-    "purpose": "crypto_ai_investment_opportunity",
-    "target_action": "invest_in_crypto_ai",
-    "intent_signals": {
-      "high_intent": [
-        "cryptocurrency investments",
-        "blockchain portfolio",
-        "digital asset allocation",
-        "crypto fund management",
-        "AI investment strategy",
-        "alternative investment focus",
-        "family office crypto exposure",
-        "hedge fund crypto positions",
-        "venture capital blockchain",
-        "private equity crypto",
-        "institutional crypto adoption",
-        "crypto trading desk",
-        "blockchain venture fund",
-        "AI startup investments",
-        "crypto mining operations",
-        "DeFi investment strategy",
-        "NFT investment portfolio",
-        "Web3 investment focus",
-        "crypto hedge fund",
-        "digital asset fund"
-      ],
-      "medium_intent": [
-        "financial services technology",
-        "investment management",
-        "wealth management",
-        "asset management",
-        "alternative investments",
-        "investment advisory",
-        "portfolio management",
-        "investment strategy",
-        "financial technology",
-        "investment research",
-        "market analysis",
-        "investment opportunities",
-        "strategic investments",
-        "growth capital",
-        "investment partnerships"
-      ],
-      "low_intent": [
-        "news and media",
-        "consulting services",
-        "legal services",
-        "accounting services",
-        "government agency",
-        "educational institution",
-        "non-profit organization",
-        "retail business",
-        "consumer services",
-        "technology consulting",
-        "marketing agency",
-        "advertising services",
-        "public relations",
-        "research organization",
-        "think tank",
-        "policy institute",
-        "regulatory body",
-        "trade association",
-        "professional services",
-        "business services"
-      ]
-    },
-    "intent_sources": [
-      "about_pages",
-      "investment_strategy",
-      "portfolio_pages",
-      "team_pages",
-      "services_pages",
-      "investment_approach",
-      "fund_information",
-      "strategy_pages",
-      "investment_philosophy",
-      "fund_overview",
-      "investment_criteria",
-      "portfolio_companies",
-      "investment_history",
-      "fund_performance",
-      "investment_team"
-    ],
-    "scoring_rules": {
-      "high_intent_weight": 0.8,
-      "medium_intent_weight": 0.3,
-      "low_intent_weight": -0.5,
-      "base_score": 0.3,
-      "crypto_focus_bonus": 0.3,
-      "ai_focus_bonus": 0.2,
-      "family_office_bonus": 0.2,
-      "investment_firm_bonus": 0.2,
-      "size_bonus": 0.1,
-      "location_bonus": 0.1
-    },
-    "validation_criteria": {
-      "required_attributes": [
-        "investment_firm",
-        "crypto_exposure",
-        "decision_making_capacity"
-      ],
-      "disqualifying_attributes": [
-        "news_media",
-        "consulting_firm",
-        "government_agency",
-        "educational_institution",
-        "non_profit",
-        "retail_business",
-        "consumer_service"
-      ],
-      "size_validation": {
-        "min_employees": 1,
-        "max_employees": 200,
-        "preferred_range": "1-50"
-      },
-      "industry_validation": {
-        "primary": ["Investment Management", "Venture Capital", "Private Equity", "Family Office", "Hedge Fund"],
-        "secondary": ["Financial Services", "Asset Management", "Wealth Management", "Alternative Investments"],
-        "excluded": ["Media", "Consulting", "Legal", "Accounting", "Government", "Education", "Non-profit"]
-      }
-    }
-  },
 
   "enrichment_providers": {
     "apollo": {

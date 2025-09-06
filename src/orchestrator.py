@@ -425,7 +425,7 @@ class LeadSorcererOrchestrator:
                 "icp_text",
                 "queries",
                 "required_fields",
-                "threshold",
+                "icp_hard_rules",
             ]
             for field in required_fields:
                 if field not in config:

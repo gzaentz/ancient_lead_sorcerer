@@ -8,6 +8,7 @@
     "https://www.modernortho.com/"
   ],
   "icp_text": "Dental practices in the Pacific region specializing in modern treatments",
+  "icp_hard_rules": "The company is a dental practice/office.",
   "required_fields": {
     "company": ["name", "location", "website", "services"],
     "contact": ["name", "email", "role"]
