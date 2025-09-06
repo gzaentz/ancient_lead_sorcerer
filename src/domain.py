@@ -755,7 +755,7 @@ class DomainTool:
                     model_used,
                     prompt_fingerprint,
                 ) = await self.llm_scorer.score_domain(
-                    result["title"],
+                    result["domain"],
                     result["snippet"],
                     result["query"],
                     self.icp_config,

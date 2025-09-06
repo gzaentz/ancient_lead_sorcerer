@@ -2535,7 +2535,7 @@ async def select_best_contact_llm(
 
     if not icp_config:
         log.info("ℹ️ No ICP config provided, using rule-based selection")
-        return select_best_contact(contacts, role_priority_config), {
+        return select_best_contact_with_email_quality(contacts, role_priority_config), {
             "total_cost_usd": 0.0,
             "cost_details": [],
             "total_calls": 0,
@@ -2546,7 +2546,7 @@ async def select_best_contact_llm(
     api_key = os.getenv("OPENROUTER_KEY")
     if not api_key:
         log.warning("⚠️ No OPENROUTER_KEY found, using rule-based selection")
-        return select_best_contact(contacts, role_priority_config), {
+        return select_best_contact_with_email_quality(contacts, role_priority_config), {
             "total_cost_usd": 0.0,
             "cost_details": [],
             "total_tokens": 0,
@@ -2567,7 +2567,7 @@ async def select_best_contact_llm(
 
     def fallback_function(contacts_param, _):
         track_llm_performance_metric("fallback_to_rule_based")
-        return select_best_contact(contacts_param, role_priority_config), {
+        return select_best_contact_with_email_quality(contacts_param, role_priority_config), {
             "total_cost_usd": 0.0,
             "cost_details": [],
             "total_calls": 0,
@@ -3531,24 +3531,44 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                     record["contacts"] = contacts
                     total_cost += hunter_cost_2
 
-                # Select best contact using LLM-based selection with fallback to rule-based
-                logger.info(
-                    f"🔍 Contacts type before contact selection: {type(contacts)}"
-                )
-                logger.info(f"🔍 Contacts content before contact selection: {contacts}")
-                logger.info(f"🔍 Role priority config: {role_priority_config}")
-                logger.info(
-                    f"🔍 ICP config available for LLM selection: {bool(icp_config)}"
-                )
+                # Re-evaluate decision maker status for all contacts based on ICP configuration
+                logger.info(f"🔍 Re-evaluating decision maker status for {len(contacts)} contacts based on ICP configuration")
 
-                # Use LLM-based contact selection with fallback to rule-based
-                best_contact_id, llm_cost_info = await select_best_contact_llm(
-                    contacts, role_priority_config, icp_config
-                )
-                record["best_contact_id"] = best_contact_id
+                # Get decision maker configuration from ICP config
+                decision_maker_config = icp_config.get("decision_makers", {})
+                decision_maker_threshold = decision_maker_config.get("priority_threshold", 10)
 
-                # Track LLM costs for contact selection
-                llm_selection_cost = llm_cost_info.get("total_cost_usd", 0.0)
+                # Build decision maker titles from role_priority
+                decision_maker_titles = []
+                for role, priority in role_priority_config.items():
+                    if priority <= decision_maker_threshold:
+                        decision_maker_titles.append(role.title())
+
+                decision_set = {t.lower() for t in decision_maker_titles}
+
+                # Re-evaluate each contact's decision maker status
+                for contact in contacts:
+                    role = contact.get("role") or contact.get("job_title", "")
+                    if role:
+                        role_lower = role.lower()
+                        is_decision_maker = False
+
+                        # Check exact matches
+                        if role_lower in decision_set:
+                            is_decision_maker = True
+                        else:
+                            # Check partial matches
+                            for decision_title in decision_set:
+                                if (decision_title in role_lower or role_lower in decision_title):
+                                    is_decision_maker = True
+                                    break
+
+                        # Update decision maker status
+                        contact["decision_maker"] = is_decision_maker
+                        logger.info(f"🔍 Contact {contact.get('full_name', 'Unknown')} ({role}): decision_maker={is_decision_maker}")
+
+                # Contact selection will happen after contact discovery
+                llm_selection_cost = 0.0  # Initialize cost tracking
 
                 # Enrich contacts (only if within budget)
                 contact_cost = 0.0
@@ -5047,6 +5067,26 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 logger.info(
                     f"✅ Final contacts array updated for {normalized_domain}: {len(contacts)} contacts"
                 )
+
+                # Select best contact using LLM-based selection with fallback to rule-based
+                # This happens AFTER contact discovery to ensure all contacts are available
+                logger.info(
+                    f"🔍 Contacts type before contact selection: {type(contacts)}"
+                )
+                logger.info(f"🔍 Contacts content before contact selection: {contacts}")
+                logger.info(f"🔍 Role priority config: {role_priority_config}")
+                logger.info(
+                    f"🔍 ICP config available for LLM selection: {bool(icp_config)}"
+                )
+
+                # Use LLM-based contact selection with fallback to rule-based
+                best_contact_id, llm_cost_info = await select_best_contact_llm(
+                    contacts, role_priority_config, icp_config
+                )
+                record["best_contact_id"] = best_contact_id
+
+                # Track LLM costs for contact selection
+                llm_selection_cost = llm_cost_info.get("total_cost_usd", 0.0)
 
                 # CRITICAL FIX: Ensure best_contact_id matches an actual contact in the contacts array
                 if best_contact_id and contacts:
