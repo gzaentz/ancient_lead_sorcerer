@@ -469,8 +469,17 @@ class EnrichmentProviderRouter:
                                     f"📋 Data returned: {len(result.data)} items from {provider.name}"
                                 )
                             elif hasattr(result.data, "email") and result.data.email:
-                                self.logger.info(
-                                    f"📧 Email found via {provider.name}: {result.data.email}"
+                                try:
+                                    e = result.data.email
+                                    masked = (
+                                        (e[:2] + "***@" + e.split("@", 1)[-1])
+                                        if "@" in e
+                                        else "***"
+                                    )
+                                except Exception:
+                                    masked = "***"
+                                self.logger.debug(
+                                    f"📧 Email found via {provider.name}: {masked}"
                                 )
                             else:
                                 self.logger.info(
@@ -482,8 +491,10 @@ class EnrichmentProviderRouter:
                         self.logger.warning(
                             f"⚠️ {provider.name} succeeded but returned no meaningful data for {operation_description} - trying next provider"
                         )
-                        self._record_error(provider, "Success but no meaningful data returned")
-                        errors.append(f"{provider.name}: Success but no meaningful data")
+                        # Do not penalize provider health for empty-but-successful results
+                        errors.append(
+                            f"{provider.name}: Success but no meaningful data"
+                        )
                 else:
                     self._record_error(provider, result.error)
                     errors.append(f"{provider.name}: {result.error}")
@@ -510,8 +521,6 @@ class EnrichmentProviderRouter:
                         self.logger.warning(
                             f"⚠️ {provider.name} succeeded but returned no meaningful data for {operation_description} - trying next provider"
                         )
-                        self._record_error(provider, "Success but no meaningful data returned")
-                        errors.append(f"{provider.name}: Success but no meaningful data")
                 else:
                     self._record_error(provider, result.error)
                     errors.append(f"{provider.name}: {result.error}")
@@ -538,8 +547,6 @@ class EnrichmentProviderRouter:
                         self.logger.warning(
                             f"⚠️ {provider.name} succeeded but returned no meaningful data for {operation_description} - trying next provider"
                         )
-                        self._record_error(provider, "Success but no meaningful data returned")
-                        errors.append(f"{provider.name}: Success but no meaningful data")
                 else:
                     self._record_error(provider, result.error)
                     errors.append(f"{provider.name}: {result.error}")
@@ -628,10 +635,6 @@ class EnrichmentProviderRouter:
         health["is_available"] = False
         health["last_error"] = f"Marked unavailable: {reason}"
 
-        self.logger.warning(
-            f"⚠️ Provider {provider.name} marked as unavailable: {reason}"
-        )
-
     def _has_meaningful_data(self, result: EnrichmentResult, method_name: str) -> bool:
         """
         Check if the enrichment result contains meaningful data.
@@ -646,31 +649,48 @@ class EnrichmentProviderRouter:
         if not result.data:
             return False
 
+        data = result.data
+
         # For email discovery methods
-        if method_name in ['find_email', 'search_prospect_email']:
-            if hasattr(result.data, 'email') and result.data.email:
-                return True
-            return False
+        if method_name in ["find_email", "search_prospect_email"]:
+            if isinstance(data, dict):
+                return bool(data.get("email"))
+            return bool(getattr(data, "email", None))
 
         # For contact discovery methods
-        elif method_name in ['discover_contacts', 'get_all_domain_prospects']:
-            if isinstance(result.data, list):
-                return len(result.data) > 0
+        elif method_name in [
+            "discover_contacts",
+            "get_all_domain_prospects",
+            "enrich_contacts",
+        ]:
+            if isinstance(data, list):
+                return len(data) > 0
             return False
 
         # For company enrichment methods
-        elif method_name in ['enrich_company']:
-            if hasattr(result.data, 'name') and result.data.name:
-                return True
-            if hasattr(result.data, 'domain') and result.data.domain:
-                return True
-            return False
+        elif method_name in ["enrich_company"]:
+            if isinstance(data, dict):
+                return bool(data.get("name") or data.get("domain"))
+            return bool(getattr(data, "name", None) or getattr(data, "domain", None))
 
         # For email validation methods
-        elif method_name in ['validate_email']:
-            if hasattr(result.data, 'email') and result.data.email:
-                return True
-            return False
+        elif method_name in ["validate_email"]:
+            if isinstance(data, dict):
+                email = data.get('email')
+                valid = data.get('valid') is True or data.get('deliverable') is True
+                status = str(data.get('status', '')).strip().lower().replace('-', ' ').replace('_', ' ')
+            else:
+                email = getattr(data, 'email', None)
+                valid = (getattr(data, 'valid', False) is True
+                         or getattr(data, 'deliverable', False) is True)
+                status = str(getattr(data, 'status', '') or '').strip().lower().replace('-', ' ').replace('_', ' ')
+            status_tokens = set(status.split())
+            return bool(
+                email
+                or valid
+                or ('valid' in status_tokens)
+                or ('deliverable' in status_tokens)
+            )
 
         # Default: consider any data as meaningful
         return True
