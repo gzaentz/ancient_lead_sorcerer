@@ -1237,6 +1237,77 @@ class TestMissingRequirements:
         # Implementation depends on seniority logic
         pass
 
+    @pytest.mark.asyncio
+    async def test_icp_match_summary_generation(
+        self, sample_lead_record, sample_icp_config, temp_data_dir
+    ):
+        """Test LLM-based ICP match summary generation."""
+        # Set up environment variable for LLM client
+        os.environ["OPENROUTER_KEY"] = "test-key"
+
+        # Create tool instance
+        tool = CrawlTool(data_dir=temp_data_dir)
+
+        # Mock the LLM client response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "✓ Perfect ICP match: Multi-location dental practice (3 locations) in California, established 2018, private ownership. ✓ 3 contacts including 1 decision maker, specializes in implants and orthodontics."
+
+        # Mock the LLM client
+        with patch.object(tool.llm_client.chat.completions, 'create', new_callable=AsyncMock) as mock_create:
+            mock_create.return_value = mock_response
+
+            # Test the match summary generation
+            result = await tool._generate_icp_match_summary_llm(sample_lead_record, sample_icp_config)
+
+            # Verify the result
+            assert result is not None
+            assert "✓" in result  # Should contain match indicators
+            assert len(result) > 0
+
+            # Verify the LLM was called with correct parameters
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert call_args[1]["model"] == "gpt-4o-mini"
+            assert call_args[1]["temperature"] == 0.1
+            assert call_args[1]["max_tokens"] == 200
+
+    @pytest.mark.asyncio
+    async def test_icp_match_summary_fallback(
+        self, sample_lead_record, sample_icp_config, temp_data_dir
+    ):
+        """Test fallback when LLM match summary generation fails."""
+        # Set up environment variable for LLM client
+        os.environ["OPENROUTER_KEY"] = "test-key"
+
+        # Create tool instance
+        tool = CrawlTool(data_dir=temp_data_dir)
+
+        # Mock the LLM client to raise an exception
+        with patch.object(tool.llm_client.chat.completions, 'create', new_callable=AsyncMock) as mock_create:
+            mock_create.side_effect = Exception("LLM API error")
+
+            # Test the match summary generation with error
+            result = await tool._generate_icp_match_summary_llm(sample_lead_record, sample_icp_config)
+
+            # Verify fallback behavior
+            assert result == "ICP match summary generation failed"
+
+    def test_icp_match_summary_field_in_validation(
+        self, sample_lead_record, sample_icp_config, temp_data_dir
+    ):
+        """Test that match_summary field is added during ICP validation."""
+        # Create tool instance
+        tool = CrawlTool(data_dir=temp_data_dir)
+
+        # Call ICP validation
+        tool._validate_icp_fit(sample_lead_record, sample_icp_config)
+
+        # Verify match_summary field is added
+        assert "icp" in sample_lead_record
+        assert "match_summary" in sample_lead_record["icp"]
+        assert sample_lead_record["icp"]["match_summary"] is None  # Will be set by async call
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

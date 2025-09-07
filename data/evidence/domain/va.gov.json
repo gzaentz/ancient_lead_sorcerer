@@ -1,20 +1,30 @@
 {
   "domain": "va.gov",
   "queries": [
-    "dental practice multiple locations Texas"
+    "Miami Florida dental practice multiple locations"
   ],
-  "fetched_at": "2025-08-21T01:32:40.163198Z",
+  "fetched_at": "2025-09-07T17:50:38.592277Z",
   "serp_results": [
     {
-      "url": "https://www.va.gov/central-texas-health-care/locations/austin-va-clinic/",
-      "title": "Austin VA Clinic | VA Central Texas Health Care | Veterans Affairs",
-      "snippet": "Jan 21, 2025 ... Learn more about DAV and the other van services available in your county ... If you're eligible for VA dental care, we offer a full range of\u00a0...",
-      "query": "dental practice multiple locations Texas",
+      "url": "https://www.va.gov/miami-health-care/locations/bruce-w-carter-department-of-veterans-affairs-medical-center",
+      "title": "Bruce W. Carter Department Of Veterans Affairs Medical Center | VA ...",
+      "snippet": "Oct 9, 2024 ... Location and contact information \u00b7 Prepare for your visit \u00b7 Other services at VA Miami health care \u00b7 Health services offered here \u00b7 Get updates from\u00a0...",
+      "query": "Miami Florida dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-08-21T01:32:21.249269Z",
+      "fetched_at": "2025-09-07T17:50:30.330974Z",
+      "domain": "va.gov"
+    },
+    {
+      "url": "https://www.va.gov/DENTAL/Dental-Clinic-Locations-Finder.asp",
+      "title": "Find a Dental Clinic Location - VA Dentistry - Improving Veterans ...",
+      "snippet": "The VA provides dental care to eligible Veterans at over 200 locations around the country, including Alaska and Puerto Rico.",
+      "query": "Miami Florida dental practice multiple locations",
+      "page_index": 1,
+      "rank_on_page": 0,
+      "fetched_at": "2025-09-07T17:50:30.330974Z",
       "domain": "va.gov"
     }
   ],
-  "scoring_prompt_fingerprint": "abc57f832f48b7513ac8e6d096b6914020a466dc8740d51665c588e92ad0fe94"
+  "scoring_prompt_fingerprint": "3a18614e11026247958d049582bab182396c24da966369891ce73ff41c37f97d"
 }

@@ -682,6 +682,7 @@ class LeadSorcererOrchestrator:
                     },
                     "crawl_score": None,  # Will be set by crawl tool
                     "crawl_reason": None,  # Will be set by crawl tool
+                    "match_summary": None,  # Will be set by crawl tool
                 },
                 "audit": [],  # Will be populated by tools
                 "cost": {
@@ -1561,9 +1562,48 @@ class LeadSorcererOrchestrator:
                 else:
                     return ""  # Skip arrays of objects
             else:
+                # Special handling for match_summary field to make it CSV-friendly
+                if field_path == "icp.match_summary" and isinstance(value, str):
+                    return self._flatten_match_summary(value)
                 return str(value)
         except Exception:
             return ""
+
+    def _flatten_match_summary(self, match_summary: str) -> str:
+        """
+        Flatten match summary text to be CSV-friendly.
+
+        Converts multi-line markdown text with checkmarks and bullet points
+        into a single-line, pipe-separated format that's readable in CSV.
+        """
+        if not match_summary or not isinstance(match_summary, str):
+            return ""
+
+        # Replace newlines with spaces and clean up formatting
+        flattened = match_summary.replace("\n", " ").replace("\r", " ")
+
+        # Replace markdown formatting with plain text equivalents
+        flattened = flattened.replace("**", "")  # Remove bold markers
+        flattened = flattened.replace("*", "")  # Remove italic markers
+
+        # Replace checkmarks and warning symbols with text
+        flattened = flattened.replace("✓", "[PASS]")
+        flattened = flattened.replace("⚠", "[WARNING]")
+        flattened = flattened.replace("❌", "[FAIL]")
+
+        # Replace bullet points with pipe separators
+        flattened = flattened.replace("  - ", " | ")
+        flattened = flattened.replace("   - ", " | ")
+        flattened = flattened.replace("    - ", " | ")
+
+        # Clean up multiple spaces
+        flattened = " ".join(flattened.split())
+
+        # Truncate if too long (CSV cells should be reasonable size)
+        if len(flattened) > 500:
+            flattened = flattened[:497] + "..."
+
+        return flattened
 
     def _calculate_final_metrics(
         self,

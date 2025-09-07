@@ -676,20 +676,34 @@ class EnrichmentProviderRouter:
         # For email validation methods
         elif method_name in ["validate_email"]:
             if isinstance(data, dict):
-                email = data.get('email')
-                valid = data.get('valid') is True or data.get('deliverable') is True
-                status = str(data.get('status', '')).strip().lower().replace('-', ' ').replace('_', ' ')
+                email = data.get("email")
+                valid = data.get("valid") is True or data.get("deliverable") is True
+                status = (
+                    str(data.get("status", ""))
+                    .strip()
+                    .lower()
+                    .replace("-", " ")
+                    .replace("_", " ")
+                )
             else:
-                email = getattr(data, 'email', None)
-                valid = (getattr(data, 'valid', False) is True
-                         or getattr(data, 'deliverable', False) is True)
-                status = str(getattr(data, 'status', '') or '').strip().lower().replace('-', ' ').replace('_', ' ')
+                email = getattr(data, "email", None)
+                valid = (
+                    getattr(data, "valid", False) is True
+                    or getattr(data, "deliverable", False) is True
+                )
+                status = (
+                    str(getattr(data, "status", "") or "")
+                    .strip()
+                    .lower()
+                    .replace("-", " ")
+                    .replace("_", " ")
+                )
             status_tokens = set(status.split())
             return bool(
                 email
                 or valid
-                or ('valid' in status_tokens)
-                or ('deliverable' in status_tokens)
+                or ("valid" in status_tokens)
+                or ("deliverable" in status_tokens)
             )
 
         # Default: consider any data as meaningful

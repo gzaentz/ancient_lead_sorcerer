@@ -535,6 +535,7 @@ class DomainTool:
                 },
                 "crawl_score": None,
                 "crawl_reason": None,
+                "match_summary": None,  # Will be set by crawl tool
                 # REMOVED: threshold and filtering_strict - not needed for pass/fail system
             },
             "provenance": {

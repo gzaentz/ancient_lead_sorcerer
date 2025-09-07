@@ -20,6 +20,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+from openai import AsyncOpenAI
+
 from .common import (
     AsyncSemaphorePool,
     ErrorCode,
@@ -211,6 +213,13 @@ class CrawlTool:
         from firecrawl import Firecrawl
 
         self.firecrawl_client = Firecrawl(api_key=self.firecrawl_key)
+
+        # Initialize LLM client for match summary generation
+        self.llm_client = AsyncOpenAI(
+            api_key=os.environ.get("OPENROUTER_KEY"),
+            base_url="https://openrouter.ai/api/v1",
+        )
+
         # Global permit manager for concurrency control
         self.permit_manager = PermitManager(
             max_permits=3
@@ -2527,6 +2536,18 @@ Remember: Extract unique, valuable information about each individual business op
         # Perform ICP validation
         self._validate_icp_fit(record, icp_config)
 
+        # Generate LLM-based match summary
+        try:
+            match_summary = await self._generate_icp_match_summary_llm(
+                record, icp_config
+            )
+            record["icp"]["match_summary"] = match_summary
+        except Exception as e:
+            self.logger.warning(
+                f"Failed to generate match summary for {record.get('domain', 'unknown')}: {e}"
+            )
+            record["icp"]["match_summary"] = "Match summary generation failed"
+
     def _check_company_requirements(
         self, record: Dict[str, Any], required_fields: List[str]
     ) -> bool:
@@ -2677,6 +2698,96 @@ Remember: Extract unique, valuable information about each individual business op
         record["icp"]["crawl_reason"] = (
             "; ".join(reasons) if reasons else "No specific reasons"
         )
+        # match_summary will be set by the async call in _process_single_record
+        record["icp"]["match_summary"] = None
+
+    async def _generate_icp_match_summary_llm(
+        self, record: Dict[str, Any], icp_config: Dict[str, Any]
+    ) -> str:
+        """
+        Generate dynamic ICP match summary using LLM based on ICP configuration.
+
+        Args:
+            record: Lead record with company and contact data
+            icp_config: ICP configuration
+
+        Returns:
+            Specific ICP match summary string
+        """
+        company = record.get("company", {})
+        contacts = record.get("contacts", [])
+
+        # Extract key ICP criteria from config
+        icp_text = icp_config.get("icp_text", "")
+        icp_hard_rules = icp_config.get("icp_hard_rules", "")
+        required_fields = icp_config.get("required_fields", {})
+        exclusion_criteria = icp_config.get("exclusion_criteria", {})
+
+        # Get Apollo filters if available
+        apollo_config = icp_config.get("apollo", {})
+        company_filters = apollo_config.get("search", {}).get("company_filters", {})
+        person_filters = apollo_config.get("search", {}).get("person_filters", {})
+
+        # Build the prompt
+        prompt = f"""You are an ICP (Ideal Customer Profile) analyst. Analyze this lead against the ICP criteria and generate a concise, actionable match summary.
+
+ICP PROFILE:
+{icp_text}
+
+HARD RULES:
+{icp_hard_rules}
+
+TARGET CRITERIA:
+- Industries: {company_filters.get("industry", [])}
+- Company Sizes: {company_filters.get("size", [])}
+- Locations: {company_filters.get("location", [])}
+- Job Titles: {person_filters.get("job_titles", [])}
+- Required Fields: {required_fields}
+
+EXCLUSION CRITERIA:
+- Excluded Keywords: {exclusion_criteria.get("excluded_keywords", [])}
+- Excluded Industries: {exclusion_criteria.get("excluded_industries", [])}
+- Excluded Ownership: {exclusion_criteria.get("ownership_types", [])}
+
+LEAD DATA:
+Company: {company.get("name", "N/A")}
+Industry: {company.get("industry", "N/A")}
+Location: {company.get("hq_location", "N/A")}
+Size: {company.get("employee_count", "N/A")} employees
+Locations: {company.get("number_of_locations", "N/A")} locations
+Ownership: {company.get("ownership_type", "N/A")}
+Founded: {company.get("founded_year", "N/A")}
+Description: {company.get("description", "N/A")[:200] if company.get("description") else "N/A"}...
+Specialties: {company.get("specialties", [])[:5]}
+
+Contacts: {len(contacts)} total
+- Decision Makers: {sum(1 for c in contacts if c.get("decision_maker"))}
+- With Email: {sum(1 for c in contacts if c.get("email"))}
+- Top Roles: {[c.get("job_title", "N/A") for c in contacts[:3]]}
+
+Generate a concise summary (max 150 words) highlighting:
+1. Key ICP criteria met (✓)
+2. Specific company attributes that match
+3. Contact quality indicators
+4. Any exclusion warnings (⚠)
+5. Overall ICP fit assessment
+
+Format: Use ✓ for matches, ⚠ for warnings, be specific with numbers and details."""
+
+        try:
+            # Use the same LLM client as domain scoring
+            response = await self.llm_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,  # Low temperature for consistent output
+                max_tokens=200,
+            )
+
+            return response.choices[0].message.content.strip()
+
+        except Exception as e:
+            self.logger.warning(f"Failed to generate LLM match summary: {e}")
+            return "ICP match summary generation failed"
 
     def _build_metrics(
         self,

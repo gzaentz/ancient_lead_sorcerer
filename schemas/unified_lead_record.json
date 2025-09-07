@@ -546,18 +546,18 @@
                 "description": "Email address that was verified"
               },
               "score": {
-                "type": "integer", 
-                "minimum": 0, 
+                "type": "integer",
+                "minimum": 0,
                 "maximum": 100,
                 "description": "Hunter.io email quality score (0-100%)"
               },
               "status": {
-                "type": "string", 
+                "type": "string",
                 "enum": ["valid", "invalid", "risky", "unknown", "error", "timeout", "rate_limited", "accept_all"],
                 "description": "Hunter.io verification status"
               },
               "result": {
-                "type": "string", 
+                "type": "string",
                 "enum": ["deliverable", "undeliverable", "risky", "unknown", "invalid"],
                 "description": "Hunter.io deliverability result"
               },
@@ -583,7 +583,7 @@
                 "description": "Whether the SMTP server accepts emails"
               },
               "sources": {
-                "type": "array", 
+                "type": "array",
                 "items": {
                   "oneOf": [
                     {"type": "string"},
@@ -614,7 +614,7 @@
                 "description": "Error message if verification failed"
               },
               "verified_at": {
-                "type": "string", 
+                "type": "string",
                 "format": "date-time",
                 "description": "ISO-8601 UTC timestamp of verification"
               },
@@ -645,8 +645,8 @@
             "description": "Hunter.io email verification results with comprehensive deliverability metrics"
           },
           "email_quality_score": {
-            "type": "integer", 
-            "minimum": 0, 
+            "type": "integer",
+            "minimum": 0,
             "maximum": 100,
             "description": "Email quality score from Hunter.io (0-100%)"
           },
@@ -794,6 +794,11 @@
           "type": ["string", "null"],
           "maxLength": 2048,
           "description": "Reasoning for crawl score"
+        },
+        "match_summary": {
+          "type": ["string", "null"],
+          "maxLength": 2048,
+          "description": "Dynamic ICP match summary with specific criteria met"
         },
         "threshold": {
           "type": "number",
