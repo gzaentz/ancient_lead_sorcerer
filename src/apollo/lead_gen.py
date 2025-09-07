@@ -1016,8 +1016,6 @@ class ApolloLeadGen:
                     "crawl_score": None,
                     "crawl_reason": "Apollo bypasses crawl stage",
                     "match_summary": "Apollo-generated lead with verified ICP criteria",
-                    "threshold": self.icp_config.get("threshold", 0.7),
-                    "filtering_strict": self.icp_config.get("filtering_strict", True),
                 },
                 "provenance": {
                     "queries": [],
@@ -1128,8 +1126,6 @@ class ApolloLeadGen:
                     "crawl_score": None,
                     "crawl_reason": "Apollo bypasses crawl stage",
                     "match_summary": "Apollo-generated lead with verified ICP criteria",
-                    "threshold": self.icp_config.get("threshold", 0.7),
-                    "filtering_strict": self.icp_config.get("filtering_strict", True),
                 },
                 "provenance": {
                     "queries": [],

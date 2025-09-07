@@ -215,8 +215,14 @@ class CrawlTool:
         self.firecrawl_client = Firecrawl(api_key=self.firecrawl_key)
 
         # Initialize LLM client for match summary generation
+        openrouter_key = os.environ.get("OPENROUTER_KEY")
+        if not openrouter_key:
+            raise ValueError(
+                "OPENROUTER_KEY missing or empty; set OPENROUTER_KEY in environment"
+            )
+
         self.llm_client = AsyncOpenAI(
-            api_key=os.environ.get("OPENROUTER_KEY"),
+            api_key=openrouter_key,
             base_url="https://openrouter.ai/api/v1",
         )
 
@@ -2763,7 +2769,7 @@ Specialties: {company.get("specialties", [])[:5]}
 Contacts: {len(contacts)} total
 - Decision Makers: {sum(1 for c in contacts if c.get("decision_maker"))}
 - With Email: {sum(1 for c in contacts if c.get("email"))}
-- Top Roles: {[c.get("job_title", "N/A") for c in contacts[:3]]}
+- Top Roles: {[c.get("role", "N/A") for c in contacts[:3]]}
 
 Generate a concise summary (max 150 words) highlighting:
 1. Key ICP criteria met (✓)
