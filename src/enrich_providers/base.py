@@ -42,7 +42,6 @@ class CompanyData:
     name: Optional[str] = None
     description: Optional[str] = None
     industry: Optional[str] = None
-    size: Optional[str] = None
     founded_year: Optional[int] = None
     revenue: Optional[str] = None
     website: Optional[str] = None
@@ -53,7 +52,9 @@ class CompanyData:
     address: Optional[Dict[str, str]] = None
     technologies: Optional[List[str]] = None
     social_media_presence: Optional[Dict[str, str]] = None
-    employee_count: Optional[int] = None
+    employee_count: Optional[str] = (
+        None  # Now stores standardized ranges like "1-10", "11-50", etc.
+    )
     funding: Optional[Dict[str, Any]] = None
     competitors: Optional[List[str]] = None
     tags: Optional[List[str]] = None

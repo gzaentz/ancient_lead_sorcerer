@@ -38,7 +38,7 @@ class ApolloDataMapper:
                 "name": "name",
                 "description": "description",
                 "industry": "industry",
-                "size": "size_hint",
+                "size": "employee_count",  # Map external size to employee_count ranges
                 "employee_count": "employee_count",
                 "founded_year": "founded_year",
                 "website": "website",
@@ -417,8 +417,8 @@ class ApolloDataMapper:
             Updated mapped data with special cases handled
         """
         # Handle company size if not already mapped
-        if "size_hint" not in mapped_data and "size" in apollo_company:
-            mapped_data["size_hint"] = apollo_company["size"]
+        if "employee_count" not in mapped_data and "size" in apollo_company:
+            mapped_data["employee_count"] = apollo_company["size"]
 
         # Handle industry normalization
         if "industry" in mapped_data:
@@ -588,7 +588,7 @@ class ApolloDataMapper:
             "company_fallbacks": {
                 # Company field fallbacks
                 "industry": "Unknown",
-                "size_hint": "Unknown",
+                "employee_count": "Unknown",
             },
             "contact_fallbacks": {
                 # Contact field fallbacks

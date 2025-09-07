@@ -27,6 +27,7 @@ from .base import (
     AuthenticationError,
     ServiceUnavailableError,
 )
+from src.common import normalize_employee_count
 
 
 class CompanyEnrichProvider(BaseEnrichmentProvider):
@@ -267,7 +268,7 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
             company.industry = response_data["industry"]
 
         if response_data.get("size"):
-            company.size = response_data["size"]
+            company.employee_count = normalize_employee_count(response_data["size"])
 
         if response_data.get("location"):
             location_data = response_data["location"]

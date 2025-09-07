@@ -632,15 +632,17 @@ class ApolloClient:
         if "industry" in filters:
             apollo_params["q_organization_industries_list[]"] = filters["industry"]
 
-        # Map size filters (employee count)
-        if "size" in filters:
+        # Map employee count filters
+        if "employee_count" in filters:
             size_mapping = {
                 "1-10": {"min_employees": 1, "max_employees": 10},
                 "11-50": {"min_employees": 11, "max_employees": 50},
                 "51-200": {"min_employees": 51, "max_employees": 200},
                 "201-500": {"min_employees": 201, "max_employees": 500},
+                "501-1000": {"min_employees": 501, "max_employees": 1000},
+                "1000+": {"min_employees": 1001, "max_employees": 10000},
             }
-            for size in filters["size"]:
+            for size in filters["employee_count"]:
                 if size in size_mapping:
                     apollo_params.update(size_mapping[size])
 

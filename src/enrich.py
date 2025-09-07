@@ -83,6 +83,21 @@ LLM_MAX_TOKENS = 500
 LLM_TIMEOUT = 30.0
 LLM_BASE_URL = "https://openrouter.ai/api/v1"
 
+# Required fields for full enrichment (always enforced)
+REQUIRED_COMPANY_FIELDS = [
+    "name",
+    "domain",
+    "industry",
+    "hq_location",
+    "employee_count",
+]
+
+REQUIRED_CONTACT_FIELDS = [
+    "full_name",  # or first_name + last_name
+    "role",  # or job_title
+    "email",
+]
+
 # LLM Configuration per ICP type (can be overridden in ICP config)
 LLM_ICP_CONFIGS = {
     "default": {
@@ -3078,6 +3093,102 @@ def write_evidence_file(
 
 
 # ============================================================================
+# Required Fields Validation
+# ============================================================================
+
+
+def _check_required_fields_complete(
+    company: Dict[str, Any],
+    contacts: List[Dict[str, Any]],
+    best_contact_id: Optional[str],
+    domain: Optional[str] = None,
+    icp: Optional[Dict[str, Any]] = None,
+) -> Tuple[bool, bool, bool]:
+    """
+    Check if all required fields are complete for full enrichment.
+
+    Args:
+        company: Company data dictionary
+        contacts: List of contact dictionaries
+        best_contact_id: ID of the best contact
+        domain: Domain field (at top level of record)
+        icp: ICP data dictionary (at top level of record)
+
+    Returns:
+        Tuple of (company_complete, contact_complete, icp_match)
+    """
+    # Check company fields
+    company_complete = True
+    missing_company_fields = []
+
+    for field in REQUIRED_COMPANY_FIELDS:
+        if field == "domain":
+            # Domain is at top level, not in company object
+            if not domain:
+                company_complete = False
+                missing_company_fields.append(field)
+        else:
+            value = company.get(field)
+            # Check if field is missing or contains "N/A" placeholder
+            if (
+                not value
+                or value == "N/A"
+                or (isinstance(value, str) and value.strip() == "N/A")
+            ):
+                company_complete = False
+                missing_company_fields.append(field)
+
+    # Check contact fields (best contact only)
+    contact_complete = True
+    missing_contact_fields = []
+
+    if contacts and best_contact_id:
+        best_contact = next(
+            (c for c in contacts if c.get("contact_id") == best_contact_id), None
+        )
+        if best_contact:
+            # Check full_name or first_name + last_name
+            has_name = best_contact.get("full_name") or (
+                best_contact.get("first_name") and best_contact.get("last_name")
+            )
+            if not has_name:
+                missing_contact_fields.append("name")
+
+            # Check role or job_title
+            has_role = bool(best_contact.get("role") or best_contact.get("job_title"))
+            if not has_role:
+                missing_contact_fields.append("role")
+
+            # Check email
+            has_email = bool(best_contact.get("email"))
+            if not has_email:
+                missing_contact_fields.append("email")
+
+            contact_complete = has_name and has_role and has_email
+        else:
+            contact_complete = False
+            missing_contact_fields.append("best_contact_not_found")
+    else:
+        contact_complete = False
+        missing_contact_fields.append("no_contacts")
+
+    # Check ICP match
+    icp_match = icp.get("pre_pass") if icp else False
+
+    # Log missing fields for debugging
+    if not company_complete or not contact_complete:
+        missing_fields = {
+            "company": missing_company_fields,
+            "contact": missing_contact_fields,
+            "icp_match": not icp_match,
+        }
+        logger = logging.getLogger("enrich")
+        logger.info(f"Required fields missing: {missing_fields}")
+
+    return company_complete, contact_complete, icp_match
+
+
+# ============================================================================
 # Main Tool Logic
 # ============================================================================
 
@@ -3345,8 +3456,10 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                 if enriched_data.industry:
                                     company["industry"] = enriched_data.industry
                                     fields_updated += 1
-                                if enriched_data.size:
-                                    company["size"] = enriched_data.size
+                                if enriched_data.employee_count:
+                                    company["employee_count"] = (
+                                        enriched_data.employee_count
+                                    )
                                     fields_updated += 1
                                 if enriched_data.address:
                                     company["address"] = enriched_data.address
@@ -3371,8 +3484,10 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                                 if enriched_data.get("industry"):
                                     company["industry"] = enriched_data["industry"]
                                     fields_updated += 1
-                                if enriched_data.get("size"):
-                                    company["size"] = enriched_data["size"]
+                                if enriched_data.get("employee_count"):
+                                    company["employee_count"] = enriched_data[
+                                        "employee_count"
+                                    ]
                                     fields_updated += 1
                                 if enriched_data.get("address"):
                                     company["address"] = enriched_data["address"]
@@ -5176,41 +5291,14 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
 
                 # Update status
 
-                # Check if all required fields are filled
-                required_fields = icp_config.get("required_fields", {})
-
-                # Handle both old format (list) and new format (dict)
-                if isinstance(required_fields, list):
-                    # Old format: required_fields is a list, assume all are company fields
-                    required_company_fields = required_fields
-                    required_contact_fields = []
-                elif isinstance(required_fields, dict):
-                    # New format: required_fields is a dict with company/contact keys
-                    required_company_fields = required_fields.get("company", [])
-                    required_contact_fields = required_fields.get("contact", [])
-                else:
-                    # Fallback
-                    required_company_fields = []
-                    required_contact_fields = []
-
-                company_complete = all(
-                    company.get(field) for field in required_company_fields
+                # Check if all required fields are filled using new validation
+                company_complete, contact_complete, icp_match = (
+                    _check_required_fields_complete(
+                        company, contacts, best_contact_id, domain, record.get("icp")
+                    )
                 )
 
-                contact_complete = True
-                if required_contact_fields and contacts:
-                    best_contact = next(
-                        (c for c in contacts if c.get("contact_id") == best_contact_id),
-                        None,
-                    )
-                    if best_contact:
-                        contact_complete = all(
-                            best_contact.get(field) for field in required_contact_fields
-                        )
-                    else:
-                        contact_complete = False
-
-                if company_complete and contact_complete:
+                if company_complete and contact_complete and icp_match:
                     new_status = "enriched"
                     enriched_count += 1
                 else:
@@ -5222,7 +5310,7 @@ async def run_enrich(payload: Dict[str, Any]) -> Dict[str, Any]:
                 append_status(
                     record["status_history"],
                     new_status,
-                    f"Enrichment completed. Company: {company_complete}, Contact: {contact_complete}",
+                    f"Enrichment completed. Company: {company_complete}, Contact: {contact_complete}, ICP: {icp_match}",
                 )
 
                 # Append audit entry

@@ -25,6 +25,7 @@ from .base import (
     AuthenticationError,
     ServiceUnavailableError,
 )
+from src.common import normalize_employee_count
 
 
 class CoresignalProvider(BaseEnrichmentProvider):
@@ -229,7 +230,6 @@ class CoresignalProvider(BaseEnrichmentProvider):
                 name=data.get("name"),
                 description=data.get("description"),
                 industry=data.get("industry"),
-                size=data.get("size"),
                 founded_year=data.get("founded_year"),
                 revenue=data.get("revenue"),
                 website=data.get("website"),
@@ -244,7 +244,9 @@ class CoresignalProvider(BaseEnrichmentProvider):
                 }
                 if data.get("address")
                 else None,
-                employee_count=data.get("employee_count"),
+                employee_count=normalize_employee_count(
+                    data.get("size") or data.get("employee_count")
+                ),
                 source=self.name,
                 confidence_score=data.get("confidence_score", 0.8),
                 last_updated=data.get("updated_at"),

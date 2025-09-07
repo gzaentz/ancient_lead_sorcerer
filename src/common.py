@@ -1486,3 +1486,93 @@ def get_email_status_rank(email_status: str) -> int:
     }
 
     return status_ranks.get(email_status, 5)
+
+
+# ============================================================================
+# Employee Count Standardization
+# ============================================================================
+
+# Standard employee count ranges
+EMPLOYEE_COUNT_RANGES = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"]
+
+
+def normalize_employee_count(value: Any) -> Optional[str]:
+    """
+    Normalize various employee count formats to standard ranges.
+
+    Args:
+        value: Employee count in various formats (int, str, range, etc.)
+
+    Returns:
+        Standardized range string or None if invalid
+    """
+    if value is None:
+        return None
+
+    # Handle string values
+    if isinstance(value, str):
+        value = value.strip()
+
+        # Handle empty strings
+        if not value:
+            return None
+
+        # Check if already in standard format
+        if value in EMPLOYEE_COUNT_RANGES:
+            return value
+
+        # Handle range formats like "1-10", "11-50", etc.
+        if "-" in value:
+            try:
+                parts = value.split("-")
+                if len(parts) == 2:
+                    min_emp = int(parts[0])
+                    max_emp = int(parts[1])
+                    return _get_range_for_employee_count((min_emp + max_emp) // 2)
+            except (ValueError, IndexError):
+                pass
+
+        # Handle "1000+" format
+        if value.endswith("+"):
+            try:
+                num = int(value[:-1])
+                if num >= 1000:
+                    return "1000+"
+            except ValueError:
+                pass
+
+        # Try to extract number from string
+        try:
+            num = int(value)
+            return _get_range_for_employee_count(num)
+        except ValueError:
+            pass
+
+    # Handle integer values
+    elif isinstance(value, int):
+        return _get_range_for_employee_count(value)
+
+    return None
+
+
+def _get_range_for_employee_count(count: int) -> str:
+    """Get the standard range for a specific employee count."""
+    if count <= 0:
+        return None  # 0 or negative counts are not valid business states
+    elif count <= 10:
+        return "1-10"
+    elif count <= 50:
+        return "11-50"
+    elif count <= 200:
+        return "51-200"
+    elif count <= 500:
+        return "201-500"
+    elif count <= 1000:
+        return "501-1000"
+    else:
+        return "1000+"
+
+
+def is_valid_employee_count_range(value: Any) -> bool:
+    """Check if a value is a valid employee count range."""
+    return value in EMPLOYEE_COUNT_RANGES

@@ -507,7 +507,7 @@ class DomainTool:
                 "naics_keywords": [],
                 "hq_location": None,
                 "locations": [],
-                "size_hint": None,
+                "employee_count": None,
                 "socials": {
                     "linkedin": None,
                     "github": None,

@@ -16,6 +16,7 @@ from .base import (
     ProviderTier,
 )
 from ..apollo.client import ApolloClient, create_apollo_client_from_env
+from src.common import normalize_employee_count
 
 # Configure logging with PII protection
 logger = logging.getLogger(__name__)
@@ -666,8 +667,9 @@ class ApolloEnrichProvider(BaseEnrichmentProvider):
                 "name": company_data.get("name"),
                 "description": company_data.get("description"),
                 "industry": company_data.get("industry"),
-                "size_hint": company_data.get("size"),
-                "employee_count": company_data.get("employee_count"),
+                "employee_count": normalize_employee_count(
+                    company_data.get("size") or company_data.get("employee_count")
+                ),
                 "founded_year": company_data.get("founded_year"),
                 "website": company_data.get("website"),
                 "linkedin_url": company_data.get("linkedin_url"),
