@@ -3,7 +3,7 @@
   "queries": [
     "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-09-06T18:37:42.528009Z",
+  "fetched_at": "2025-09-07T00:04:35.292171Z",
   "serp_results": [
     {
       "url": "https://www.phddental.com/",
@@ -12,9 +12,9 @@
       "query": "California dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-06T18:37:33.204008Z",
+      "fetched_at": "2025-09-07T00:04:24.115566Z",
       "domain": "phddental.com"
     }
   ],
-  "scoring_prompt_fingerprint": "ce606ab708fe97fae758dd63bd9cfa36cb63035492338f95abecb53b0bc1e567"
+  "scoring_prompt_fingerprint": "78caf7050c930ece7dfa91ad55a0f01661339bdd325740d0edadc0f41cd185c7"
 }

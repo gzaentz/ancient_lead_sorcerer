@@ -3,7 +3,7 @@
   "queries": [
     "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-09-06T18:37:42.531009Z",
+  "fetched_at": "2025-09-07T00:04:35.296180Z",
   "serp_results": [
     {
       "url": "https://www.espiredental.com/",
@@ -12,9 +12,9 @@
       "query": "California dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-06T18:37:33.204008Z",
+      "fetched_at": "2025-09-07T00:04:24.115566Z",
       "domain": "espiredental.com"
     }
   ],
-  "scoring_prompt_fingerprint": "db99547f80a888e08f8d46f92a6009cee274af73005dfbf89e748a92ff3feebf"
+  "scoring_prompt_fingerprint": "a1b7fb7473f3a1aa887f3071a01423eff0ec074f1e3854e0a17757c993c083cc"
 }

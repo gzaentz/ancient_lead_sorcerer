@@ -3,7 +3,7 @@
   "queries": [
     "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-09-06T18:37:42.530009Z",
+  "fetched_at": "2025-09-07T00:04:35.294175Z",
   "serp_results": [
     {
       "url": "https://www.childrensdentalfunzone.com/",
@@ -12,9 +12,9 @@
       "query": "California dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-06T18:37:33.204008Z",
+      "fetched_at": "2025-09-07T00:04:24.115566Z",
       "domain": "childrensdentalfunzone.com"
     }
   ],
-  "scoring_prompt_fingerprint": "d14a1868efd2dc4501e824fc4fd2a33e2c501efac6184ff337918cd36233e678"
+  "scoring_prompt_fingerprint": "e66185733530d5c95d2f29ddef255135dd75fd31ea1855ba7dca9d50abe7226d"
 }

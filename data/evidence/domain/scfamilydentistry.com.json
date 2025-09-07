@@ -3,7 +3,7 @@
   "queries": [
     "California dental practice multiple locations"
   ],
-  "fetched_at": "2025-09-06T18:37:42.527010Z",
+  "fetched_at": "2025-09-07T00:04:35.292171Z",
   "serp_results": [
     {
       "url": "https://scfamilydentistry.com/",
@@ -12,9 +12,9 @@
       "query": "California dental practice multiple locations",
       "page_index": 1,
       "rank_on_page": 0,
-      "fetched_at": "2025-09-06T18:37:33.204008Z",
+      "fetched_at": "2025-09-07T00:04:24.115566Z",
       "domain": "scfamilydentistry.com"
     }
   ],
-  "scoring_prompt_fingerprint": "83f0ae152a36deec066b3a71217d43c7d24514ac4079dd4193cdb8f97a0d89ea"
+  "scoring_prompt_fingerprint": "08d530f8875c022bdbec3af87a8a9659063ef9e807c8183a8d25b311623bc0a5"
 }

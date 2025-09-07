@@ -451,28 +451,39 @@ class EnrichmentProviderRouter:
             try:
                 result = await getattr(provider, method_name)(request)
                 if result.success:
-                    self._record_success(provider, result)
-                    # CRITICAL: Log which provider succeeded
-                    self.logger.info(
-                        f"✅ {provider.name} provider succeeded for {operation_description}"
-                    )
-                    self.logger.info(
-                        f"📊 Provider response: {result.provider}, Cost: ${result.cost:.4f}"
-                    )
-                    if hasattr(result, "data") and result.data:
-                        if isinstance(result.data, list):
-                            self.logger.info(
-                                f"📋 Data returned: {len(result.data)} items from {provider.name}"
-                            )
-                        elif hasattr(result.data, "email") and result.data.email:
-                            self.logger.info(
-                                f"📧 Email found via {provider.name}: {result.data.email}"
-                            )
-                        else:
-                            self.logger.info(
-                                f"📋 Data returned from {provider.name}: {type(result.data)}"
-                            )
-                    return result
+                    # Check if the result contains meaningful data
+                    has_meaningful_data = self._has_meaningful_data(result, method_name)
+
+                    if has_meaningful_data:
+                        self._record_success(provider, result)
+                        # CRITICAL: Log which provider succeeded
+                        self.logger.info(
+                            f"✅ {provider.name} provider succeeded for {operation_description}"
+                        )
+                        self.logger.info(
+                            f"📊 Provider response: {result.provider}, Cost: ${result.cost:.4f}"
+                        )
+                        if hasattr(result, "data") and result.data:
+                            if isinstance(result.data, list):
+                                self.logger.info(
+                                    f"📋 Data returned: {len(result.data)} items from {provider.name}"
+                                )
+                            elif hasattr(result.data, "email") and result.data.email:
+                                self.logger.info(
+                                    f"📧 Email found via {provider.name}: {result.data.email}"
+                                )
+                            else:
+                                self.logger.info(
+                                    f"📋 Data returned from {provider.name}: {type(result.data)}"
+                                )
+                        return result
+                    else:
+                        # Provider succeeded but returned no meaningful data - try next provider
+                        self.logger.warning(
+                            f"⚠️ {provider.name} succeeded but returned no meaningful data for {operation_description} - trying next provider"
+                        )
+                        self._record_error(provider, "Success but no meaningful data returned")
+                        errors.append(f"{provider.name}: Success but no meaningful data")
                 else:
                     self._record_error(provider, result.error)
                     errors.append(f"{provider.name}: {result.error}")
@@ -488,8 +499,19 @@ class EnrichmentProviderRouter:
             try:
                 result = await getattr(provider, method_name)(request)
                 if result.success:
-                    self._record_success(provider, result)
-                    return result
+                    # Check if the result contains meaningful data
+                    has_meaningful_data = self._has_meaningful_data(result, method_name)
+
+                    if has_meaningful_data:
+                        self._record_success(provider, result)
+                        return result
+                    else:
+                        # Provider succeeded but returned no meaningful data - try next provider
+                        self.logger.warning(
+                            f"⚠️ {provider.name} succeeded but returned no meaningful data for {operation_description} - trying next provider"
+                        )
+                        self._record_error(provider, "Success but no meaningful data returned")
+                        errors.append(f"{provider.name}: Success but no meaningful data")
                 else:
                     self._record_error(provider, result.error)
                     errors.append(f"{provider.name}: {result.error}")
@@ -505,8 +527,19 @@ class EnrichmentProviderRouter:
             try:
                 result = await getattr(provider, method_name)(request)
                 if result.success:
-                    self._record_success(provider, result)
-                    return result
+                    # Check if the result contains meaningful data
+                    has_meaningful_data = self._has_meaningful_data(result, method_name)
+
+                    if has_meaningful_data:
+                        self._record_success(provider, result)
+                        return result
+                    else:
+                        # Provider succeeded but returned no meaningful data - try next provider
+                        self.logger.warning(
+                            f"⚠️ {provider.name} succeeded but returned no meaningful data for {operation_description} - trying next provider"
+                        )
+                        self._record_error(provider, "Success but no meaningful data returned")
+                        errors.append(f"{provider.name}: Success but no meaningful data")
                 else:
                     self._record_error(provider, result.error)
                     errors.append(f"{provider.name}: {result.error}")
@@ -598,6 +631,49 @@ class EnrichmentProviderRouter:
         self.logger.warning(
             f"⚠️ Provider {provider.name} marked as unavailable: {reason}"
         )
+
+    def _has_meaningful_data(self, result: EnrichmentResult, method_name: str) -> bool:
+        """
+        Check if the enrichment result contains meaningful data.
+
+        Args:
+            result: The enrichment result to check
+            method_name: The method that was called (e.g., 'find_email', 'discover_contacts')
+
+        Returns:
+            True if the result contains meaningful data, False otherwise
+        """
+        if not result.data:
+            return False
+
+        # For email discovery methods
+        if method_name in ['find_email', 'search_prospect_email']:
+            if hasattr(result.data, 'email') and result.data.email:
+                return True
+            return False
+
+        # For contact discovery methods
+        elif method_name in ['discover_contacts', 'get_all_domain_prospects']:
+            if isinstance(result.data, list):
+                return len(result.data) > 0
+            return False
+
+        # For company enrichment methods
+        elif method_name in ['enrich_company']:
+            if hasattr(result.data, 'name') and result.data.name:
+                return True
+            if hasattr(result.data, 'domain') and result.data.domain:
+                return True
+            return False
+
+        # For email validation methods
+        elif method_name in ['validate_email']:
+            if hasattr(result.data, 'email') and result.data.email:
+                return True
+            return False
+
+        # Default: consider any data as meaningful
+        return True
 
     def get_provider_status(self) -> Dict[str, Any]:
         """
