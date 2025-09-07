@@ -3123,8 +3123,14 @@ def _check_required_fields_complete(
 
     for field in REQUIRED_COMPANY_FIELDS:
         if field == "domain":
-            # Domain is at top level, not in company object
-            if not domain:
+            # Domain can be at top level or in company object
+            value = domain or company.get("domain")
+            # Check if field is missing or contains "N/A" placeholder
+            if (
+                not value
+                or value == "N/A"
+                or (isinstance(value, str) and value.strip() == "N/A")
+            ):
                 company_complete = False
                 missing_company_fields.append(field)
         else:
@@ -3160,7 +3166,8 @@ def _check_required_fields_complete(
                 missing_contact_fields.append("role")
 
             # Check email
-            has_email = bool(best_contact.get("email"))
+            email = best_contact.get("email")
+            has_email = bool(email and email != "N/A" and (not isinstance(email, str) or email.strip() != "N/A"))
             if not has_email:
                 missing_contact_fields.append("email")
 
@@ -3173,7 +3180,16 @@ def _check_required_fields_complete(
         missing_contact_fields.append("no_contacts")
 
     # Check ICP match
-    icp_match = icp.get("pre_pass") if icp else False
+    if icp:
+        pre_pass_value = icp.get("pre_pass")
+        if isinstance(pre_pass_value, bool):
+            icp_match = pre_pass_value
+        else:
+            logger = logging.getLogger("enrich")
+            logger.warning(f"Unexpected pre_pass type: {type(pre_pass_value)}, expected bool. Setting icp_match to False.")
+            icp_match = False
+    else:
+        icp_match = False
 
     # Log missing fields for debugging
     if not company_complete or not contact_complete:

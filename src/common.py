@@ -1555,8 +1555,12 @@ def normalize_employee_count(value: Any) -> Optional[str]:
     return None
 
 
-def _get_range_for_employee_count(count: int) -> str:
-    """Get the standard range for a specific employee count."""
+def _get_range_for_employee_count(count: int) -> Optional[str]:
+    """Get the standard range for a specific employee count.
+
+    Returns:
+        Standardized range string or None for invalid counts (non-positive).
+    """
     if count <= 0:
         return None  # 0 or negative counts are not valid business states
     elif count <= 10:
@@ -1725,7 +1729,6 @@ def classify_industry_fallback(subindustry: str) -> str:
             "real estate",
             "property",
             "housing",
-            "construction",
             "development",
             "brokerage",
             "realtor",

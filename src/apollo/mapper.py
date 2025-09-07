@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
 
+from ..common import normalize_employee_count
+
 # Configure logging with PII protection
 logger = logging.getLogger(__name__)
 
@@ -419,7 +421,7 @@ class ApolloDataMapper:
         """
         # Handle company size if not already mapped
         if "employee_count" not in mapped_data and "size" in apollo_company:
-            mapped_data["employee_count"] = apollo_company["size"]
+            mapped_data["employee_count"] = normalize_employee_count(apollo_company["size"])
 
         # Handle industry normalization
         if "industry" in mapped_data:
@@ -427,9 +429,7 @@ class ApolloDataMapper:
 
         # Handle subindustry normalization
         if "subindustry" in mapped_data:
-            mapped_data["subindustry"] = self._normalize_industry(
-                mapped_data["subindustry"]
-            )
+            mapped_data["subindustry"] = self._normalize_subindustry(mapped_data["subindustry"])
 
         # Handle funding stage normalization
         if "funding_stage" in mapped_data:
@@ -481,6 +481,15 @@ class ApolloDataMapper:
 
         normalized = industry_mapping.get(industry.lower(), industry)
         return normalized
+
+    def _normalize_subindustry(self, subindustry: str) -> str:
+        """Normalize subindustry names to standard format."""
+        if not subindustry:
+            return subindustry
+
+        # Subindustry normalization mapping (loaded from config, never hardcoded)
+        mapping = self.mapping_config.get("subindustry_normalization", {})
+        return mapping.get(str(subindustry).lower(), subindustry)
 
     def _normalize_funding_stage(self, funding_stage: str) -> str:
         """Normalize funding stage to standard format."""
