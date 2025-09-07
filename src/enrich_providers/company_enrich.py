@@ -267,6 +267,9 @@ class CompanyEnrichProvider(BaseEnrichmentProvider):
         if response_data.get("industry"):
             company.industry = response_data["industry"]
 
+        if response_data.get("subindustry"):
+            company.subindustry = response_data["subindustry"]
+
         if response_data.get("size"):
             company.employee_count = normalize_employee_count(response_data["size"])
 

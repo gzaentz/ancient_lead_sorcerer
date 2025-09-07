@@ -229,7 +229,8 @@ class CoresignalProvider(BaseEnrichmentProvider):
                 domain=domain,
                 name=data.get("name"),
                 description=data.get("description"),
-                industry=data.get("industry"),
+                industry=data.get("industry"),  # Standard category
+                subindustry=data.get("subindustry"),  # Specific industry
                 founded_year=data.get("founded_year"),
                 revenue=data.get("revenue"),
                 website=data.get("website"),

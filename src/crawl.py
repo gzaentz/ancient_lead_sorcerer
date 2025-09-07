@@ -68,7 +68,32 @@ FIRECRAWL_EXTRACT_SCHEMA = {
                     "type": "string",
                     "description": "Brief business description",
                 },
-                "industry": {"type": "string", "description": "Industry or sector"},
+                "industry": {
+                    "type": "string",
+                    "description": "Standard industry category",
+                    "enum": [
+                        "Healthcare",
+                        "Technology",
+                        "Financial Services",
+                        "Manufacturing",
+                        "Retail",
+                        "Education",
+                        "Real Estate",
+                        "Professional Services",
+                        "Government",
+                        "Non-Profit",
+                        "Energy",
+                        "Transportation",
+                        "Media & Entertainment",
+                        "Agriculture",
+                        "Construction",
+                        "Other",
+                    ],
+                },
+                "subindustry": {
+                    "type": "string",
+                    "description": "Specific industry or subindustry (e.g., 'Dental', 'Emergency Dentistry', 'Software Development')",
+                },
                 "hq_location": {
                     "type": "string",
                     "description": "Headquarters location (city, state, country)",
@@ -158,7 +183,8 @@ FIRECRAWL_EXTRACT_PROMPT = (
     "COMPANY INFORMATION:\n"
     "- Company name (from title, logo, or header)\n"
     "- Brief description of what they do\n"
-    "- Industry or business type\n"
+    "- Industry (choose from: Healthcare, Technology, Financial Services, Manufacturing, Retail, Education, Real Estate, Professional Services, Government, Non-Profit, Energy, Transportation, Media & Entertainment, Agriculture, Construction, Other)\n"
+    '- Subindustry (specific business type like "Dental", "Emergency Dentistry", "Software Development")\n'
     "- Main location (city, state, country)\n"
     "- Number of locations if mentioned\n"
     "- Year founded if mentioned\n"
@@ -2240,6 +2266,7 @@ Remember: Extract unique, valuable information about each individual business op
         company["name"] = company_data.get("name")
         company["description"] = company_data.get("description")
         company["industry"] = company_data.get("industry")
+        company["subindustry"] = company_data.get("subindustry")
         company["hq_location"] = company_data.get("hq_location")
 
         # New comprehensive company fields

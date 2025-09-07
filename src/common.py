@@ -1576,3 +1576,256 @@ def _get_range_for_employee_count(count: int) -> str:
 def is_valid_employee_count_range(value: Any) -> bool:
     """Check if a value is a valid employee count range."""
     return value in EMPLOYEE_COUNT_RANGES
+
+
+# ============================================================================
+# Industry Classification Constants
+# ============================================================================
+
+# Standard industry categories for LLM classification
+STANDARD_INDUSTRIES = [
+    "Healthcare",
+    "Technology",
+    "Financial Services",
+    "Manufacturing",
+    "Retail",
+    "Education",
+    "Real Estate",
+    "Professional Services",
+    "Government",
+    "Non-Profit",
+    "Energy",
+    "Transportation",
+    "Media & Entertainment",
+    "Agriculture",
+    "Construction",
+    "Other",
+]
+
+
+def classify_industry_fallback(subindustry: str) -> str:
+    """Fallback classification if LLM doesn't provide industry."""
+    if not subindustry:
+        return "Other"
+
+    subindustry_lower = subindustry.lower()
+
+    # Healthcare
+    if any(
+        keyword in subindustry_lower
+        for keyword in [
+            "dental",
+            "medical",
+            "healthcare",
+            "hospital",
+            "clinic",
+            "pharmacy",
+            "health",
+            "medicine",
+            "orthodontics",
+            "pediatric",
+            "emergency",
+        ]
+    ):
+        return "Healthcare"
+
+    # Technology
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "software",
+            "tech",
+            "technology",
+            "it",
+            "computer",
+            "ai",
+            "data",
+            "cyber",
+            "cloud",
+            "saas",
+            "mobile",
+            "web",
+            "digital",
+        ]
+    ):
+        return "Technology"
+
+    # Financial Services
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "bank",
+            "finance",
+            "financial",
+            "insurance",
+            "investment",
+            "credit",
+            "fintech",
+            "payments",
+            "trading",
+            "wealth",
+        ]
+    ):
+        return "Financial Services"
+
+    # Manufacturing
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "manufacturing",
+            "factory",
+            "production",
+            "industrial",
+            "automotive",
+            "machinery",
+            "equipment",
+            "fabrication",
+        ]
+    ):
+        return "Manufacturing"
+
+    # Retail
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "retail",
+            "store",
+            "shop",
+            "commerce",
+            "ecommerce",
+            "fashion",
+            "consumer",
+            "goods",
+            "merchandise",
+        ]
+    ):
+        return "Retail"
+
+    # Education
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "education",
+            "school",
+            "university",
+            "college",
+            "learning",
+            "training",
+            "academic",
+            "student",
+            "teacher",
+        ]
+    ):
+        return "Education"
+
+    # Real Estate
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "real estate",
+            "property",
+            "housing",
+            "construction",
+            "development",
+            "brokerage",
+            "realtor",
+        ]
+    ):
+        return "Real Estate"
+
+    # Professional Services
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "legal",
+            "law",
+            "consulting",
+            "accounting",
+            "advertising",
+            "marketing",
+            "design",
+            "architecture",
+            "engineering",
+            "professional",
+        ]
+    ):
+        return "Professional Services"
+
+    # Government
+    elif any(
+        keyword in subindustry_lower
+        for keyword in ["government", "public", "municipal", "federal", "state", "city"]
+    ):
+        return "Government"
+
+    # Non-Profit
+    elif any(
+        keyword in subindustry_lower
+        for keyword in ["nonprofit", "non-profit", "charity", "foundation", "ngo"]
+    ):
+        return "Non-Profit"
+
+    # Energy
+    elif any(
+        keyword in subindustry_lower
+        for keyword in ["energy", "oil", "gas", "renewable", "solar", "wind", "power"]
+    ):
+        return "Energy"
+
+    # Transportation
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "transportation",
+            "logistics",
+            "shipping",
+            "trucking",
+            "aviation",
+            "railroad",
+            "delivery",
+        ]
+    ):
+        return "Transportation"
+
+    # Media & Entertainment
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "media",
+            "entertainment",
+            "news",
+            "broadcasting",
+            "publishing",
+            "gaming",
+            "sports",
+            "music",
+            "film",
+        ]
+    ):
+        return "Media & Entertainment"
+
+    # Agriculture
+    elif any(
+        keyword in subindustry_lower
+        for keyword in ["agriculture", "farming", "food", "crop", "livestock", "dairy"]
+    ):
+        return "Agriculture"
+
+    # Construction
+    elif any(
+        keyword in subindustry_lower
+        for keyword in [
+            "construction",
+            "building",
+            "contractor",
+            "roofing",
+            "plumbing",
+            "electrical",
+            "hvac",
+        ]
+    ):
+        return "Construction"
+
+    # Default fallback
+    else:
+        return "Other"

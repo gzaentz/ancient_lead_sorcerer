@@ -666,7 +666,8 @@ class ApolloEnrichProvider(BaseEnrichmentProvider):
             "company": {
                 "name": company_data.get("name"),
                 "description": company_data.get("description"),
-                "industry": company_data.get("industry"),
+                "industry": company_data.get("industry"),  # Standard category
+                "subindustry": company_data.get("subindustry"),  # Specific industry
                 "employee_count": normalize_employee_count(
                     company_data.get("size") or company_data.get("employee_count")
                 ),

@@ -37,7 +37,8 @@ class ApolloDataMapper:
             "company": {
                 "name": "name",
                 "description": "description",
-                "industry": "industry",
+                "industry": "industry",  # Standard category
+                "subindustry": "subindustry",  # Specific industry
                 "size": "employee_count",  # Map external size to employee_count ranges
                 "employee_count": "employee_count",
                 "founded_year": "founded_year",
@@ -424,6 +425,12 @@ class ApolloDataMapper:
         if "industry" in mapped_data:
             mapped_data["industry"] = self._normalize_industry(mapped_data["industry"])
 
+        # Handle subindustry normalization
+        if "subindustry" in mapped_data:
+            mapped_data["subindustry"] = self._normalize_industry(
+                mapped_data["subindustry"]
+            )
+
         # Handle funding stage normalization
         if "funding_stage" in mapped_data:
             mapped_data["funding_stage"] = self._normalize_funding_stage(
@@ -588,6 +595,7 @@ class ApolloDataMapper:
             "company_fallbacks": {
                 # Company field fallbacks
                 "industry": "Unknown",
+                "subindustry": "Unknown",
                 "employee_count": "Unknown",
             },
             "contact_fallbacks": {

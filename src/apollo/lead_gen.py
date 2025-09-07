@@ -966,7 +966,8 @@ class ApolloLeadGen:
                     "description": person.get(
                         "headline", ""
                     ),  # Use person's headline as description
-                    "industry": None,  # Apollo doesn't provide industry in basic response
+                    "industry": None,  # Standard industry category (Apollo doesn't provide in basic response)
+                    "subindustry": None,  # Specific industry (Apollo doesn't provide in basic response)
                     "employee_count": None,  # Apollo doesn't provide employee count in basic response
                     "founded_year": company.get("founded_year"),
                     "website": company.get("website_url"),

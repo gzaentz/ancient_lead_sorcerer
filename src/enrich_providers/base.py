@@ -41,7 +41,8 @@ class CompanyData:
     domain: str
     name: Optional[str] = None
     description: Optional[str] = None
-    industry: Optional[str] = None
+    industry: Optional[str] = None  # Standard industry category (e.g., "Healthcare")
+    subindustry: Optional[str] = None  # Specific industry/subindustry (e.g., "Dental")
     founded_year: Optional[int] = None
     revenue: Optional[str] = None
     website: Optional[str] = None

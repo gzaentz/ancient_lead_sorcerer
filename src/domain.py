@@ -503,7 +503,8 @@ class DomainTool:
             "company": {
                 "name": None,
                 "description": None,
-                "industry": None,
+                "industry": None,  # Standard industry category
+                "subindustry": None,  # Specific industry/subindustry,
                 "naics_keywords": [],
                 "hq_location": None,
                 "locations": [],
